@@ -30,7 +30,7 @@ sudo service nginx restart
 python3 -m pip install --upgrade pip
 
 # Install requirements from requirements.txt file
-pip3 install -r requirements.txt
+pip install -r requirements.txt
 #pipenv install
 
 docker-compose up
