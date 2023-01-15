@@ -1,5 +1,5 @@
+psycopg2-binary
 psycopg2
-websocket
-sqlalchemy
-storage
-realyer
+websockets
+flask
+sqlalchemy<2.0

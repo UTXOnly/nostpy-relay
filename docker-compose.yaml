@@ -1,18 +1,19 @@
 version: '3.8'
 
 services:
-  nginx:
-    image: nginx
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-    depends_on:
-      - relay
+  #nginx:
+  #  image: nginx
+  #  ports:
+  #    - "80:80"
+  #  volumes:
+  #    - ./nginx.conf:/etc/nginx/nginx.conf
+  #  depends_on:
+  #    - relay
   relay:
+    container_name: relay
     build: .
     ports:
-      - "7447:7447"
+      - "8008:7447"
     environment:
       DB_HOST: db
       DB_PORT: 5432
