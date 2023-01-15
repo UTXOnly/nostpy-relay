@@ -75,4 +75,5 @@ class Event(Base):
     payload = Column(JSON)
     created_at = Column(Integer, index=True)
 
-    def __init__(self, pubkey)
+    def __init__(self, pubkey):
+        pass
