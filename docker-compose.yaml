@@ -13,13 +13,16 @@ services:
       - DB_PASS=example
       - DB_NAME=postgres
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASS}@postgres:5432/${DB_NAME}
+      - SQLALCHEMY_SILENCE_UBER_WARNING=1
     depends_on:
       - db
   db:
     image: postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: example
-      POSTGRES_DB: postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASS=example
+      - DB_NAME=postgres
     ports:
       - "5432:5432"
