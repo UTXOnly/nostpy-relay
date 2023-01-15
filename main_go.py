@@ -49,5 +49,26 @@ class Event(Base):
         self.payload = payload
         self.created_at = int(time.time())
 
+
+import threading
+
+from websocket import WebSocket
+
+class WebSocket:
+    def __init__(self, conn: WebSocket):
+        self.conn = conn
+        self.mutex = threading.Lock()
+    
+    def write_json(self, data: dict):
+        with self.mutex:
+            return self.conn.send_json(data)
+        
+    def write_message(self, message_type: int, message: str):
+        with self.mutex:
+            return self.conn.send_message(message, message_type)
+
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
 while True:
     time.sleep(1)
