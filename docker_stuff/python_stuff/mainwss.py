@@ -44,7 +44,7 @@ Base.metadata.create_all(bind=engine)
 def index():
     return jsonify({"message": "Welcome to the Nostr Relay"})
 
-connected_websockets = []
+connected_websockets = set()
 
 @app.route('/event', methods=["POST"])
 async def receive_event():
@@ -63,19 +63,21 @@ async def receive_event():
 
     # Send event to all connected websockets
     async def send_to_websockets(event):
-        for websocket in connected_websockets:
-            await websocket.send(json.dumps(event))
+        data = json.dumps(event)
+        await asyncio.wait([ws.send(data) for ws in connected_websockets])
 
     # Check if request came from websocket or http
     if request.environ.get('wsgi.websocket'):
         websocket = request.environ['wsgi.websocket']
-        connected_websockets.append(websocket)
-        while True:
-            event = json.loads(await websocket.recv())
-            await send_to_websockets(event)
+        connected_websockets.add(websocket)
+        try:
+            while True:
+                event = json.loads(await websocket.recv())
+                await send_to_websockets(event)
+        finally:
+            connected_websockets.remove(websocket)
     else:
         return jsonify({"message": "Event received and processed"})
-
 
 
 @app.route('/events', methods=["GET"])
