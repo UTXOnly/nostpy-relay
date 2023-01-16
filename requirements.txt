@@ -1,5 +1,0 @@
-psycopg2-binary
-psycopg2
-websockets
-flask
-sqlalchemy<2.0

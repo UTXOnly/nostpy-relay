@@ -32,5 +32,5 @@ python3 -m pip install --upgrade pip
 # Install requirements from requirements.txt file
 pip install -r requirements.txt
 #pipenv install
-
+cd ./deocker_stuff
 docker-compose up
