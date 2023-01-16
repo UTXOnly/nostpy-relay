@@ -1,16 +1,14 @@
 import os
 import json
-import time
-import threading
+import websockets
+from time import time
+from threading import Thread
 from typing import Callable
 from flask import Flask, request, jsonify
 from sqlalchemy import create_engine, Column, String, Integer, JSON, and_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from werkzeug.middleware.proxy_fix import ProxyFix
-import websockets
-
-
 
 # App setup
 app = Flask(__name__)
@@ -39,37 +37,6 @@ class Event(Base):
 
 Base.metadata.create_all(bind=engine)
 
-
-class WebSocketClient:
-    def __init__(self, url: str):
-        self.url = url
-        self.protocol = None
-        self.mutex = threading.Lock()
-
-    async def connect(self):
-        self.protocol = await websockets.client.connect(self.url)
-
-    def write_json(self, data: dict):
-        with self.mutex:
-            return self.protocol.send(json.dumps(data))
-
-    async def read_json(self):
-        with self.mutex:
-            message = await self.protocol.recv()
-            return json.loads(message)
-
-    async def close(self):
-        await self.protocol.close()
-
-# Before save hook
-def before_save(event: dict):
-    pass
-
-# After save hook
-def after_save(event: dict):
-    with SessionLocal() as db:
-        db.query(Event).filter(Event.pubkey == event['pubkey'], Event.kind == event['kind']).order_by(Event.created_at.desc()).offset(100).delete()
-
 # Routes
 @app.route('/', methods=["GET"])
 def index():
@@ -81,7 +48,6 @@ def receive_event():
     pubkey = event.get("pubkey")
     kind = event.get("kind")
     # process event here
-
     try:
         # Save event to database
         with SessionLocal() as db:

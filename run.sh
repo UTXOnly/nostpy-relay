@@ -6,15 +6,28 @@ NC='\033[0m' # No Color
 
 echo -e "${BGreen}Please enter the subdomain for your relay${NC}"
 read domain_name
+
+echo -e "${BGreen}Is ${BRed}${domain_name}${BGreen} correct?${NC}"
+read answer
+if [[ $answer == "yes" || $answer == "y" ]]; then
+    echo -e "${BGreen}Moving on...${NC}"
+else
+    echo -e "${BGreen}Please enter the subdomain for your relay${NC}"
+    read domain_name
+fi
 # Update package manager
 sudo apt-get update -y
 
 # Install pip
-sudo apt-get install -y python3-pip nginx docker.io docker-compose nginx #pipenv
+sudo apt-get install -y python3-pip nginx docker.io docker-compose nginx
 
 sudo tee /etc/nginx/sites-available/default <<EOF
 server{
+    listen 80;
+    listen 443 ssl;
     server_name ${domain_name};
+    ssl_certificate /etc/letsencrypt/live/${domain_name}/cert.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${domain_name}/privkey.pem;
     location / {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header Host \$host;
@@ -25,12 +38,11 @@ server{
     }
 }
 EOF
-
+#Create SSL cert, follow prompts
+sudo certbot --nginx -d ${domain_name}
+wait
 sudo service nginx restart
-python3 -m pip install --upgrade pip
 
-# Install requirements from requirements.txt file
-pip install -r requirements.txt
-#pipenv install
-cd ./deocker_stuff
+
+cd ./docker_stuff
 docker-compose up
