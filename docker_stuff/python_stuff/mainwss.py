@@ -49,8 +49,11 @@ connected_websockets = set()
 @app.route('/event', methods=["POST"])
 async def receive_event():
     event = request.get_json()
+    if event is None:  # check if request.get_json() returned None
+        return jsonify({"error": "Invalid JSON"}), 400
     pubkey = event.get("pubkey")
     kind = event.get("kind")
+    payload = event.get("payload")
 
     # Save event to database
     try:
@@ -79,15 +82,18 @@ async def receive_event():
     else:
         return jsonify({"message": "Event received and processed"})
 
-
 @app.route('/events', methods=["GET"])
-async def return_events(websocket: websockets.WebSocketServerProtocol, path):
+async def return_events(websocket: websockets.WebSocketServerProtocol):
     while True:
         message = await websocket.recv()
         message = json.loads(message)
+        
+        # Extract pubkey, kind and payload from message
         pubkey = message.get("pubkey")
         kind = message.get("kind")
         payload = message.get("payload")
+
+        # Query the database
         with SessionLocal() as db:
             query = db.query(Event)
             if pubkey:
@@ -98,8 +104,11 @@ async def return_events(websocket: websockets.WebSocketServerProtocol, path):
                 for key, value in payload.items():
                     query = query.filter(and_(Event.payload.contains(key), Event.payload[key] == value))
             events = query.all()
+            
+            # Prepare the response
             results = [{'id': event.id, 'pubkey': event.pubkey, 'kind': event.kind, 'payload': event.payload, 'created_at': event.created_at} for event in events]
             await websocket.send(json.dumps(results))
+
 
 if __name__ == '__main__':
     start_server = websockets.serve(return_events, '0.0.0.0', 8008)

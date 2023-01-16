@@ -39,6 +39,13 @@ server{
 }
 EOF
 #Create SSL cert, follow prompts
+CERT_PATH="/etc/letsencrypt/live/${domain_name}/fullchain.pem"
+
+if [ ! -f $CERT_PATH ]; then
+  sudo certbot --nginx -d ${domain_name}
+else
+  echo "SSL certificate for ${domain_name} already exists."
+fi
 sudo certbot --nginx -d ${domain_name}
 wait
 sudo service nginx restart
