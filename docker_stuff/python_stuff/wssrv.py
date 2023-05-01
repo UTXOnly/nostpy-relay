@@ -17,19 +17,10 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-handler = logging.StreamHandler()
-handler.setLevel(logging.DEBUG)
-
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-
-logger.addHandler(handler)
-
-
 
 logging.basicConfig(level=logging.DEBUG)
 
-logger = logging.getLogger(__name__)
+
 
 # Add debug log lines to show DATABASE_URL value
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -105,6 +96,12 @@ test_data = test_send_event()
 # Now you can use logging.debug(), logging.info(), etc. to log messages to stdout.
 
 
+import json
+import logging
+import hashlib
+
+from models import SessionLocal, Event
+
 async def handle_new_event(event_dict, websocket):
     logger = logging.getLogger(__name__)
     pubkey = event_dict.get("pubkey")
@@ -142,11 +139,48 @@ async def handle_new_event(event_dict, websocket):
     else:
         logging.debug("Event received and processed")
         await websocket.send(json.dumps({"message": "Event received and processed"}))
+
+async def handle_subscription_request(req_type, sub_id, event_dict, websocket):
+    if req_type == "SUBSCRIBE":
+        # Subscribe to events with matching tags
+        tags = event_dict.get("tags")
+        # TODO: Implement subscription logic
+        await websocket.send(json.dumps({"message": f"Subscribed to events with tags {tags}"}))
+    elif req_type == "UNSUBSCRIBE":
+        # Unsubscribe from events with matching tags
+        tags = event_dict.get("tags")
+        # TODO: Implement unsubscription logic
+        await websocket.send(json.dumps({"message": f"Unsubscribed from events with tags {tags}"}))
+    else:
+        await websocket.send(json.dumps({"error": f"Invalid request type {req_type}"}))
+
+async def handle_websocket_connection(websocket, path):
+    logger = logging.getLogger(__name__)
+    logger.debug("New websocket connection established")
+    async for message in websocket:
+        message_list = json.loads(message)
+        logger.debug(f"Received message: {message_list}")
+        
+        if len(message_list) == 2 and message_list[0] == "EVENT":
+            # Extract event information from message
+            event_dict = message_list[1]
+            await handle_new_event(event_dict, websocket)
+        elif len(message_list) == 2 and message_list[0] == "REQ":
+            # Extract subscription information from message
+            request_dict = message_list[1]
+            req_type = request_dict.get("REQ")
+            sub_id = request_dict.get("subscription_id")
+            event_dict = request_dict.get("event_dict")
+            
+            await handle_subscription_request(req_type, sub_id, event_dict, websocket)
+        else:
+            logger.warning(f"Unsupported message format: {message_list}")
+
     
 
 
 
-async def handle_subscription_request(subscription_dict, websocket):
+async def handle_subscription_request2(subscription_dict, websocket):
     logger = logging.getLogger(__name__)
 
     subscription_id = subscription_dict.get("subscription_id")
@@ -184,38 +218,10 @@ async def handle_subscription_request(subscription_dict, websocket):
 
 
 
-async def handle_websocket_connection(websocket, path):
-    logger = logging.getLogger(__name__)
+import json
 
-    try:
-        async for message in websocket:
-            logger.debug(f"Received message: {message}")
+# ...
 
-            try:
-                message_dict = json.loads(message)
-            except json.JSONDecodeError as e:
-                logger.debug(f"Could not parse JSON: {e}")
-                continue
-            #await handle_new_event(event_id, pubkey, content, websocket)
-            #if "id" in message_dict and "pubkey" in message_dict and "content" in message_dict:
-                # Handle new event
-            logger.debug("Handling new event")
-            event_id = message_dict.get("id")
-            pubkey = message_dict.get("pubkey")
-            content = message_dict.get("content")
-                
-            await handle_new_event(event_id, pubkey, content, websocket)
-            #elif "REQ" in message_dict and "subscription_id" in message_dict:
-            #    # Handle subscription request
-            #    logger.debug("Handling subscription request")
-            #    req_type = message_dict.get("REQ")
-            #    sub_id = message_dict.get("subscription_id")
-            #    
-            #    await handle_subscription_request(req_type, sub_id, websocket)
-            
-
-    finally:
-        logger.debug("Connection closed")
 
     
 
