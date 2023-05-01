@@ -5,16 +5,17 @@ import websockets
 import hmac
 import hashlib
 from time import time
+
 from sqlalchemy import create_engine, Column, String, Integer, JSON
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-# Database setup
 DATABASE_URL = os.environ.get("DATABASE_URL")
+
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
 
+Base = declarative_base()
 
 class Event(Base):
     __tablename__ = 'event'
@@ -39,81 +40,97 @@ class Event(Base):
 
 Base.metadata.create_all(bind=engine)
 
+async def handle_new_event(event_dict, websocket):
+    pubkey = event_dict.get("pubkey")
+    kind = event_dict.get("kind")
+    created_at = event_dict.get("created_at")
+    tags = event_dict.get("tags")
+    content = event_dict.get("content")
+    event_id = event_dict.get("id")
+    sig = event_dict.get("sig")
 
-connected_websockets = set()
+    # Compute ID from event data and check signature
+    event_data = json.dumps([0, pubkey, created_at, kind, tags, content], sort_keys=True)
+    computed_id = hashlib.sha256(event_data.encode()).hexdigest()
+    if sig != computed_id:
+        await websocket.send(json.dumps({"error": "Invalid signature"}))
+        return
 
-async def event_handler(websocket, path):
-    connected_websockets.add(websocket)
-    subscriptions = []
+    # Save event to database
+    with SessionLocal() as db:
+        new_event = Event(
+            id=event_id,
+            pubkey=pubkey,
+            kind=kind,
+            created_at=created_at,
+            tags=tags,
+            content=content,
+            sig=sig
+        )
+        db.add(new_event)
+        db.commit()
+
+    await websocket.send(json.dumps({"message": "Event received and processed"}))
+
+
+async def handle_subscription_request(subscription_dict, websocket):
+    subscription_id = subscription_dict.get("subscription_id")
+    filters = subscription_dict.get("filters", {})
+    with SessionLocal() as db:
+        query = db.query(Event)
+        if filters.get("ids"):
+            query = query.filter(Event.id.in_(filters.get("ids")))
+        if filters.get("authors"):
+            query = query.filter(Event.pubkey.in_(filters.get("authors")))
+        if filters.get("kinds"):
+            query = query.filter(Event.kind.in_(filters.get("kinds")))
+        if filters.get("#e"):
+            query = query.filter(Event.tags.any(lambda tag: tag[0] == 'e' and tag[1] in filters.get("#e")))
+        if filters.get("#p"):
+            query = query.filter(Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in filters.get("#p")))
+        if filters.get("since"):
+            query = query.filter(Event.created_at > filters.get("since"))
+        if filters.get("until"):
+            query = query.filter(Event.created_at < filters.get("until"))
+        query_result = query.limit(filters.get("limit", 100)).all()
+
+        # Send subscription data to client
+        subscription_data = {
+            "subscription_id": subscription_id,
+            "filters": filters, 
+            "query_result": query_result
+        }
+        print(subscription_data)
+        await websocket.send(json.dumps({
+            "subscription_id": subscription_id,
+            "query_result": query_result
+        }))
+
+
+async def handle_websocket_connection(websocket, path):
     try:
-        while True:
-            if not websocket.open:  # check if connection is closed
-                break
-            message = await websocket.recv()
-            message = json.loads(message)
-            event = message.get("EVENT")
-            print(event)
+        async for message in websocket:
+            print(f"Received message: {message}")
+            
+            try:
+                message_dict = json.loads(message)
+            except json.JSONDecodeError as e:
+                print(f"Could not parse JSON: {e}")
+                continue
+            
+            if "id" in message_dict and "pubkey" in message_dict and "content" in message_dict:
+                # Handle new event
+                await handle_new_event(message_dict, websocket)
+            
+            elif "REQ" in message_dict and "subscription_id" in message_dict:
+                # Handle subscription request
+                await handle_subscription_request(message_dict, websocket)
 
-            # rest of the code
-
-
-            if event:
-                pubkey = event.get("pubkey")
-                kind = event.get("kind")
-                created_at = event.get("created_at")
-                tags = event.get("tags")
-                content = event.get("content")
-                id = event.get("id")
-                sig = event.get("sig")
-
-                event_data = json.dumps([0, pubkey, created_at, kind, tags, content], sort_keys=True)
-                computed_id = hashlib.sha256(event_data.encode()).hexdigest()
-
-                #if id != computed_id:
-                #    print("Event ID does not match computed event data. id: ", id, " computed_id: ", computed_id)
-                #    await websocket.send(json.dumps({"error": "Event ID does not match computed event data"}))
-                #    continue
-                ## Verify signature
-                #if not hmac.compare_digest(sig, hmac.new(bytes.fromhex(pubkey), event_data.encode(), hashlib.sha256).hexdigest()):
-                #    print("Invalid signature. sig: ", sig, " calculated_sig: ", hmac.new(bytes.fromhex(pubkey), event_data.encode(), hashlib.sha256).hexdigest())
-                #    await websocket.send(json.dumps({"error": "Invalid signature"}))
-                #    continue
-#
-                with SessionLocal() as db:
-                    new_event = Event(id=id, pubkey=pubkey, kind=kind, created_at=created_at, tags=tags, content=content, sig=sig)
-                    db.add(new_event)
-                    db.commit()
-                await websocket.send(json.dumps({"message": "Event received and processed"}))
-
-            elif message.get("REQ"):
-                subscription_id = message.get("subscription_id")
-                filters = message.get("filters")
-                with SessionLocal() as db:
-                    query = db.query(Event)
-                    if filters.get("ids"):
-                        query = query.filter(Event.id.in_(filters.get("ids")))
-                    if filters.get("authors"):
-                        query = query.filter(Event.pubkey.in_(filters.get("authors")))
-                    if filters.get("kinds"):
-                        query = query.filter(Event.kind.in_([filters.get("kinds")]))
-                    if filters.get("#e"):
-                        query = query.filter(Event.tags.any(lambda tag: tag[0] == 'e' and tag[1] in filters.get("#e")))
-                    if filters.get("#p"):
-                        query = query.filter(Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in filters.get("#p")))
-                    if filters.get("since"):
-                        query = query.filter(Event.created_at > filters.get("since"))
-                    if filters.get("until"):
-                        query = query.filter(Event.created_at < filters.get("until"))
-                    query_result = query.limit(filters.get("limit")).all()
-                    subscription_data = {"subscription_id": subscription_id, "filters": filters, "query_result": query_result}
-                    subscriptions.append(subscription_data)
-                    print(subscription_data)
-                    await websocket.send(json.dumps({"subscription_id": subscription_id, "query_result": query_result}))
     finally:
-        connected_websockets.remove(websocket)
+        print("Connection closed")
+    
 
-start_server = websockets.serve(event_handler, '0.0.0.0', 8008)
-asyncio.get_event_loop().run_until_complete(start_server)
-asyncio.get_event_loop().run_forever()
-
-
+if __name__ == "__main__":
+    start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
+    asyncio.get_event_loop().run_until_complete(start_server)
+    asyncio.get_event_loop().run_forever()
