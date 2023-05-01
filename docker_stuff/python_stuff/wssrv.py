@@ -12,6 +12,20 @@ from sqlalchemy.ext.declarative import declarative_base
 import logging
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+handler = logging.StreamHandler()
+handler.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+
+logger.addHandler(handler)
+
+
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -86,19 +100,6 @@ def test_send_event():
 test_data = test_send_event()
 
 
-
-import logging
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-handler = logging.StreamHandler()
-handler.setLevel(logging.DEBUG)
-
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-
-logger.addHandler(handler)
 
 
 # Now you can use logging.debug(), logging.info(), etc. to log messages to stdout.
@@ -199,12 +200,19 @@ async def handle_websocket_connection(websocket, path):
             if "id" in message_dict and "pubkey" in message_dict and "content" in message_dict:
                 # Handle new event
                 logger.debug("Handling new event")
-                await handle_new_event(message_dict, websocket)
-
+                event_id = message_dict.get("id")
+                pubkey = message_dict.get("pubkey")
+                content = message_dict.get("content")
+                
+                await handle_new_event(event_id, pubkey, content, websocket)
             elif "REQ" in message_dict and "subscription_id" in message_dict:
                 # Handle subscription request
                 logger.debug("Handling subscription request")
-                await handle_subscription_request(message_dict, websocket)
+                req_type = message_dict.get("REQ")
+                sub_id = message_dict.get("subscription_id")
+                
+                await handle_subscription_request(req_type, sub_id, websocket)
+            
 
     finally:
         logger.debug("Connection closed")
