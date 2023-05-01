@@ -5,12 +5,21 @@ import websockets
 import hmac
 import hashlib
 from time import time
-
 from sqlalchemy import create_engine, Column, String, Integer, JSON
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
+import logging
+
+
+
+logging.basicConfig(level=logging.DEBUG)
+
+logger = logging.getLogger(__name__)
+
+# Add debug log lines to show DATABASE_URL value
 DATABASE_URL = os.environ.get("DATABASE_URL")
+logger.debug(f"DATABASE_URL value: {DATABASE_URL}")
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -37,47 +46,24 @@ class Event(Base):
         self.content = content
         self.sig = sig
 
-
+# Add debug log line to show metadata creation
+logger.debug("Creating database metadata")
 Base.metadata.create_all(bind=engine)
 
-#async def handle_new_event(event_dict, websocket):
-#    pubkey = event_dict.get("pubkey")
-#    kind = event_dict.get("kind")
-#    created_at = event_dict.get("created_at")
-#    tags = event_dict.get("tags")
-#    content = event_dict.get("content")
-#    event_id = event_dict.get("id")
-#    sig = event_dict.get("sig")
-#
-#    # Compute ID from event data and check signature
-#    event_data = json.dumps([0, pubkey, created_at, kind, tags, content], sort_keys=True)
-#    computed_id = hashlib.sha256(event_data.encode()).hexdigest()
-#    if sig != computed_id:
-#        await websocket.send(json.dumps({"error": "Invalid signature"}))
-#        return
-#
-#    # Save event to database
-#    with SessionLocal() as db:
-#        new_event = Event(
-#            id=event_id,
-#            pubkey=pubkey,
-#            kind=kind,
-#            created_at=created_at,
-#            tags=tags,
-#            content=content,
-#            sig=sig
-#        )
-#        db.add(new_event)
-#        db.commit()
-#
-#    await websocket.send(json.dumps({"message": "Event received and processed"}))
+
 import logging
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler()]
-)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+handler = logging.StreamHandler()
+handler.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+
+logger.addHandler(handler)
+
 
 # Now you can use logging.debug(), logging.info(), etc. to log messages to stdout.
 
@@ -122,7 +108,10 @@ async def handle_new_event(event_dict, websocket):
     
 
 
+
 async def handle_subscription_request(subscription_dict, websocket):
+    logger = logging.getLogger(__name__)
+
     subscription_id = subscription_dict.get("subscription_id")
     filters = subscription_dict.get("filters", {})
     with SessionLocal() as db:
@@ -146,37 +135,44 @@ async def handle_subscription_request(subscription_dict, websocket):
         # Send subscription data to client
         subscription_data = {
             "subscription_id": subscription_id,
-            "filters": filters, 
+            "filters": filters,
             "query_result": query_result
         }
-        print(subscription_data)
+        logger.debug("Sending subscription data to client")
+        logger.debug(subscription_data)
         await websocket.send(json.dumps({
             "subscription_id": subscription_id,
             "query_result": query_result
         }))
 
 
+
 async def handle_websocket_connection(websocket, path):
+    logger = logging.getLogger(__name__)
+
     try:
         async for message in websocket:
-            print(f"Received message: {message}")
-            
+            logger.debug(f"Received message: {message}")
+
             try:
                 message_dict = json.loads(message)
             except json.JSONDecodeError as e:
-                print(f"Could not parse JSON: {e}")
+                logger.debug(f"Could not parse JSON: {e}")
                 continue
-            
+
             if "id" in message_dict and "pubkey" in message_dict and "content" in message_dict:
                 # Handle new event
+                logger.debug("Handling new event")
                 await handle_new_event(message_dict, websocket)
-            
+
             elif "REQ" in message_dict and "subscription_id" in message_dict:
                 # Handle subscription request
+                logger.debug("Handling subscription request")
                 await handle_subscription_request(message_dict, websocket)
 
     finally:
-        print("Connection closed")
+        logger.debug("Connection closed")
+
     
 
 if __name__ == "__main__":
