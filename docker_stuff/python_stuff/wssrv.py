@@ -40,7 +40,41 @@ class Event(Base):
 
 Base.metadata.create_all(bind=engine)
 
+#async def handle_new_event(event_dict, websocket):
+#    pubkey = event_dict.get("pubkey")
+#    kind = event_dict.get("kind")
+#    created_at = event_dict.get("created_at")
+#    tags = event_dict.get("tags")
+#    content = event_dict.get("content")
+#    event_id = event_dict.get("id")
+#    sig = event_dict.get("sig")
+#
+#    # Compute ID from event data and check signature
+#    event_data = json.dumps([0, pubkey, created_at, kind, tags, content], sort_keys=True)
+#    computed_id = hashlib.sha256(event_data.encode()).hexdigest()
+#    if sig != computed_id:
+#        await websocket.send(json.dumps({"error": "Invalid signature"}))
+#        return
+#
+#    # Save event to database
+#    with SessionLocal() as db:
+#        new_event = Event(
+#            id=event_id,
+#            pubkey=pubkey,
+#            kind=kind,
+#            created_at=created_at,
+#            tags=tags,
+#            content=content,
+#            sig=sig
+#        )
+#        db.add(new_event)
+#        db.commit()
+#
+#    await websocket.send(json.dumps({"message": "Event received and processed"}))
+import logging
+
 async def handle_new_event(event_dict, websocket):
+    logger = logging.getLogger(__name__)
     pubkey = event_dict.get("pubkey")
     kind = event_dict.get("kind")
     created_at = event_dict.get("created_at")
@@ -57,20 +91,24 @@ async def handle_new_event(event_dict, websocket):
         return
 
     # Save event to database
-    with SessionLocal() as db:
-        new_event = Event(
-            id=event_id,
-            pubkey=pubkey,
-            kind=kind,
-            created_at=created_at,
-            tags=tags,
-            content=content,
-            sig=sig
-        )
-        db.add(new_event)
-        db.commit()
-
-    await websocket.send(json.dumps({"message": "Event received and processed"}))
+    try:
+        with SessionLocal() as db:
+            new_event = Event(
+                id=event_id,
+                pubkey=pubkey,
+                kind=kind,
+                created_at=created_at,
+                tags=tags,
+                content=content,
+                sig=sig
+            )
+            db.add(new_event)
+            db.commit()
+    except Exception as e:
+        logger.exception(e)
+        await websocket.send(json.dumps({"error": "Failed to save event to database"}))
+    else:
+        await websocket.send(json.dumps({"message": "Event received and processed"}))
 
 
 async def handle_subscription_request(subscription_dict, websocket):
