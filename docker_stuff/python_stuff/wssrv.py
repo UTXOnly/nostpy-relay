@@ -101,7 +101,6 @@ import logging
 import hashlib
 
 
-
 async def handle_new_event(event_dict, websocket):
     logger = logging.getLogger(__name__)
     pubkey = event_dict.get("pubkey")
@@ -113,11 +112,11 @@ async def handle_new_event(event_dict, websocket):
     sig = event_dict.get("sig")
 
     # Compute ID from event data and check signature
-    #event_data = json.dumps([0, pubkey, created_at, kind, tags, content], sort_keys=True)
-    #computed_id = hashlib.sha256(event_data.encode()).hexdigest()
-    #if sig != computed_id:
-    #    await websocket.send(json.dumps({"error": "Invalid signature"}))
-    #    return
+    event_data = json.dumps([0, pubkey, created_at, kind, tags, content], sort_keys=True)
+    computed_id = hashlib.sha256(event_data.encode()).hexdigest()
+    if sig != computed_id:
+        await websocket.send(json.dumps({"error": "Invalid signature"}))
+        return
 
     # Save event to database
     try:
@@ -168,15 +167,19 @@ async def handle_websocket_connection(websocket, path):
         elif len(message_list) == 2 and message_list[0] == "REQ":
             # Extract subscription information from message
             request_dict = message_list[1]
-            req_type = request_dict.get("REQ")
-            sub_id = request_dict.get("subscription_id")
-            event_dict = request_dict.get("event_dict")
-            
-            await handle_subscription_request(req_type, sub_id, event_dict, websocket)
+            subscription_id = request_dict.get("subscription_id")
+            filters = request_dict.get("filters", {})
+
+            # Determine which subscription function to call based on the presence of a "query" key in the filters
+            if filters.get("query"):
+                await handle_subscription_request2(request_dict, websocket)
+            else:
+                req_type = request_dict.get("REQ")
+                event_dict = request_dict.get("event_dict")
+                await handle_subscription_request(req_type, subscription_id, event_dict, websocket)
         else:
             logger.warning(f"Unsupported message format: {message_list}")
 
-    
 
 
 
