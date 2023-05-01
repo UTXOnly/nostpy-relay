@@ -155,14 +155,12 @@ async def handle_websocket_connection(websocket, path):
             # Extract event information from message
             event_dict = message_list[1]
             await handle_new_event(event_dict, websocket)
-        elif len(message_list) == 3 and message_list[0] == "REQ":
-            # Extract subscription information from message
-    
-            event_dict = message_list[1]
-            
-            await handle_subscription_request2(event_dict, websocket)
+        elif len(message_list) > 2 and message_list[0] == "REQ":
+           # Extract subscription information from message
+           event_dict = {index: message_list[index] for index in range(len(message_list))}
+           await handle_subscription_request2(event_dict, websocket)
         else:
-            logger.warning(f"Unsupported message format: {message_list}")
+           logger.warning(f"Unsupported message format: {message_list}")
 
     
 
