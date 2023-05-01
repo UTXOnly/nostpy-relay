@@ -113,11 +113,11 @@ async def handle_new_event(event_dict, websocket):
     sig = event_dict.get("sig")
 
     # Compute ID from event data and check signature
-    event_data = json.dumps([0, pubkey, created_at, kind, tags, content], sort_keys=True)
-    computed_id = hashlib.sha256(event_data.encode()).hexdigest()
-    if sig != computed_id:
-        await websocket.send(json.dumps({"error": "Invalid signature"}))
-        return
+    #event_data = json.dumps([0, pubkey, created_at, kind, tags, content], sort_keys=True)
+    #computed_id = hashlib.sha256(event_data.encode()).hexdigest()
+    #if sig != computed_id:
+    #    await websocket.send(json.dumps({"error": "Invalid signature"}))
+    #    return
 
     # Save event to database
     try:
