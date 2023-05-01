@@ -166,50 +166,82 @@ async def handle_websocket_connection(websocket, path):
 
 
 
-async def handle_subscription_request(subscription_dict, websocket):
+#async def handle_subscription_request(subscription_dict, websocket):
+#    logger = logging.getLogger(__name__)
+#
+#    subscription_id = subscription_dict.get("subscription_id")
+#    filters = subscription_dict.get("filters", {})
+#    with SessionLocal() as db:
+#        query = db.query(Event)
+#
+#        # Construct query based on channel and filters
+#        if subscription_id.startswith("timeline:"):
+#            channel, subchannel = subscription_id.split(":")[1:]
+#            if subchannel == "all":
+#                query = query.filter(Event.kind.in_(filters.get("kinds", [])))
+#            elif subchannel == "latest":
+#                query = query.filter(Event.kind.in_(filters.get("kinds", [])))
+#                query = query.limit(filters.get("limit", 100))
+#                query = query.order_by(Event.created_at.desc())
+#            else:
+#                raise ValueError("Unsupported subchannel for timeline channel")
+#        elif subscription_id.startswith("login:"):
+#            channel, user_id = subscription_id.split(":")[1:]
+#            if channel == "lists":
+#                query = query.filter(Event.pubkey.in_(filters["authors"]))
+#                query = query.filter(Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in filters.get("#p", [])))
+#                query = query.filter(Event.kind.in_([3, 4, 5]))
+#                query = query.limit(20)
+#                query = query.order_by(Event.created_at.desc())
+#            else:
+#                raise ValueError("Unsupported channel for login")
+#
+#        query_result = query.all()
+#
+#        # Send subscription data to client
+#        subscription_data = {
+#            "subscription_id": subscription_id,
+#            "filters": filters,
+#            "query_result": query_result
+#        }
+#        logger.debug("Sending subscription data to client")
+#        logger.debug(subscription_data)
+#        await websocket.send(json.dumps({
+#            "subscription_id": subscription_id,
+#            "query_result": query_result
+#        }))
+
+async def handle_query_event(query_dict, websocket):
     logger = logging.getLogger(__name__)
+    
+    # Extract query information from request
+    pubkey = query_dict.get("pubkey")
+    kind = query_dict.get("kind")
+    created_at = query_dict.get("created_at")
+    tags = query_dict.get("tags")
 
-    subscription_id = subscription_dict.get("subscription_id")
-    filters = subscription_dict.get("filters", {})
-    with SessionLocal() as db:
-        query = db.query(Event)
+    # Build query based on provided parameters
+    query = {}
+    if pubkey:
+        query['pubkey'] = pubkey
+    if kind:
+        query['kind'] = kind
+    if created_at:
+        query['created_at'] = created_at
+    if tags:
+        query['tags'] = {'$all': tags}
 
-        # Construct query based on channel and filters
-        if subscription_id.startswith("timeline:"):
-            channel, subchannel = subscription_id.split(":")[1:]
-            if subchannel == "all":
-                query = query.filter(Event.kind.in_(filters.get("kinds", [])))
-            elif subchannel == "latest":
-                query = query.filter(Event.kind.in_(filters.get("kinds", [])))
-                query = query.limit(filters.get("limit", 100))
-                query = query.order_by(Event.created_at.desc())
-            else:
-                raise ValueError("Unsupported subchannel for timeline channel")
-        elif subscription_id.startswith("login:"):
-            channel, user_id = subscription_id.split(":")[1:]
-            if channel == "lists":
-                query = query.filter(Event.pubkey.in_(filters["authors"]))
-                query = query.filter(Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in filters.get("#p", [])))
-                query = query.filter(Event.kind.in_([3, 4, 5]))
-                query = query.limit(20)
-                query = query.order_by(Event.created_at.desc())
-            else:
-                raise ValueError("Unsupported channel for login")
+    # Search database using query
+    try:
+        with SessionLocal() as db:
+            results = db.query(Event).filter_by(**query).all()
+    except Exception as e:
+        logging.exception(f"Error retrieving events: {e}")
+        await websocket.send(json.dumps({"error": "Failed to retrieve events from database"}))
+    else:
+        logging.debug(f"{len(results)} events retrieved")
+        await websocket.send(json.dumps({"message": f"{len(results)} events retrieved", "results": [event.as_dict() for event in results]}))
 
-        query_result = query.all()
-
-        # Send subscription data to client
-        subscription_data = {
-            "subscription_id": subscription_id,
-            "filters": filters,
-            "query_result": query_result
-        }
-        logger.debug("Sending subscription data to client")
-        logger.debug(subscription_data)
-        await websocket.send(json.dumps({
-            "subscription_id": subscription_id,
-            "query_result": query_result
-        }))
 
 
 if __name__ == "__main__":
