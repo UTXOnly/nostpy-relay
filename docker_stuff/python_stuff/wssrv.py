@@ -45,10 +45,44 @@ class Event(Base):
         self.tags = tags
         self.content = content
         self.sig = sig
+    
+    @classmethod
+    def add_event_to_database(cls, event_data):
+        with SessionLocal() as session:
+            new_event = cls(**event_data)
+            logging.debug(f'created new event:\n{new_event}')
+            session.add(new_event)
+            logging.debug('about to commit session changes...')
+            session.commit()
+
+            # log confirmation message
+            logging.info(f"Added event {new_event.id} to database.")
+
 
 # Add debug log line to show metadata creation
 logger.debug("Creating database metadata")
 Base.metadata.create_all(bind=engine)
+def test_send_event():
+    # assuming you've already set up the necessary imports and logging configs
+
+    # create test event data
+    event_data = {
+        'id': '528330f3aa49b00e8aec29213b2da88e547b293b3721e95c2245b26ffecdb747',
+        'pubkey': '0f0b173aee28fa4d4e8868e51b2cd5c8743f37c0a8584b7cb06c880d52a397c5',
+        'content': 'bvcbvcbvc',
+        'kind': 1,
+        'created_at': 1682904563,
+        'tags': [],
+        'sig': 'ac0ae0551ffeafb3a2ea04ec2d5a1675cc122c2f5763c7890f7d0cbced00b2fbf584413081a5fc152c9845c8643ec90e9e4433ce2dbf1fb6d257998ed3d80427'
+    }
+
+    # send event
+    logging.debug(f'Sending event: {event_data}')
+    Event.add_event_to_database(event_data)
+
+    # log confirmation message
+    logging.debug('Event sent successfully.')
+
 
 
 import logging
