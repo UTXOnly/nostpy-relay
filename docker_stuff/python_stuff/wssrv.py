@@ -11,17 +11,11 @@ from sqlalchemy.ext.declarative import declarative_base
 
 import logging
 
-
-
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
 logging.basicConfig(level=logging.DEBUG)
-
-
-
 # Add debug log lines to show DATABASE_URL value
 DATABASE_URL = os.environ.get("DATABASE_URL")
 logger.debug(f"DATABASE_URL value: {DATABASE_URL}")
@@ -89,16 +83,6 @@ def test_send_event():
     logging.debug('Event sent successfully.')
 
 test_data = test_send_event()
-
-
-
-
-# Now you can use logging.debug(), logging.info(), etc. to log messages to stdout.
-
-
-import json
-import logging
-import hashlib
 
 
 async def handle_new_event(event_dict, websocket):
@@ -172,7 +156,7 @@ async def handle_websocket_connection(websocket, path):
 
             # Determine which subscription function to call based on the presence of a "query" key in the filters
             if filters.get("query"):
-                await handle_subscription_request2(request_dict, websocket)
+                await handle_subscription_request(request_dict, websocket)
             else:
                 req_type = request_dict.get("REQ")
                 event_dict = request_dict.get("event_dict")
@@ -182,29 +166,37 @@ async def handle_websocket_connection(websocket, path):
 
 
 
-
-async def handle_subscription_request2(subscription_dict, websocket):
+async def handle_subscription_request(subscription_dict, websocket):
     logger = logging.getLogger(__name__)
 
     subscription_id = subscription_dict.get("subscription_id")
     filters = subscription_dict.get("filters", {})
     with SessionLocal() as db:
         query = db.query(Event)
-        if filters.get("ids"):
-            query = query.filter(Event.id.in_(filters.get("ids")))
-        if filters.get("authors"):
-            query = query.filter(Event.pubkey.in_(filters.get("authors")))
-        if filters.get("kinds"):
-            query = query.filter(Event.kind.in_(filters.get("kinds")))
-        if filters.get("#e"):
-            query = query.filter(Event.tags.any(lambda tag: tag[0] == 'e' and tag[1] in filters.get("#e")))
-        if filters.get("#p"):
-            query = query.filter(Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in filters.get("#p")))
-        if filters.get("since"):
-            query = query.filter(Event.created_at > filters.get("since"))
-        if filters.get("until"):
-            query = query.filter(Event.created_at < filters.get("until"))
-        query_result = query.limit(filters.get("limit", 100)).all()
+
+        # Construct query based on channel and filters
+        if subscription_id.startswith("timeline:"):
+            channel, subchannel = subscription_id.split(":")[1:]
+            if subchannel == "all":
+                query = query.filter(Event.kind.in_(filters.get("kinds", [])))
+            elif subchannel == "latest":
+                query = query.filter(Event.kind.in_(filters.get("kinds", [])))
+                query = query.limit(filters.get("limit", 100))
+                query = query.order_by(Event.created_at.desc())
+            else:
+                raise ValueError("Unsupported subchannel for timeline channel")
+        elif subscription_id.startswith("login:"):
+            channel, user_id = subscription_id.split(":")[1:]
+            if channel == "lists":
+                query = query.filter(Event.pubkey.in_(filters["authors"]))
+                query = query.filter(Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in filters.get("#p", [])))
+                query = query.filter(Event.kind.in_([3, 4, 5]))
+                query = query.limit(20)
+                query = query.order_by(Event.created_at.desc())
+            else:
+                raise ValueError("Unsupported channel for login")
+
+        query_result = query.all()
 
         # Send subscription data to client
         subscription_data = {
@@ -219,14 +211,6 @@ async def handle_subscription_request2(subscription_dict, websocket):
             "query_result": query_result
         }))
 
-
-
-import json
-
-# ...
-
-
-    
 
 if __name__ == "__main__":
     start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
