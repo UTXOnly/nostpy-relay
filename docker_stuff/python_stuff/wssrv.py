@@ -12,7 +12,7 @@ from sqlalchemy.ext.declarative import declarative_base
 import logging
 
 
-import logging
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -100,7 +100,7 @@ import json
 import logging
 import hashlib
 
-from models import SessionLocal, Event
+
 
 async def handle_new_event(event_dict, websocket):
     logger = logging.getLogger(__name__)
