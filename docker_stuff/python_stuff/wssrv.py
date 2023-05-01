@@ -196,22 +196,22 @@ async def handle_websocket_connection(websocket, path):
             except json.JSONDecodeError as e:
                 logger.debug(f"Could not parse JSON: {e}")
                 continue
-
-            if "id" in message_dict and "pubkey" in message_dict and "content" in message_dict:
+            #await handle_new_event(event_id, pubkey, content, websocket)
+            #if "id" in message_dict and "pubkey" in message_dict and "content" in message_dict:
                 # Handle new event
-                logger.debug("Handling new event")
-                event_id = message_dict.get("id")
-                pubkey = message_dict.get("pubkey")
-                content = message_dict.get("content")
+            logger.debug("Handling new event")
+            event_id = message_dict.get("id")
+            pubkey = message_dict.get("pubkey")
+            content = message_dict.get("content")
                 
-                await handle_new_event(event_id, pubkey, content, websocket)
-            elif "REQ" in message_dict and "subscription_id" in message_dict:
-                # Handle subscription request
-                logger.debug("Handling subscription request")
-                req_type = message_dict.get("REQ")
-                sub_id = message_dict.get("subscription_id")
-                
-                await handle_subscription_request(req_type, sub_id, websocket)
+            #    await handle_new_event(event_id, pubkey, content, websocket)
+            #elif "REQ" in message_dict and "subscription_id" in message_dict:
+            #    # Handle subscription request
+            #    logger.debug("Handling subscription request")
+            #    req_type = message_dict.get("REQ")
+            #    sub_id = message_dict.get("subscription_id")
+            #    
+            #    await handle_subscription_request(req_type, sub_id, websocket)
             
 
     finally:
