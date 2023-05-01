@@ -73,6 +73,15 @@ Base.metadata.create_all(bind=engine)
 #    await websocket.send(json.dumps({"message": "Event received and processed"}))
 import logging
 
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+
+# Now you can use logging.debug(), logging.info(), etc. to log messages to stdout.
+
+
 async def handle_new_event(event_dict, websocket):
     logger = logging.getLogger(__name__)
     pubkey = event_dict.get("pubkey")
@@ -105,10 +114,12 @@ async def handle_new_event(event_dict, websocket):
             db.add(new_event)
             db.commit()
     except Exception as e:
-        logger.exception(e)
+        logging.exception(f"Error saving event: {e}")
         await websocket.send(json.dumps({"error": "Failed to save event to database"}))
     else:
+        logging.debug("Event received and processed")
         await websocket.send(json.dumps({"message": "Event received and processed"}))
+    
 
 
 async def handle_subscription_request(subscription_dict, websocket):
