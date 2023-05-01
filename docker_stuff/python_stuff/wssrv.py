@@ -131,6 +131,7 @@ async def handle_websocket_connection(websocket, path):
     """
     logger = logging.getLogger(__name__)
     logger.debug("New websocket connection established")
+    
     async for message in websocket:
         message_list = json.loads(message)
         logger.debug(f"Received message: {message_list}")
@@ -143,23 +144,28 @@ async def handle_websocket_connection(websocket, path):
                 query_dict = message_list[2]
 
                 # Handle different types of messages based on their structure
+                logger.debug(f"Handling {message_type} message with id {request_id}")
                 if message_type == "EVENT":
                     # Call `handle_new_event` function with event dictionary
                     await handle_new_event(query_dict)
                 elif message_type == "REQUEST":
                     # Call `handle_query_event` function with query dictionary and send the response back to client
                     filters = query_dict.get("filters", {})
+                    logger.debug(f"Received query request with filters: {filters}")
                     await handle_query_event(filters, websocket, request_id)
                 elif "SUBSCRIBE" in query_dict:
                     # Handle subscription-related requests
                     logger.warning("Subscription-related requests are not implemented")
                 else:
                     logger.warning(f"Unsupported message format: {query_dict}")
+                    logger.debug(f"Full contents of unsupported message: {message_list}")
+                    
             except Exception as e:
                 logger.exception(f"Error handling {message_type}: {e}")
                 await websocket.send(json.dumps({"error": str(e)}))
         else:
             logger.warning(f"Unsupported message format: {message_list}")
+
 
 
 
