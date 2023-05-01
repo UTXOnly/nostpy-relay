@@ -11,11 +11,16 @@ from sqlalchemy.ext.declarative import declarative_base
 
 import logging
 
+
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
 logging.basicConfig(level=logging.DEBUG)
+
+
+
 # Add debug log lines to show DATABASE_URL value
 DATABASE_URL = os.environ.get("DATABASE_URL")
 logger.debug(f"DATABASE_URL value: {DATABASE_URL}")
@@ -96,12 +101,12 @@ async def handle_new_event(event_dict, websocket):
     sig = event_dict.get("sig")
 
     # Compute ID from event data and check signature
-    event_data = json.dumps([0, pubkey, created_at, kind, tags, content], sort_keys=True)
-    computed_id = hashlib.sha256(event_data.encode()).hexdigest()
+    #event_data = json.dumps([0, pubkey, created_at, kind, tags, content], sort_keys=True)
+    #computed_id = hashlib.sha256(event_data.encode()).hexdigest()
     #if sig != computed_id:
     #    await websocket.send(json.dumps({"error": "Invalid signature"}))
     #    return
-#
+
     # Save event to database
     try:
         with SessionLocal() as db:
@@ -123,87 +128,91 @@ async def handle_new_event(event_dict, websocket):
         logging.debug("Event received and processed")
         await websocket.send(json.dumps({"message": "Event received and processed"}))
 
-
+async def handle_subscription_request(req_type, sub_id, event_dict, websocket):
+    if req_type == "SUBSCRIBE":
+        # Subscribe to events with matching tags
+        tags = event_dict.get("tags")
+        # TODO: Implement subscription logic
+        await websocket.send(json.dumps({"message": f"Subscribed to events with tags {tags}"}))
+    elif req_type == "UNSUBSCRIBE":
+        # Unsubscribe from events with matching tags
+        tags = event_dict.get("tags")
+        # TODO: Implement unsubscription logic
+        await websocket.send(json.dumps({"message": f"Unsubscribed from events with tags {tags}"}))
+    else:
+        await websocket.send(json.dumps({"error": f"Invalid request type {req_type}"}))
 
 async def handle_websocket_connection(websocket, path):
-    """
-    Handler function for WebSocket connections.
-    """
     logger = logging.getLogger(__name__)
     logger.debug("New websocket connection established")
-    
     async for message in websocket:
         message_list = json.loads(message)
         logger.debug(f"Received message: {message_list}")
-
-        # Check if the incoming message is an event or request containing a query dictionary
-        if len(message_list) == 3 and isinstance(message_list[1], str) and isinstance(message_list[2], dict):
-            try:
-                message_type = message_list[0]
-                request_id = message_list[1]
-                query_dict = message_list[2]
-
-                # Handle different types of messages based on their structure
-                logger.debug(f"Handling {message_type} message with id {request_id}")
-                if message_type == "EVENT":
-                    # Call `handle_new_event` function with event dictionary
-                    await handle_new_event(query_dict)
-                elif message_type == "REQUEST":
-                    # Call `handle_query_event` function with query dictionary and send the response back to client
-                    filters = query_dict.get("filters", {})
-                    logger.debug(f"Received query request with filters: {filters}")
-                    await handle_query_event(filters, websocket, request_id)
-                elif "SUBSCRIBE" in query_dict:
-                    # Handle subscription-related requests
-                    logger.warning("Subscription-related requests are not implemented")
-                else:
-                    logger.warning(f"Unsupported message format: {query_dict}")
-                    logger.debug(f"Full contents of unsupported message: {message_list}")
-                    
-            except Exception as e:
-                logger.exception(f"Error handling {message_type}: {e}")
-                await websocket.send(json.dumps({"error": str(e)}))
+        len_message = len(message_list)
+        logger.debug(f"Received message: {message_list}")
+        
+        if len(message_list) == 2 and message_list[0] == "EVENT":
+            # Extract event information from message
+            event_dict = message_list[1]
+            await handle_new_event(event_dict, websocket)
+        elif len(message_list) == 3 and message_list[0] == "REQ":
+            # Extract subscription information from message
+    
+            event_dict = message_list[1]
+            
+            await handle_subscription_request2(event_dict, websocket)
         else:
             logger.warning(f"Unsupported message format: {message_list}")
 
-
-
-
-
-
-
-async def handle_query_event(query_dict, websocket):
-    logger = logging.getLogger(__name__)
     
-    # Extract query information from request
-    pubkey = query_dict.get("pubkey")
-    kind = query_dict.get("kind")
-    created_at = query_dict.get("created_at")
-    tags = query_dict.get("tags")
-
-    # Build query based on provided parameters
-    query = {}
-    if pubkey:
-        query['pubkey'] = pubkey
-    if kind:
-        query['kind'] = kind
-    if created_at:
-        query['created_at'] = created_at
-    if tags:
-        query['tags'] = {'$all': tags}
-
-    # Search database using query
-    try:
-        with SessionLocal() as db:
-            results = db.query(Event).filter_by(**query).all()
-    except Exception as e:
-        logging.exception(f"Error retrieving events: {e}")
-        await websocket.send(json.dumps({"error": "Failed to retrieve events from database"}))
-    else:
-        logging.debug(f"{len(results)} events retrieved")
-        await websocket.send(json.dumps({"message": f"{len(results)} events retrieved", "results": [event.as_dict() for event in results]}))
 
 
+
+async def handle_subscription_request2(subscription_dict, websocket):
+    logger = logging.getLogger(__name__)
+
+    #subscription_id = subscription_dict.get("subscription_id")
+    filters = subscription_dict.get("filters", {})
+    print(filters)
+
+
+    with SessionLocal() as db:
+        query = db.query(Event)
+        if filters.get("ids"):
+            query = query.filter(Event.id.in_(filters.get("ids")))
+        if filters.get("authors"):
+            query = query.filter(Event.pubkey.in_(filters.get("authors")))
+        if filters.get("kinds"):
+            query = query.filter(Event.kind.in_(filters.get("kinds")))
+        if filters.get("#e"):
+            query = query.filter(Event.tags.any(lambda tag: tag[0] == 'e' and tag[1] in filters.get("#e")))
+        if filters.get("#p"):
+            query = query.filter(Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in filters.get("#p")))
+        if filters.get("since"):
+            query = query.filter(Event.created_at > filters.get("since"))
+        if filters.get("until"):
+            query = query.filter(Event.created_at < filters.get("until"))
+        query_result = query.limit(filters.get("limit", 100)).all()
+
+        # Send subscription data to client
+        subscription_data = {
+            "filters": filters,
+            "query_result": query_result
+        }
+        logger.debug("Sending subscription data to client")
+        logger.debug(subscription_data)
+        await websocket.send(json.dumps({
+            "query_result": query_result
+        }))
+
+
+
+import json
+
+# ...
+
+
+    
 
 if __name__ == "__main__":
     start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
