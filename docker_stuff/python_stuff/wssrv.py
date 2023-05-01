@@ -149,13 +149,13 @@ async def handle_websocket_connection(websocket, path):
         message_list = json.loads(message)
         logger.debug(f"Received message: {message_list}")
         len_message = len(message_list)
-        logger.debug(f"Received message: {message_list}")
+        logger.debug(f"Received message: {len_message}")
         
-        if len(message_list) == 2 and message_list[0] == "EVENT":
+        if message_list[0] == "EVENT":
             # Extract event information from message
             event_dict = message_list[1]
             await handle_new_event(event_dict, websocket)
-        elif len(message_list) > 2 and message_list[0] == "REQ":
+        elif message_list[0] == "REQ":
            # Extract subscription information from message
            event_dict = {index: message_list[index] for index in range(len(message_list))}
            await handle_subscription_request2(event_dict, websocket)
