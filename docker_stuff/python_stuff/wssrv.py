@@ -123,93 +123,48 @@ async def handle_new_event(event_dict, websocket):
         logging.debug("Event received and processed")
         await websocket.send(json.dumps({"message": "Event received and processed"}))
 
-async def handle_subscription_request(req_type, sub_id, event_dict, websocket):
-    if req_type == "SUBSCRIBE":
-        # Subscribe to events with matching tags
-        tags = event_dict.get("tags")
-        # TODO: Implement subscription logic
-        await websocket.send(json.dumps({"message": f"Subscribed to events with tags {tags}"}))
-    elif req_type == "UNSUBSCRIBE":
-        # Unsubscribe from events with matching tags
-        tags = event_dict.get("tags")
-        # TODO: Implement unsubscription logic
-        await websocket.send(json.dumps({"message": f"Unsubscribed from events with tags {tags}"}))
-    else:
-        await websocket.send(json.dumps({"error": f"Invalid request type {req_type}"}))
+
 
 async def handle_websocket_connection(websocket, path):
+    """
+    Handler function for WebSocket connections.
+    """
     logger = logging.getLogger(__name__)
     logger.debug("New websocket connection established")
     async for message in websocket:
         message_list = json.loads(message)
         logger.debug(f"Received message: {message_list}")
-        
-        if len(message_list) == 2 and message_list[0] == "EVENT":
-            # Extract event information from message
-            event_dict = message_list[1]
-            await handle_new_event(event_dict, websocket)
-        elif len(message_list) == 2 and message_list[0] == "REQ":
-            # Extract subscription information from message
-            request_dict = message_list[1]
-            subscription_id = request_dict.get("subscription_id")
-            filters = request_dict.get("filters", {})
 
-            # Determine which subscription function to call based on the presence of a "query" key in the filters
-            if filters.get("query"):
-                await handle_subscription_request(request_dict, websocket)
-            else:
-                req_type = request_dict.get("REQ")
-                event_dict = request_dict.get("event_dict")
-                await handle_subscription_request(req_type, subscription_id, event_dict, websocket)
+        # Check if the incoming message is an event or request containing a query dictionary
+        if len(message_list) == 3 and isinstance(message_list[1], str) and isinstance(message_list[2], dict):
+            try:
+                message_type = message_list[0]
+                request_id = message_list[1]
+                query_dict = message_list[2]
+
+                # Handle different types of messages based on their structure
+                if message_type == "EVENT":
+                    # Call `handle_new_event` function with event dictionary
+                    await handle_new_event(query_dict)
+                elif message_type == "REQUEST":
+                    # Call `handle_query_event` function with query dictionary and send the response back to client
+                    filters = query_dict.get("filters", {})
+                    await handle_query_event(filters, websocket, request_id)
+                elif "SUBSCRIBE" in query_dict:
+                    # Handle subscription-related requests
+                    logger.warning("Subscription-related requests are not implemented")
+                else:
+                    logger.warning(f"Unsupported message format: {query_dict}")
+            except Exception as e:
+                logger.exception(f"Error handling {message_type}: {e}")
+                await websocket.send(json.dumps({"error": str(e)}))
         else:
             logger.warning(f"Unsupported message format: {message_list}")
 
 
 
-#async def handle_subscription_request(subscription_dict, websocket):
-#    logger = logging.getLogger(__name__)
-#
-#    subscription_id = subscription_dict.get("subscription_id")
-#    filters = subscription_dict.get("filters", {})
-#    with SessionLocal() as db:
-#        query = db.query(Event)
-#
-#        # Construct query based on channel and filters
-#        if subscription_id.startswith("timeline:"):
-#            channel, subchannel = subscription_id.split(":")[1:]
-#            if subchannel == "all":
-#                query = query.filter(Event.kind.in_(filters.get("kinds", [])))
-#            elif subchannel == "latest":
-#                query = query.filter(Event.kind.in_(filters.get("kinds", [])))
-#                query = query.limit(filters.get("limit", 100))
-#                query = query.order_by(Event.created_at.desc())
-#            else:
-#                raise ValueError("Unsupported subchannel for timeline channel")
-#        elif subscription_id.startswith("login:"):
-#            channel, user_id = subscription_id.split(":")[1:]
-#            if channel == "lists":
-#                query = query.filter(Event.pubkey.in_(filters["authors"]))
-#                query = query.filter(Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in filters.get("#p", [])))
-#                query = query.filter(Event.kind.in_([3, 4, 5]))
-#                query = query.limit(20)
-#                query = query.order_by(Event.created_at.desc())
-#            else:
-#                raise ValueError("Unsupported channel for login")
-#
-#        query_result = query.all()
-#
-#        # Send subscription data to client
-#        subscription_data = {
-#            "subscription_id": subscription_id,
-#            "filters": filters,
-#            "query_result": query_result
-#        }
-#        logger.debug("Sending subscription data to client")
-#        logger.debug(subscription_data)
-#        await websocket.send(json.dumps({
-#            "subscription_id": subscription_id,
-#            "query_result": query_result
-#        }))
+
+
 
 async def handle_query_event(query_dict, websocket):
     logger = logging.getLogger(__name__)
