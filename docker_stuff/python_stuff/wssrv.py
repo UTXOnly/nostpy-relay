@@ -204,7 +204,7 @@ async def handle_websocket_connection(websocket, path):
             pubkey = message_dict.get("pubkey")
             content = message_dict.get("content")
                 
-            #    await handle_new_event(event_id, pubkey, content, websocket)
+            await handle_new_event(event_id, pubkey, content, websocket)
             #elif "REQ" in message_dict and "subscription_id" in message_dict:
             #    # Handle subscription request
             #    logger.debug("Handling subscription request")
