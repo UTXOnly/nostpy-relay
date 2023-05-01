@@ -83,6 +83,8 @@ def test_send_event():
     # log confirmation message
     logging.debug('Event sent successfully.')
 
+test_data = test_send_event()
+
 
 
 import logging
