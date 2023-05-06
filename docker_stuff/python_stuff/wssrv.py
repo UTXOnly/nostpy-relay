@@ -160,27 +160,26 @@ async def handle_subscription_request2(subscription_dict, websocket):
 
         qs = str(query.statement.compile(compile_kwargs={"literal_binds": True}))
         print(qs)
-        #    logger.debug(str(line))
         
         query_result = query.limit(filters.get("limit", 100)).all()
         
-        # Compile the query result
-        compiled_query = []
-        for result in query_result:
-            compiled_query.append(str(result))
+        # Serialize the query result to JSON
+        serialized_query_result = [str(result) for result in query_result]
+        json_query_result = json.dumps(serialized_query_result)
         
         # Send subscription data to client
         subscription_data = {
             "filters": filters,
-            "query_result": compiled_query
+            "query_result": json_query_result
         }
         logger.debug("Sending subscription data to client")
         logger.debug(subscription_data)
         
         # Send the subscription data to the client
         await websocket.send(json.dumps({
-            "query_result": compiled_query
+            "query_result": json_query_result
         }))
+
 
 
 if __name__ == "__main__":
