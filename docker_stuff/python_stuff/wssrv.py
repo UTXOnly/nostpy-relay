@@ -149,7 +149,7 @@ async def handle_websocket_connection(websocket, path):
         message_list = json.loads(message)
         logger.debug(f"Received message: {message_list}")
         len_message = len(message_list)
-        logger.debug(f"Received message: {len_message}")
+        logger.debug(f"Received message length : {len_message}")
         
         if message_list[0] == "EVENT":
             # Extract event information from message
@@ -170,7 +170,7 @@ async def handle_subscription_request2(subscription_dict, websocket):
     logger = logging.getLogger(__name__)
 
     #subscription_id = subscription_dict.get("subscription_id")
-    filters = subscription_dict.get("filters", {})
+    filters = subscription_dict
     print(filters)
 
 
@@ -195,7 +195,7 @@ async def handle_subscription_request2(subscription_dict, websocket):
         # Send subscription data to client
         subscription_data = {
             "filters": filters,
-            "query_result": query_result
+            "query_result": str(query_result)
         }
         logger.debug("Sending subscription data to client")
         logger.debug(subscription_data)
