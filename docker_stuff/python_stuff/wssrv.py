@@ -12,13 +12,23 @@ from sqlalchemy.ext.declarative import declarative_base
 import logging
 
 
+
 log_file = os.path.join(os.path.dirname(__file__), 'error.log')
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+# Create a file handler and set its level to DEBUG
 handler = logging.FileHandler(log_file)
-handler.setLevel(logging.ERROR)
+handler.setLevel(logging.DEBUG)
+
+# Create a formatter and add it to the handler
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+
+# Add the handler to the logger
+logger.addHandler(handler)
+
 
 
 # Add debug log lines to show DATABASE_URL value
@@ -68,7 +78,6 @@ logger.debug("Creating database metadata")
 Base.metadata.create_all(bind=engine)
 
 async def handle_new_event(event_dict, websocket):
-    logger = logging.getLogger(__name__)
     pubkey = event_dict.get("pubkey")
     kind = event_dict.get("kind")
     created_at = event_dict.get("created_at")
@@ -112,7 +121,6 @@ async def handle_subscription_request(req_type, sub_id, event_dict, websocket):
         await websocket.send(json.dumps({"error": f"Invalid request type {req_type}"}))
 
 async def handle_websocket_connection(websocket, path):
-    logger = logging.getLogger(__name__)
     logger.debug("New websocket connection established")
     async for message in websocket:
         message_list = json.loads(message)
