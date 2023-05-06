@@ -12,12 +12,20 @@ from sqlalchemy.ext.declarative import declarative_base
 import logging
 
 
+log_file = os.path.join(os.path.dirname(__file__), 'error.log')
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+handler = logging.FileHandler(log_file)
+handler.setLevel(logging.ERROR)
 
-logging.basicConfig(level=logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+
+logger.addHandler(handler)
+
+
 
 
 
