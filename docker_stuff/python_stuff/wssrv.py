@@ -66,29 +66,6 @@ class Event(Base):
 # Add debug log line to show metadata creation
 logger.debug("Creating database metadata")
 Base.metadata.create_all(bind=engine)
-def test_send_event():
-    # assuming you've already set up the necessary imports and logging configs
-
-    # create test event data
-    event_data = {
-        'id': '528330f3aa49b00e8aec29213b2da88e547b293b3721e95c2245b26ffecdb747',
-        'pubkey': '0f0b173aee28fa4d4e8868e51b2cd5c8743f37c0a8584b7cb06c880d52a397c5',
-        'content': 'bvcbvcbvc',
-        'kind': 1,
-        'created_at': 1682904563,
-        'tags': [],
-        'sig': 'ac0ae0551ffeafb3a2ea04ec2d5a1675cc122c2f5763c7890f7d0cbced00b2fbf584413081a5fc152c9845c8643ec90e9e4433ce2dbf1fb6d257998ed3d80427'
-    }
-
-    # send event
-    logging.debug(f'Sending event: {event_data}')
-    Event.add_event_to_database(event_data)
-
-    # log confirmation message
-    logging.debug('Event sent successfully.')
-
-test_data = test_send_event()
-
 
 async def handle_new_event(event_dict, websocket):
     logger = logging.getLogger(__name__)
@@ -100,14 +77,6 @@ async def handle_new_event(event_dict, websocket):
     event_id = event_dict.get("id")
     sig = event_dict.get("sig")
 
-    # Compute ID from event data and check signature
-    #event_data = json.dumps([0, pubkey, created_at, kind, tags, content], sort_keys=True)
-    #computed_id = hashlib.sha256(event_data.encode()).hexdigest()
-    #if sig != computed_id:
-    #    await websocket.send(json.dumps({"error": "Invalid signature"}))
-    #    return
-
-    # Save event to database
     try:
         with SessionLocal() as db:
             new_event = Event(
@@ -163,9 +132,6 @@ async def handle_websocket_connection(websocket, path):
            logger.warning(f"Unsupported message format: {message_list}")
 
     
-
-
-
 async def handle_subscription_request2(subscription_dict, websocket):
     logger = logging.getLogger(__name__)
 
@@ -192,25 +158,30 @@ async def handle_subscription_request2(subscription_dict, websocket):
             query = query.filter(Event.created_at < filters.get("until"))
         query_result = query.limit(filters.get("limit", 100)).all()
 
+        qs = str(query.statement.compile(compile_kwargs={"literal_binds": True}))
+        print(qs)
+        #    logger.debug(str(line))
+        
+        query_result = query.limit(filters.get("limit", 100)).all()
+        
+        # Compile the query result
+        compiled_query = []
+        for result in query_result:
+            compiled_query.append(str(result))
+        
         # Send subscription data to client
         subscription_data = {
             "filters": filters,
-            "query_result": str(query_result)
+            "query_result": compiled_query
         }
         logger.debug("Sending subscription data to client")
         logger.debug(subscription_data)
+        
+        # Send the subscription data to the client
         await websocket.send(json.dumps({
-            "query_result": query_result
+            "query_result": compiled_query
         }))
 
-
-
-import json
-
-# ...
-
-
-    
 
 if __name__ == "__main__":
     start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
