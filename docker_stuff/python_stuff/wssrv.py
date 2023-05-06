@@ -17,16 +17,11 @@ import logging
 
 
 
-log_file = os.path.join(os.path.dirname(__file__), 'error.log')
+#log_file = os.path.join(os.path.dirname(__file__), 'error.log')
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-# Create a file handler and set its level to DEBUG
-handler = logging.FileHandler(log_file)
-
-# Add the handler to the logger
-logger.addHandler(handler)
 
 # Add debug log lines to show DATABASE_URL value
 DATABASE_URL = os.environ.get("DATABASE_URL")
