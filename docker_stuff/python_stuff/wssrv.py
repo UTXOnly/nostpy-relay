@@ -132,13 +132,18 @@ async def handle_websocket_connection(websocket, path):
            logger.warning(f"Unsupported message format: {message_list}")
 
     
+import json
+from sqlalchemy.orm import class_mapper
+
+def serialize(model):
+    """Helper function to convert an SQLAlchemy model instance to a dictionary"""
+    columns = [c.key for c in class_mapper(model.__class__).columns]
+    return dict((c, getattr(model, c)) for c in columns)
+
 async def handle_subscription_request2(subscription_dict, websocket):
     logger = logging.getLogger(__name__)
 
-    #subscription_id = subscription_dict.get("subscription_id")
     filters = subscription_dict
-    print(filters)
-
 
     with SessionLocal() as db:
         query = db.query(Event)
@@ -158,14 +163,8 @@ async def handle_subscription_request2(subscription_dict, websocket):
             query = query.filter(Event.created_at < filters.get("until"))
         query_result = query.limit(filters.get("limit", 100)).all()
 
-        qs = str(query.statement.compile(compile_kwargs={"literal_binds": True}))
-        print(qs)
-        
-        query_result = query.limit(filters.get("limit", 100)).all()
-        
-        # Serialize the query result to JSON
-        serialized_query_result = [str(result) for result in query_result]
-        json_query_result = json.dumps(serialized_query_result)
+        # Convert each Event object to a dictionary and serialize to JSON
+        json_query_result = json.dumps([serialize(event) for event in query_result])
         
         # Send subscription data to client
         subscription_data = {
@@ -179,6 +178,7 @@ async def handle_subscription_request2(subscription_dict, websocket):
         await websocket.send(json.dumps({
             "query_result": json_query_result
         }))
+
 
 
 
