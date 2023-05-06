@@ -9,6 +9,10 @@ from sqlalchemy import create_engine, Column, String, Integer, JSON
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
+    
+import json
+from sqlalchemy.orm import class_mapper
+
 import logging
 
 
@@ -20,16 +24,9 @@ logger.setLevel(logging.DEBUG)
 
 # Create a file handler and set its level to DEBUG
 handler = logging.FileHandler(log_file)
-handler.setLevel(logging.DEBUG)
-
-# Create a formatter and add it to the handler
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
 
 # Add the handler to the logger
 logger.addHandler(handler)
-
-
 
 # Add debug log lines to show DATABASE_URL value
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -139,9 +136,6 @@ async def handle_websocket_connection(websocket, path):
         else:
            logger.warning(f"Unsupported message format: {message_list}")
 
-    
-import json
-from sqlalchemy.orm import class_mapper
 
 def serialize(model):
     """Helper function to convert an SQLAlchemy model instance to a dictionary"""
@@ -186,8 +180,6 @@ async def handle_subscription_request2(subscription_dict, websocket):
         await websocket.send(json.dumps({
             "query_result": json_query_result
         }))
-
-
 
 
 if __name__ == "__main__":
