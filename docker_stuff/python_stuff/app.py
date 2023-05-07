@@ -90,14 +90,14 @@ async def handle_new_event(event_dict, websocket):
         await websocket.send(json.dumps({"message": "Event received and processed"}))
 
 
-async def handle_websocket_connection(websocket):
-    logger.debug("New websocket connection established") 
+async def handle_websocket_connection(websocket, path):
+    logger.debug(f"New websocket connection established from URL: {path}") 
     
     async for message in websocket:
         message_list = json.loads(message)
         logger.debug(f"Received message: {message_list}")
         len_message = len(message_list)
-        logger.debug(f"Received message length : {len_message}")
+        logger.debug(f"Received message length: {len_message}")
         
         if message_list[0] == "EVENT":
             # Extract event information from message
@@ -115,6 +115,7 @@ async def handle_websocket_connection(websocket):
             await websocket.close()
         else:
            logger.warning(f"Unsupported message format: {message_list}")
+
 
 
 def serialize(model):
