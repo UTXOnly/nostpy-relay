@@ -148,21 +148,12 @@ async def handle_subscription_request2(subscription_dict, websocket, subscriptio
         #json_query_result = json.dumps([serialize(event) for event in query_result])
         json_query_result = [serialize(event) for event in query_result]
 
-        response = ["EVENT", subscription_id, json_query_result]
+        response = "EVENT", subscription_id, json_query_result
         logger.debug(f"Response = {response}")
         logger.debug(f"Response = {json.dumps(response)}")
 
         #await websocket.send(response)
-        #await websocket.send( json.dumps(response)) 
-
-        #logger.debug(f"Serialized query result: {json_query_result}")
-        ## Send subscription data to client
-        #subscription_data = {
-        #    "filters": filters,
-        #    "query_result": json_query_result
-        #}
-        #logger.debug("Sending subscription data to client")
-        #logger.debug(subscription_data)
+        await websocket.send(json.dumps(response)) 
 
 
 if __name__ == "__main__":
