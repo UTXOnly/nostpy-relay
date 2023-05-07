@@ -112,6 +112,7 @@ async def handle_websocket_connection(websocket):
             subscription_id = message_list[1]
             response = "NOTICE", f"closing {subscription_id}"
             await websocket.send(json.dumps(response))
+            await websocket.close()
         else:
            logger.warning(f"Unsupported message format: {message_list}")
 
@@ -153,6 +154,7 @@ async def handle_subscription_request(subscription_dict, websocket, subscription
         EOSE = "EOSE", subscription_id
         logger.debug(f"EOSE Resonse = {json.dumps(EOSE)}")
         await websocket.send(json.dumps(EOSE))
+        await websocket.close()
 
 
 if __name__ == "__main__":
