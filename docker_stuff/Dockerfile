@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./python_stuff .
 
-CMD ["python", "wssrv2.py"]
+CMD ["python", "app.py"]
