@@ -159,10 +159,10 @@ async def handle_subscription_request2(subscription_dict, websocket, subscriptio
         }
 
         # Create an HTTP response object with the headers
-        http_response = web.Response(body=response_body, headers=response_headers)
+        #http_response = web.Response(body=response_body, headers=response_headers)
 
         # Send the response to the client
-        await websocket.send(http_response.prepare())
+        await websocket.send( response_body, response_headers)
 
         logger.debug(f"Serialized query result: {json_query_result}")
         # Send subscription data to client
