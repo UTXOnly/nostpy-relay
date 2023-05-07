@@ -92,21 +92,6 @@ async def handle_new_event(event_dict, websocket):
         logging.debug("Event received and processed")
         await websocket.send(json.dumps({"message": "Event received and processed"}))
 
-
-async def handle_websocket_connection(websocket):
-    logger = logging.getLogger(__name__)
-    logger.debug("New websocket connection established") 
-    response_headers = {
-    "Access-Control-Allow-Origin": "*",  # Allow requests from all domains
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",  # Allowed HTTP methods
-    "Access-Control-Allow-Headers": "Content-Type, Authorization"  # Allowed request headers
-}
-
-# Convert headers dictionary to JSON string
-    headers_message = json.dumps(response_headers)
-
-# Send headers as a separate message
-    await websocket.send(json.dumps(headers_message))
     async for message in websocket:
         message_list = json.loads(message)
         logger.debug(f"Received message: {message_list}")
@@ -162,19 +147,17 @@ async def handle_subscription_request2(subscription_dict, websocket, subscriptio
         logger.debug(f"Response = {response}")
         logger.debug(f"Response = {json.dumps(response)}")
 
-        response_body = json.dumps(response)
-
         #await websocket.send(response)
         #await websocket.send( json.dumps(response)) 
 
-        logger.debug(f"Serialized query result: {json_query_result}")
-        # Send subscription data to client
-        subscription_data = {
-            "filters": filters,
-            "query_result": json_query_result
-        }
-        logger.debug("Sending subscription data to client")
-        logger.debug(subscription_data)
+        #logger.debug(f"Serialized query result: {json_query_result}")
+        ## Send subscription data to client
+        #subscription_data = {
+        #    "filters": filters,
+        #    "query_result": json_query_result
+        #}
+        #logger.debug("Sending subscription data to client")
+        #logger.debug(subscription_data)
 
 
 if __name__ == "__main__":
