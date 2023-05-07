@@ -16,8 +16,16 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message).2000s')
 
-logging.basicConfig(level=logging.DEBUG)
+# Create a stream handler and set its formatter
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(formatter)
+
+# Add the stream handler to the logger
+logger.addHandler(stream_handler)
+
+#logging.basicConfig(level=logging.DEBUG)
 #logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 
 
@@ -166,7 +174,7 @@ async def handle_subscription_request2(subscription_dict, websocket):
 
         # Convert each Event object to a dictionary and serialize to JSON
         json_query_result = json.dumps([serialize(event) for event in query_result])
-        
+        logging.debug(f"Serialized query result: {json_query_result}")
         # Send subscription data to client
         subscription_data = {
             "filters": filters,
