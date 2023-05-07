@@ -14,6 +14,7 @@ from aiohttp import web
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 logger.debug(f"DATABASE_URL value: {DATABASE_URL}")
@@ -110,7 +111,6 @@ async def handle_websocket_connection(websocket):
            await handle_subscription_request(event_dict, websocket, subscription_id)
         else:
            logger.warning(f"Unsupported message format: {message_list}")
-
 
 
 def serialize(model):
