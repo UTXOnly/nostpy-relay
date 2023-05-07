@@ -154,7 +154,7 @@ async def handle_subscription_request(subscription_dict, websocket, subscription
         EOSE = "EOSE", subscription_id
         logger.debug(f"EOSE Resonse = {json.dumps(EOSE)}")
         await websocket.send(json.dumps(EOSE))
-        await websocket.close()
+        #await websocket.close()
 
 
 if __name__ == "__main__":
