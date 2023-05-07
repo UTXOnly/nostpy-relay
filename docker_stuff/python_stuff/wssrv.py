@@ -16,16 +16,16 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message).2000s')
+#formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message).2000s')
+#
+## Create a stream handler and set its formatter
+#stream_handler = logging.StreamHandler()
+#stream_handler.setFormatter(formatter)
+#
+## Add the stream handler to the logger
+#logger.addHandler(stream_handler)
 
-# Create a stream handler and set its formatter
-stream_handler = logging.StreamHandler()
-stream_handler.setFormatter(formatter)
-
-# Add the stream handler to the logger
-logger.addHandler(stream_handler)
-
-#logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
 #logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 
 
@@ -63,13 +63,13 @@ class Event(Base):
     def add_event_to_database(cls, event_data):
         with SessionLocal() as session:
             new_event = cls(**event_data)
-            logging.debug(f'created new event:\n{new_event}')
+            logger.debug(f'created new event:\n{new_event}')
             session.add(new_event)
-            logging.debug('about to commit session changes...')
+            logger.debug('about to commit session changes...')
             session.commit()
 
             # log confirmation message
-            logging.info(f"Added event {new_event.id} to database.")
+            logger.info(f"Added event {new_event.id} to database.")
 
 
 # Add debug log line to show metadata creation
@@ -174,7 +174,7 @@ async def handle_subscription_request2(subscription_dict, websocket):
 
         # Convert each Event object to a dictionary and serialize to JSON
         json_query_result = json.dumps([serialize(event) for event in query_result])
-        logging.debug(f"Serialized query result: {json_query_result}")
+        logger.debug(f"Serialized query result: {json_query_result}")
         # Send subscription data to client
         subscription_data = {
             "filters": filters,
