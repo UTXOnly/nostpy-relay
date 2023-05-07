@@ -144,16 +144,14 @@ async def handle_subscription_request2(subscription_dict, websocket, subscriptio
             query = query.filter(Event.created_at < filters.get("until"))
         query_result = query.limit(filters.get("limit", 100)).all()
 
-        # Convert each Event object to a dictionary and serialize to JSON
-        #json_query_result = json.dumps([serialize(event) for event in query_result])
-        json_query_result = [serialize(event) for event in query_result]
+        for event in query_result:
+            json_query_result = serialize(event)
+            response = "EVENT", subscription_id, json_query_result
+            logger.debug(f"Response = {response}")
+            logger.debug(f"Response JSON = {json.dumps(response)}")
 
-        response = "EVENT", subscription_id, json_query_result
-        logger.debug(f"Response = {response}")
-        logger.debug(f"Response JSON = {json.dumps(response)}")
+            await websocket.send(json.dumps(response))
 
-        #await websocket.send(response)
-        await websocket.send(json.dumps(response)) 
 
 
 if __name__ == "__main__":
