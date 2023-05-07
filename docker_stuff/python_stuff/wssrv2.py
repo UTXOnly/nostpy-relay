@@ -92,6 +92,11 @@ async def handle_new_event(event_dict, websocket):
         logging.debug("Event received and processed")
         await websocket.send(json.dumps({"message": "Event received and processed"}))
 
+
+async def handle_websocket_connection(websocket):
+    logger = logging.getLogger(__name__)
+    logger.debug("New websocket connection established") 
+    
     async for message in websocket:
         message_list = json.loads(message)
         logger.debug(f"Received message: {message_list}")
