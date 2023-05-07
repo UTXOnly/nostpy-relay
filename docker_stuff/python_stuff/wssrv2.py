@@ -10,6 +10,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 import logging
 import json
+from aiohttp import web
 from sqlalchemy.orm import class_mapper
 
 logger = logging.getLogger(__name__)
@@ -122,8 +123,6 @@ def serialize(model):
 
 async def handle_subscription_request2(subscription_dict, websocket, subscription_id):
     logger = logging.getLogger(__name__)
-    #subscription_id
-
     filters = subscription_dict
 
     with SessionLocal() as db:
@@ -150,17 +149,21 @@ async def handle_subscription_request2(subscription_dict, websocket, subscriptio
         response = ["EVENT", subscription_id, json_query_result]
         logger.debug(f"Response = {response}")
         logger.debug(f"Response = {json.dumps(response)}")
-        
-        response_headers = {
-        "Access-Control-Allow-Origin": "*",  # Allow requests from all domains
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",  # Allowed HTTP methods
-        "Access-Control-Allow-Headers": "Content-Type, Authorization"  # Allowed request headers
-    }
 
-# Send response with headers
-        await websocket.send(json.dumps(response), headers=response_headers)
+        response_body = json.dumps(response)
+
+        response_headers = {
+            "Access-Control-Allow-Origin": "*",  # Allow requests from all domains
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",  # Allowed HTTP methods
+            "Access-Control-Allow-Headers": "Content-Type, Authorization"  # Allowed request headers
+        }
+
+        # Create an HTTP response object with the headers
+        http_response = web.Response(body=response_body, headers=response_headers)
+
         # Send the response to the client
-        #await websocket.send(json.dumps(response))
+        await websocket.send(http_response.prepare())
+
         logger.debug(f"Serialized query result: {json_query_result}")
         # Send subscription data to client
         subscription_data = {
@@ -169,6 +172,7 @@ async def handle_subscription_request2(subscription_dict, websocket, subscriptio
         }
         logger.debug("Sending subscription data to client")
         logger.debug(subscription_data)
+
 
 if __name__ == "__main__":
     start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)

@@ -8,29 +8,15 @@ from time import time
 from sqlalchemy import create_engine, Column, String, Integer, JSON
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-
 import logging
-
-
+import json
+from sqlalchemy.orm import class_mapper
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-#formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message).2000s')
-#
-## Create a stream handler and set its formatter
-#stream_handler = logging.StreamHandler()
-#stream_handler.setFormatter(formatter)
-#
-## Add the stream handler to the logger
-#logger.addHandler(stream_handler)
-
 logging.basicConfig(level=logging.DEBUG)
-#logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 
-
-
-# Add debug log lines to show DATABASE_URL value
 DATABASE_URL = os.environ.get("DATABASE_URL")
 logger.debug(f"DATABASE_URL value: {DATABASE_URL}")
 
@@ -71,7 +57,6 @@ class Event(Base):
             # log confirmation message
             logger.info(f"Added event {new_event.id} to database.")
 
-
 # Add debug log line to show metadata creation
 logger.debug("Creating database metadata")
 Base.metadata.create_all(bind=engine)
@@ -106,19 +91,6 @@ async def handle_new_event(event_dict, websocket):
         logging.debug("Event received and processed")
         await websocket.send(json.dumps({"message": "Event received and processed"}))
 
-async def handle_subscription_request(req_type, sub_id, event_dict, websocket):
-    if req_type == "SUBSCRIBE":
-        # Subscribe to events with matching tags
-        tags = event_dict.get("tags")
-        # TODO: Implement subscription logic
-        await websocket.send(json.dumps({"message": f"Subscribed to events with tags {tags}"}))
-    elif req_type == "UNSUBSCRIBE":
-        # Unsubscribe from events with matching tags
-        tags = event_dict.get("tags")
-        # TODO: Implement unsubscription logic
-        await websocket.send(json.dumps({"message": f"Unsubscribed from events with tags {tags}"}))
-    else:
-        await websocket.send(json.dumps({"error": f"Invalid request type {req_type}"}))
 
 async def handle_websocket_connection(websocket, path):
     logger = logging.getLogger(__name__)
@@ -141,9 +113,6 @@ async def handle_websocket_connection(websocket, path):
         else:
            logger.warning(f"Unsupported message format: {message_list}")
 
-    
-import json
-from sqlalchemy.orm import class_mapper
 
 def serialize(model):
     """Helper function to convert an SQLAlchemy model instance to a dictionary"""
@@ -176,13 +145,7 @@ async def handle_subscription_request2(subscription_dict, websocket, subscriptio
 
         # Convert each Event object to a dictionary and serialize to JSON
         json_query_result = json.dumps([serialize(event) for event in query_result])
-        #json_query_result = json.dumps([subscription_id for event in query_result | serialize(event) ])
-        #json_query_result = json.dumps([serialize(event) | subscription_id for event in query_result])
 
-
-    
-        
-        # Create the response list
         response = ["EVENT", subscription_id, json_query_result]
         logger.debug(f"Response = {response}")
         logger.debug(f"Response = {json.dumps(response)}")
@@ -197,15 +160,6 @@ async def handle_subscription_request2(subscription_dict, websocket, subscriptio
         }
         logger.debug("Sending subscription data to client")
         logger.debug(subscription_data)
-        
-        # Send the subscription data to the client
-        #await websocket.send(json.dumps({
-        #    "query_result": response
-        #}))
-        #await websocket.send(json.dumps(response))
-
-
-
 
 if __name__ == "__main__":
     start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
