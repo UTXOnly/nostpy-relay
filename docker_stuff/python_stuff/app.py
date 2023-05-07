@@ -4,19 +4,16 @@ import asyncio
 import websockets
 import hmac
 import hashlib
+import logging
 from time import time
+from sqlalchemy.orm import class_mapper
 from sqlalchemy import create_engine, Column, String, Integer, JSON
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-import logging
-import json
 from aiohttp import web
-from sqlalchemy.orm import class_mapper
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
-logging.basicConfig(level=logging.DEBUG)
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 logger.debug(f"DATABASE_URL value: {DATABASE_URL}")
@@ -86,15 +83,14 @@ async def handle_new_event(event_dict, websocket):
             db.add(new_event)
             db.commit()
     except Exception as e:
-        logging.exception(f"Error saving event: {e}")
+        logger.exception(f"Error saving event: {e}")
         await websocket.send(json.dumps({"error": "Failed to save event to database"}))
     else:
-        logging.debug("Event received and processed")
+        logger.debug("Event received and processed")
         await websocket.send(json.dumps({"message": "Event received and processed"}))
 
 
 async def handle_websocket_connection(websocket):
-    logger = logging.getLogger(__name__)
     logger.debug("New websocket connection established") 
     
     async for message in websocket:
@@ -111,7 +107,7 @@ async def handle_websocket_connection(websocket):
            subscription_id = message_list[1]
            # Extract subscription information from message
            event_dict = {index: message_list[index] for index in range(len(message_list))}
-           await handle_subscription_request2(event_dict, websocket, subscription_id)
+           await handle_subscription_request(event_dict, websocket, subscription_id)
         else:
            logger.warning(f"Unsupported message format: {message_list}")
 
@@ -122,8 +118,7 @@ def serialize(model):
     columns = [c.key for c in class_mapper(model.__class__).columns]
     return dict((c, getattr(model, c)) for c in columns)
 
-async def handle_subscription_request2(subscription_dict, websocket, subscription_id):
-    logger = logging.getLogger(__name__)
+async def handle_subscription_request(subscription_dict, websocket, subscription_id):
     filters = subscription_dict
 
     with SessionLocal() as db:
@@ -136,8 +131,10 @@ async def handle_subscription_request2(subscription_dict, websocket, subscriptio
             query = query.filter(Event.kind.in_(filters.get("kinds")))
         if filters.get("#e"):
             query = query.filter(Event.tags.any(lambda tag: tag[0] == 'e' and tag[1] in filters.get("#e")))
-        if filters.get("#p"):
+        if filters.get("#e"):
             query = query.filter(Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in filters.get("#p")))
+        if filters.get("#e"):
+            query = query.filter(Event.tags.any(lambda tag: tag[0] == 'd' and tag[1] in filters.get("#d")))   
         if filters.get("since"):
             query = query.filter(Event.created_at > filters.get("since"))
         if filters.get("until"):
@@ -147,11 +144,8 @@ async def handle_subscription_request2(subscription_dict, websocket, subscriptio
         for event in query_result:
             json_query_result = serialize(event)
             response = "EVENT", subscription_id, json_query_result
-            logger.debug(f"Response = {response}")
             logger.debug(f"Response JSON = {json.dumps(response)}")
-
             await websocket.send(json.dumps(response))
-
 
 
 if __name__ == "__main__":
