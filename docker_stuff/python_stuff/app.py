@@ -91,8 +91,12 @@ async def handle_new_event(event_dict, websocket):
 
 
 async def handle_websocket_connection(websocket, path):
-    logger.debug(f"New websocket connection established from URL: {path}") 
-    
+    headers = websocket.request_headers
+    referer = headers.get("referer")
+    origin = headers.get("origin")
+    logger.debug(f"New websocket connection established from URL: {referer or origin}")
+    # rest of the code
+
     async for message in websocket:
         message_list = json.loads(message)
         logger.debug(f"Received message: {message_list}")
