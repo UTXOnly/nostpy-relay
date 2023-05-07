@@ -201,7 +201,7 @@ async def handle_subscription_request2(subscription_dict, websocket, subscriptio
         #await websocket.send(json.dumps({
         #    "query_result": response
         #}))
-        await websocket.send(response)
+        await websocket.send(json.dumps(response))
 
 
 
