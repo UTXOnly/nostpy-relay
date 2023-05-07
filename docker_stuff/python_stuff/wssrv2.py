@@ -94,15 +94,7 @@ async def handle_new_event(event_dict, websocket):
 
 async def handle_websocket_connection(websocket):
     logger = logging.getLogger(__name__)
-    logger.debug("New websocket connection established")
-    
-
-    # set response headers to allow CORS
-    await websocket.send('connected')
-    await websocket.recv()
-    websocket.response_headers.add_header('Access-Control-Allow-Origin', '*')
-    await websocket.recv()
-
+    logger.debug("New websocket connection established") 
     async for message in websocket:
         message_list = json.loads(message)
         logger.debug(f"Received message: {message_list}")
