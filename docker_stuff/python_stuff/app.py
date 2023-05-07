@@ -10,7 +10,6 @@ from sqlalchemy.orm import class_mapper
 from sqlalchemy import create_engine, Column, String, Integer, JSON
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from aiohttp import web
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
