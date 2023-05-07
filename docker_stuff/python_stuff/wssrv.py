@@ -134,7 +134,7 @@ async def handle_websocket_connection(websocket, path):
             event_dict = message_list[1]
             await handle_new_event(event_dict, websocket)
         elif message_list[0] == "REQ":
-           subscription_id = {"subscription_id":message_list[1]}
+           subscription_id = message_list[1]
            # Extract subscription information from message
            event_dict = {index: message_list[index] for index in range(len(message_list))}
            await handle_subscription_request2(event_dict, websocket, subscription_id)
