@@ -110,7 +110,7 @@ async def handle_websocket_connection(websocket, path):
            subscription_id = message_list[1]
            # Extract subscription information from message
            event_dict = {index: message_list[index] for index in range(len(message_list))}
-           await handle_subscription_request(event_dict, websocket, subscription_id)
+           await handle_subscription_request(event_dict, websocket, subscription_id, origin)
         if message_list[0] == "CLOSE":
             subscription_id = message_list[1]
             response = "NOTICE", f"closing {subscription_id}"
@@ -131,7 +131,7 @@ def serialize(model):
     columns = [c.key for c in class_mapper(model.__class__).columns]
     return dict((c, getattr(model, c)) for c in columns)
 
-async def handle_subscription_request(subscription_dict, websocket, subscription_id):
+async def handle_subscription_request(subscription_dict, websocket, subscription_id, origin):
     filters = subscription_dict
 
     with SessionLocal() as db:
@@ -163,7 +163,8 @@ async def handle_subscription_request(subscription_dict, websocket, subscription
         EOSE = "EOSE", subscription_id
         logger.debug(f"EOSE Resonse = {json.dumps(EOSE)}")
         await websocket.send(json.dumps(EOSE))
-        await websocket.close()
+        if origin != "https://iris.to":
+            await websocket.close()
 
 
 if __name__ == "__main__":
