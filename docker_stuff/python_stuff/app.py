@@ -95,7 +95,6 @@ async def handle_websocket_connection(websocket, path):
     referer = headers.get("referer")
     origin = headers.get("origin")
     logger.debug(f"New websocket connection established from URL: {referer or origin}")
-    # rest of the code
 
     async for message in websocket:
         message_list = json.loads(message)
@@ -112,11 +111,16 @@ async def handle_websocket_connection(websocket, path):
            # Extract subscription information from message
            event_dict = {index: message_list[index] for index in range(len(message_list))}
            await handle_subscription_request(event_dict, websocket, subscription_id)
-        elif message_list[0] == "CLOSE":
+        if message_list[0] == "CLOSE":
             subscription_id = message_list[1]
             response = "NOTICE", f"closing {subscription_id}"
-            await websocket.send(json.dumps(response))
-            await websocket.close()
+            if origin == "https://iris.to":
+                logger.debug(f"Sending EOSE Response: {json.dumps(response)}")
+                await websocket.send(json.dumps(response))
+            else:
+                logger.debug(f"Sending EOSE Response: {json.dumps(response)} and closing websocket")
+                await websocket.send(json.dumps(response))
+                await websocket.close()
         else:
            logger.warning(f"Unsupported message format: {message_list}")
 
@@ -159,7 +163,7 @@ async def handle_subscription_request(subscription_dict, websocket, subscription
         EOSE = "EOSE", subscription_id
         logger.debug(f"EOSE Resonse = {json.dumps(EOSE)}")
         await websocket.send(json.dumps(EOSE))
-        #await websocket.close()
+        await websocket.close()
 
 
 if __name__ == "__main__":
