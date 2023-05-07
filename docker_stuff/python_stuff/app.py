@@ -111,7 +111,7 @@ async def handle_websocket_connection(websocket, path):
            # Extract subscription information from message
            event_dict = {index: message_list[index] for index in range(len(message_list))}
            await handle_subscription_request(event_dict, websocket, subscription_id, origin)
-        if message_list[0] == "CLOSE":
+        elif message_list[0] == "CLOSE":
             subscription_id = message_list[1]
             response = "NOTICE", f"closing {subscription_id}"
             if origin == "https://iris.to":
