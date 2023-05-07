@@ -150,7 +150,7 @@ async def handle_subscription_request2(subscription_dict, websocket, subscriptio
 
         response = "EVENT", subscription_id, json_query_result
         logger.debug(f"Response = {response}")
-        logger.debug(f"Response = {json.dumps(response)}")
+        logger.debug(f"Response JSON = {json.dumps(response)}")
 
         #await websocket.send(response)
         await websocket.send(json.dumps(response)) 
