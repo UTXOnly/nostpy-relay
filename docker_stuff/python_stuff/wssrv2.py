@@ -96,6 +96,17 @@ async def handle_new_event(event_dict, websocket):
 async def handle_websocket_connection(websocket):
     logger = logging.getLogger(__name__)
     logger.debug("New websocket connection established") 
+    response_headers = {
+    "Access-Control-Allow-Origin": "*",  # Allow requests from all domains
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",  # Allowed HTTP methods
+    "Access-Control-Allow-Headers": "Content-Type, Authorization"  # Allowed request headers
+}
+
+# Convert headers dictionary to JSON string
+    headers_message = json.dumps(response_headers)
+
+# Send headers as a separate message
+    await websocket.send(json.dumps(headers_message))
     async for message in websocket:
         message_list = json.loads(message)
         logger.debug(f"Received message: {message_list}")
@@ -152,17 +163,8 @@ async def handle_subscription_request2(subscription_dict, websocket, subscriptio
 
         response_body = json.dumps(response)
 
-        response_headers = {
-            "Access-Control-Allow-Origin": "*",  # Allow requests from all domains
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",  # Allowed HTTP methods
-            "Access-Control-Allow-Headers": "Content-Type, Authorization"  # Allowed request headers
-        }
 
-        # Create an HTTP response object with the headers
-        #http_response = web.Response(body=response_body, headers=response_headers)
-
-        # Send the response to the client
-        await websocket.send( response_body, response_headers)
+        await websocket.send( json.dumps(response)) 
 
         logger.debug(f"Serialized query result: {json_query_result}")
         # Send subscription data to client
