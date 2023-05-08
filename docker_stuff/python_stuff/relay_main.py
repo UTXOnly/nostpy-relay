@@ -18,8 +18,7 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
-logger.debug("Creating database metadata")
-Base.metadata.create_all(bind=engine)
+
 
 class Event(Base):
     __tablename__ = 'event'
@@ -53,6 +52,8 @@ class Event(Base):
             # log confirmation message
             logger.info(f"Added event {new_event.id} to database.")
 
+logger.debug("Creating database metadata")
+Base.metadata.create_all(bind=engine)
 
 async def handle_new_event(event_dict, websocket):
     pubkey = event_dict.get("pubkey")
