@@ -49,7 +49,10 @@ class Event(Base):
             session.add(new_event)
             logger.debug('about to commit session changes...')
             session.commit()
+
+            # log confirmation message
             logger.info(f"Added event {new_event.id} to database.")
+
 
 async def handle_new_event(event_dict, websocket):
     pubkey = event_dict.get("pubkey")
@@ -86,21 +89,6 @@ async def handle_websocket_connection(websocket, path):
     origin = headers.get("origin")
     logger.debug(f"New websocket connection established from URL: {referer or origin}")
 
-    #if headers.get("Accept") == "application/nostr+json":
-    #    response = {
-    #        "name": "wss://nostpy.io",
-    #        "description": "NostPy relay v0.1",
-    #        "pubkey": "4503baa127bdfd0b054384dc5ba82cb0e2a8367cbdb0629179f00db1a34caacc",
-    #        "contact": "bh419@protonmail.com",
-    #        "supported_nips": [1, 2, 4, 15, 16, 25],
-    #        "software": "git+https://github.com/UTXOnly/nost-py.git",
-    #        "version": "0.1"
-    #    }
-    #    response_json = json.dumps(response)
-    #    logger.debug(f"Sending JSON response: {response_json}")
-    #    await websocket.send(response_json)
-    #    await websocket.close()
-    #else:
     async for message in websocket:
         message_list = json.loads(message)
         logger.debug(f"Received message: {message_list}")
@@ -112,10 +100,10 @@ async def handle_websocket_connection(websocket, path):
             event_dict = message_list[1]
             await handle_new_event(event_dict, websocket)
         elif message_list[0] == "REQ":
-            subscription_id = message_list[1]
-            # Extract subscription information from message
-            event_dict = {index: message_list[index] for index in range(len(message_list))}
-            await handle_subscription_request(event_dict, websocket, subscription_id, origin)
+           subscription_id = message_list[1]
+           # Extract subscription information from message
+           event_dict = {index: message_list[index] for index in range(len(message_list))}
+           await handle_subscription_request(event_dict, websocket, subscription_id, origin)
         elif message_list[0] == "CLOSE":
             subscription_id = message_list[1]
             response = "NOTICE", f"closing {subscription_id}"
@@ -127,8 +115,7 @@ async def handle_websocket_connection(websocket, path):
                 await websocket.send(json.dumps(response))
                 await websocket.close()
         else:
-            logger.warning(f"Unsupported message format: {message_list}")
-
+           logger.warning(f"Unsupported message format: {message_list}")
 
 async def serialize(model):
     #Helper function to convert an SQLAlchemy model instance to a dictionary
