@@ -17,6 +17,8 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - SQLALCHEMY_SILENCE_UBER_WARNING=1
       - DD_AGENT_HOST=host.docker.internal
+      - DD_PROFILING_ENABLED=true
+      - DD_SERVICE=nostpy
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
