@@ -60,7 +60,6 @@ logger.debug("Creating database metadata")
 Base.metadata.create_all(bind=engine)
 
 async def handle_new_event(event_dict, websocket):
-    logger = logging.getLogger(__name__)
     pubkey = event_dict.get("pubkey")
     kind = event_dict.get("kind")
     created_at = event_dict.get("created_at")
@@ -88,7 +87,6 @@ async def handle_new_event(event_dict, websocket):
     else:
         logger.debug("Event received and processed")
         await websocket.send(json.dumps({"message": "Event received and processed"}))
-
 
 async def handle_websocket_connection(websocket, path):
     headers = websocket.request_headers
@@ -126,7 +124,7 @@ async def handle_websocket_connection(websocket, path):
 
 
 
-def serialize(model):
+async def serialize(model):
     """Helper function to convert an SQLAlchemy model instance to a dictionary"""
     columns = [c.key for c in class_mapper(model.__class__).columns]
     return dict((c, getattr(model, c)) for c in columns)
@@ -155,7 +153,7 @@ async def handle_subscription_request(subscription_dict, websocket, subscription
         query_result = query.limit(filters.get("limit", 100)).all()
 
         for event in query_result:
-            json_query_result = serialize(event)
+            json_query_result = await serialize(event)
             response = "EVENT", subscription_id, json_query_result
             logger.debug(f"Response JSON = {json.dumps(response)}")
             await websocket.send(json.dumps(response))
