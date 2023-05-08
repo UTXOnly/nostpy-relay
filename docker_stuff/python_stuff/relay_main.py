@@ -2,8 +2,6 @@ import os
 import json
 import asyncio
 import websockets
-import hmac
-import hashlib
 import logging
 from time import time
 from ddtrace import tracer
@@ -124,8 +122,6 @@ async def handle_websocket_connection(websocket, path):
                 await websocket.close()
         else:
            logger.warning(f"Unsupported message format: {message_list}")
-
-
 
 async def serialize(model):
     """Helper function to convert an SQLAlchemy model instance to a dictionary"""

@@ -1,6 +1,6 @@
 # Nostpy
 
-A simeple and easy to deply nostr relay using `asyncio` & `websockets` to server Nostr clients
+A simple and easy to deploy nostr relay using `asyncio` & `websockets` to server Nostr clients
 
 ## Description
 
@@ -15,9 +15,11 @@ Numerous branches in development,trying to improve performance, reliability and 
 
 * Ubuntu amd64 host server
 * At least 1 GB of available RAM ( 4GB recomended )
+* Your own domain
 
 
 ## Supported NIPs
+*unchecked NIPS are on the roadmap*
 
 - [x] NIP-01: Basic protocol flow description
 - [x] NIP-02: Contact list and petnames
