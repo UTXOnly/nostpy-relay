@@ -17,6 +17,16 @@ Numerous branches in development,trying to improve performance, reliability and 
 * At least 1 GB of available RAM ( 4GB recomended )
 * Your own domain
 
+## Instructions
+
+To run this program run the command below from the main repo direcotory to bring up the NostPy menu
+
+```
+python3 menu.py
+```
+
+This will bring up the menu below and you can control the program from there!
+
 
 ## Supported NIPs
 *unchecked NIPS are on the roadmap*
