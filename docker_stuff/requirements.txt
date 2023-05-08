@@ -1,7 +1,8 @@
 websockets
 sqlalchemy
 psycopg2
-aiohttp
+ddtrace
+
 
 
 
