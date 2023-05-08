@@ -6,7 +6,6 @@ def print_color(text, color):
     print(f"\033[1;{color}m{text}\033[0m")
 
 
-
 # Function to start Nostpy relay
 def start_nostpy_relay():
     # Change directory and start Docker containers

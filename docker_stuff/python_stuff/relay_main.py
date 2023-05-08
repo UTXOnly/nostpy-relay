@@ -49,10 +49,7 @@ class Event(Base):
             session.add(new_event)
             logger.debug('about to commit session changes...')
             session.commit()
-
-            # log confirmation message
             logger.info(f"Added event {new_event.id} to database.")
-
 
 async def handle_new_event(event_dict, websocket):
     pubkey = event_dict.get("pubkey")
