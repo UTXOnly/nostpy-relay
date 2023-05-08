@@ -16,13 +16,13 @@ def start_nostpy_relay():
 def destroy_containers_and_images():
     # Change directory and stop Docker containers
     os.chdir("docker_stuff")
-    subprocess.run(["docker", "stop", "$(docker", "ps", "-aq)", "-f"])
+    subprocess.run(["sudo", "docker", "stop", "$(docker", "ps", "-aq)", "-f"])
 
     # Remove all containers
-    subprocess.run(["docker", "rm", "$(docker", "ps", "-aq)", "-f"])
+    subprocess.run(["sudo", "docker", "rm", "$(docker", "ps", "-aq)", "-f"])
 
     # Remove all images
-    subprocess.run(["docker", "rmi", "$(docker", "images", "-q)", "-f"])
+    subprocess.run(["sudo", "docker", "rmi", "$(docker", "images", "-q)", "-f"])
 
 # Function to switch branches
 def switch_branches():
