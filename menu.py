@@ -15,7 +15,7 @@ def start_nostpy_relay():
 # Function to destroy all Docker containers and images
 def destroy_containers_and_images():
     # Change directory and stop Docker containers
-    os.chdir("docker_stuff")
+    os.chdir("./docker_stuff")
     subprocess.run(["sudo", "docker", "stop", "$(docker ps -aq)", "-f"])
 
     # Remove all containers
