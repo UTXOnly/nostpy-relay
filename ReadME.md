@@ -27,6 +27,9 @@ python3 menu.py
 
 This will bring up the menu below and you can control the program from there!
 
+![image](https://user-images.githubusercontent.com/49233513/236729712-bb3963f9-0a13-4c8e-940b-6afd7dd7da4b.png)
+
+
 
 ## Supported NIPs
 *unchecked NIPS are on the roadmap*
