@@ -12,7 +12,7 @@ from sqlalchemy import create_engine, Column, String, Integer, JSON
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-tracer.configure(hostname='172.20.0.5', port=8126)
+tracer.configure(hostname='127.0.0.1', port=8126)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
