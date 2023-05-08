@@ -6,10 +6,13 @@ import hmac
 import hashlib
 import logging
 from time import time
+from ddtrace import tracer
 from sqlalchemy.orm import class_mapper
 from sqlalchemy import create_engine, Column, String, Integer, JSON
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
+
+tracer.configure(hostname='127.0.0.1', port=8126)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
