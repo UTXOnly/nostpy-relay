@@ -3,14 +3,9 @@ import json
 import asyncio
 import websockets
 import logging
-from time import time
-from ddtrace import tracer
-from sqlalchemy.orm import class_mapper
+from sqlalchemy.orm import class_mapper, sessionmaker
 from sqlalchemy import create_engine, Column, String, Integer, JSON
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-
-tracer.configure(hostname='host.docker.internal', port=8126)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -23,6 +18,8 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
+logger.debug("Creating database metadata")
+Base.metadata.create_all(bind=engine)
 
 class Event(Base):
     __tablename__ = 'event'
@@ -56,9 +53,6 @@ class Event(Base):
             # log confirmation message
             logger.info(f"Added event {new_event.id} to database.")
 
-# Add debug log line to show metadata creation
-logger.debug("Creating database metadata")
-Base.metadata.create_all(bind=engine)
 
 async def handle_new_event(event_dict, websocket):
     pubkey = event_dict.get("pubkey")
@@ -124,7 +118,7 @@ async def handle_websocket_connection(websocket, path):
            logger.warning(f"Unsupported message format: {message_list}")
 
 async def serialize(model):
-    """Helper function to convert an SQLAlchemy model instance to a dictionary"""
+    #Helper function to convert an SQLAlchemy model instance to a dictionary
     columns = [c.key for c in class_mapper(model.__class__).columns]
     return dict((c, getattr(model, c)) for c in columns)
 
