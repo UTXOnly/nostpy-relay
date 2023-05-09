@@ -47,13 +47,8 @@ server {{
 }}
 """
 
-default_conf = "/etc/nginx/sites-available/{domain_name}"
-
-if os.path.exists(default_conf):
-    os.system("sudo rm -rf {}".format(default_conf))
-
 # Write nginx config file to disk
-with open(f"/etc/nginx/sites-available/{domain_name}", "w") as f:
+with open(f"/etc/nginx/sites-available/default", "w") as f:
     f.write(nginx_config)
 
 os.system("sudo service nginx restart")
