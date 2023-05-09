@@ -10,19 +10,16 @@ def print_color(text, color):
 def start_nostpy_relay():
     # Change directory and start Docker containers
     os.chdir("docker_stuff")
-    subprocess.run(["sudo", "docker-compose", "up", "-d"])
+    subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "up", "-d"])
 
 # Function to destroy all Docker containers and images
-
-
 def destroy_containers_and_images():
     # Change directory to the Docker stuff folder
     os.chdir("./docker_stuff")
-    subprocess.run(["docker", "stop", "relay", "docker_stuff_postgres_1"])
-    subprocess.run(["docker", "rm", "relay", "docker_stuff_postgres_1"])
-    subprocess.run(["docker", "image", "prune", "-f", "--filter", "label=container=relay"])
-    subprocess.run(["docker", "image", "prune", "-f", "--filter", "label=container=docker_stuff_postges_1"])
-
+    subprocess.run(["sudo", "-u", "relay_service", "docker", "stop", "relay", "docker_stuff_postgres_1"])
+    subprocess.run(["sudo", "-u", "relay_service", "docker", "rm", "relay", "docker_stuff_postgres_1"])
+    subprocess.run(["sudo", "-u", "relay_service", "docker", "image", "prune", "-f", "--filter", "label=container=relay"])
+    subprocess.run(["sudo", "-u", "relay_service", "docker", "image", "prune", "-f", "--filter", "label=container=docker_stuff_postges_1"])
 
 
 
@@ -34,6 +31,10 @@ def switch_branches():
     # Change branch
     subprocess.run(["git", "checkout", branch_name])
 
+
+# Function to execute setup.py script
+def execute_setup_script():
+    subprocess.run(["python3", "setup.py"])
 
 while True:
     print_color("\n##########################################################################################", "31")
@@ -52,9 +53,10 @@ while True:
     print_color("1) Start Nostpy relay", "32")
     print_color("2) Destroy all docker containers and images", "32")
     print_color("3) Switch branches", "31")
-    print_color("4) Exit menu", "32")
+    print_color("4) Execute setup.py script", "33")
+    print_color("5) Exit menu", "32")
 
-    choice = input("\nEnter an option number (1-4): ")
+    choice = input("\nEnter an option number (1-5): ")
 
     if choice == "1":
         start_nostpy_relay()
@@ -63,6 +65,8 @@ while True:
     elif choice == "3":
         switch_branches()
     elif choice == "4":
+        execute_setup_script()
+    elif choice == "5":
         print_color("Exited menu", "31")
         break
     else:
