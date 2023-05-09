@@ -59,13 +59,13 @@ while True:
     choice = input("\nEnter an option number (1-5): ")
 
     if choice == "1":
-        start_nostpy_relay()
+        execute_setup_script()
     elif choice == "2":
-        destroy_containers_and_images()
+        start_nostpy_relay()      
     elif choice == "3":
         switch_branches()
     elif choice == "4":
-        execute_setup_script()
+        destroy_containers_and_images()
     elif choice == "5":
         print_color("Exited menu", "31")
         break
