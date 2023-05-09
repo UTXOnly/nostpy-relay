@@ -4,7 +4,10 @@ import os
 os.system("sudo apt-get update -y")
 os.system("sudo apt-get install -y docker-compose nginx certbot python3-certbot-nginx")
 
-os.system("sudo rm -rf /etc/nginx/sites-available/default")
+default_conf = "/etc/nginx/sites-available/default"
+
+if os.path.exists(default_conf):
+    os.system("sudo rm -rf {}".format(default_conf))
 
 # Create a new user
 os.system("sudo adduser relay_service")
