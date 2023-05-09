@@ -9,7 +9,7 @@ def print_color(text, color):
 # Function to start Nostpy relay
 def start_nostpy_relay():
     # Change directory and start Docker containers
-    os.chdir("docker_stuff")
+    os.chdir("./docker_stuff")
     subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "up", "-d"])
 
 # Function to destroy all Docker containers and images

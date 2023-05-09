@@ -53,11 +53,14 @@ with open(f"/etc/nginx/sites-available/default", "w") as f:
     f.write(nginx_config)
 
 os.system("sudo service nginx restart")
-# Enable site in nginx
-#os.system(f"sudo ln -s /etc/nginx/sites-available/{domain_name} /etc/nginx/sites-enabled/")
 
-# Run certbot to obtain SSL certificate
-os.system(f"sudo certbot --nginx -d {domain_name} --non-interactive --agree-tos --email bh419@protonmail.com")
+file_path = "/etc/letsencrypt/live/nostpy.lol/fullchain.pem"
+
+if os.path.isfile(file_path):
+    print("The file exists!")
+else:
+    print("The file doesn't exist!")
+    os.system(f"sudo certbot --nginx -d {domain_name} --non-interactive --agree-tos --email bh419@protonmail.com")
 
 
 os.system("sudo service nginx restart")
