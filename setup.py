@@ -56,14 +56,12 @@ if os.path.exists(default_conf):
 with open(f"/etc/nginx/sites-available/{domain_name}", "w") as f:
     f.write(nginx_config)
 
-os.system("sudo systemctl restart nginx.service")
+os.system("sudo service nginx restart")
 # Enable site in nginx
 #os.system(f"sudo ln -s /etc/nginx/sites-available/{domain_name} /etc/nginx/sites-enabled/")
 
 # Run certbot to obtain SSL certificate
-os.system(f"sudo certbot --nginx -d {domain_name}")
+os.system(f"sudo certbot --nginx -d {domain_name} --non-interactive --agree-tos")
 
-
-# Restart nginx service
-os.system("sudo systemctl restart nginx.service")
+os.system("sudo service nginx restart")
 
