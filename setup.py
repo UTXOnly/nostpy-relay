@@ -17,7 +17,7 @@ os.system("sudo adduser relay_service")
 os.system("sudo usermod -aG docker realy_service")
 
 # Log out the user to realize the change
-os.system("pkill -KILL -u realy_service")
+os.system("pkill -KILL -u relay_service")
 
 print_color("Enter your domain name below:\n", "32" )
 # Get domain name from user
