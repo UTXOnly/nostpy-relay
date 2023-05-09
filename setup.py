@@ -7,7 +7,7 @@ os.system("sudo apt-get install -y docker-compose nginx certbot python3-certbot-
 os.system("sudo rm -rf /etc/nginx/sites-available/default")
 
 # Create a new user
-os.system("sudo adduser realy_service")
+os.system("sudo adduser relay_service")
 
 # Add the user to the docker group
 os.system("sudo usermod -aG docker realy_service")
@@ -15,20 +15,17 @@ os.system("sudo usermod -aG docker realy_service")
 # Log out the user to realize the change
 os.system("pkill -KILL -u realy_service")
 
-# Prompt user for domain name
-domain_name = input("Enter your domain name: ")
 
 # Get domain name from user
 domain_name = input("Enter domain name (e.g. subdomain.mydomain.com): ")
 
-# Create nginx config file
 nginx_config = f"""
 server {{
     server_name {domain_name};
 
     location / {{
         if ($http_accept ~* "application/nostr\+json") {{
-            return 200 '{"name": "wss://nostpy.io", "description": "NostPy relay v0.1", "pubkey": "4503baa127bdfd0b054384dc5ba82cb0e2a8367cbdb0629179f00db1a34caacc", "contact": "bh419@protonmail.com", "supported_nips": [1, 2, 4, 15, 16, 25], "software": "git+https://github.com/UTXOnly/nost-py.git", "version": "0.1"}';
+            return 200 '{{"name": "wss://nostpy.io", "description": "NostPy relay v0.1", "pubkey": "4503baa127bdfd0b054384dc5ba82cb0e2a8367cbdb0629179f00db1a34caacc", "contact": "bh419@protonmail.com", "supported_nips": [1, 2, 4, 15, 16, 25], "software": "git+https://github.com/UTXOnly/nost-py.git", "version": "0.1"}}';
             add_header 'Content-Type' 'application/json';
         }}
 
