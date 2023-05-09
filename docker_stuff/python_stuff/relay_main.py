@@ -3,9 +3,12 @@ import json
 import asyncio
 import websockets
 import logging
+from ddtrace import tracer
 from sqlalchemy.orm import class_mapper, sessionmaker
 from sqlalchemy import create_engine, Column, String, Integer, JSON
 from sqlalchemy.ext.declarative import declarative_base
+
+tracer.configure(hostname='host.docker.internal', port=8126)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./python_stuff .
 
-CMD ["python", "relay_main.py"]
+CMD ["ddtrace-run","python", "relay_main.py"]
