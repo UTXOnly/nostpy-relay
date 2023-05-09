@@ -39,18 +39,6 @@ class Event(Base):
         self.tags = tags
         self.content = content
         self.sig = sig
-    
-    @classmethod
-    def add_event_to_database(cls, event_data):
-        with SessionLocal() as session:
-            new_event = cls(**event_data)
-            logger.debug(f'created new event:\n{new_event}')
-            session.add(new_event)
-            logger.debug('about to commit session changes...')
-            session.commit()
-
-            # log confirmation message
-            logger.info(f"Added event {new_event.id} to database.")
 
 logger.debug("Creating database metadata")
 Base.metadata.create_all(bind=engine)
@@ -155,9 +143,10 @@ async def handle_subscription_request(subscription_dict, websocket, subscription
         EOSE = "EOSE", subscription_id
         logger.debug(f"EOSE Resonse = {json.dumps(EOSE)}")
         await websocket.send(json.dumps(EOSE))
-        if origin != "https://iris.to":
-            logger.debug("Closing non Iris websocket")
-            await websocket.close()
+        
+        #if origin != "https://iris.to":
+        #    logger.debug("Closing non Iris websocket")
+        #    await websocket.close()
 
 
 if __name__ == "__main__":

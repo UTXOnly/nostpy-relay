@@ -20,11 +20,12 @@ def destroy_containers_and_images():
     os.chdir("./docker_stuff")
 
     # Stop and remove all Docker containers
-    subprocess.run(["sudo", "docker", "stop", *subprocess.check_output(["docker", "ps", "-aq"]).decode().split(), "-f"])
-    subprocess.run(["sudo", "docker", "rm", *subprocess.check_output(["docker", "ps", "-aq"]).decode().split(), "-f"])
+    subprocess.run(["docker", "stop", *subprocess.check_output(["docker", "ps", "-aq"]).decode().split(), "-f"])
+    subprocess.run(["docker", "rm", *subprocess.check_output(["docker", "ps", "-aq"]).decode().split(), "-f"])
 
     # Remove all Docker images
-    subprocess.run(["sudo", "docker", "rmi", *subprocess.check_output(["docker", "images", "-q"]).decode().split(), "-f"])
+    subprocess.run(["docker", "rmi", *subprocess.check_output(["docker", "images", "-q"]).decode().split(), "-f"])
+
 
 
 # Function to switch branches
