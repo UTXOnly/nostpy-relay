@@ -50,13 +50,23 @@ conn = psycopg2.connect(
 with conn.cursor() as cur:
     cur.execute("CREATE USER datadog WITH password '<PASSWORD>';")
 
-# Create the datadog schema and grant privileges
-with conn.cursor() as cur:
-    cur.execute("CREATE SCHEMA datadog;")
-    cur.execute("GRANT USAGE ON SCHEMA datadog TO datadog;")
-    cur.execute("GRANT USAGE ON SCHEMA public TO datadog;")
-    cur.execute("GRANT pg_monitor TO datadog;")
-    cur.execute("CREATE EXTENSION IF NOT EXISTS pg_stat_statements;")
+# Set the parameters for postgresql.conf
+query = """
+    ALTER SYSTEM SET shared_preload_libraries = 'pg_stat_statements';
+    ALTER SYSTEM SET track_activity_query_size = 4096;
+    ALTER SYSTEM SET pg_stat_statements.track = all;
+    ALTER SYSTEM SET pg_stat_statements.max = 10000;
+    ALTER SYSTEM SET track_io_timing = on;
+"""
+
+# Execute the query outside of a transaction
+conn.autocommit = True
+cur.execute(query)
+conn.autocommit = False
+
+# Close the cursor and connection
+cur.close()
+conn.close()
 
 # Create the function to enable the Agent to collect explain plans
 with conn.cursor() as cur:
