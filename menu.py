@@ -19,12 +19,13 @@ def destroy_containers_and_images():
     # Change directory to the Docker stuff folder
     os.chdir("./docker_stuff")
 
-    # Stop and remove all Docker containers
-    subprocess.run(["docker", "stop", *subprocess.check_output(["docker", "ps", "-aq"]).decode().split(), "-f"])
-    subprocess.run(["docker", "rm", *subprocess.check_output(["docker", "ps", "-aq"]).decode().split(), "-f"])
+    # Stop and remove the relay and docker_stuff_postgres_1 containers
+    subprocess.run(["docker", "stop", "relay", "docker_stuff_postgres_1"])
+    subprocess.run(["docker", "rm", "relay", "docker_stuff_postgres_1"])
 
-    # Remove all Docker images
-    subprocess.run(["docker", "rmi", *subprocess.check_output(["docker", "images", "-q"]).decode().split(), "-f"])
+    # Remove all Docker images associated with the containers
+    subprocess.run(["docker", "rmi", "-f", "$(docker images | grep 'relay\|docker_stuff_postgres_1' | awk '{print $3}')"])
+
 
 
 
