@@ -57,7 +57,8 @@ os.system("sudo service nginx restart")
 #os.system(f"sudo ln -s /etc/nginx/sites-available/{domain_name} /etc/nginx/sites-enabled/")
 
 # Run certbot to obtain SSL certificate
-os.system(f"sudo certbot --nginx -d {domain_name} --non-interactive --agree-tos")
+os.system(f"sudo certbot --nginx -d {domain_name} --non-interactive --agree-tos --email bh419@protonmail.com")
+
 
 os.system("sudo service nginx restart")
 
