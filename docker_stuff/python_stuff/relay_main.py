@@ -89,11 +89,10 @@ async def handle_websocket_connection(websocket, path):
             event_dict = message_list[1]
             await handle_new_event(event_dict, websocket)
         elif message_list[0] == "REQ":
-            subscription_id = message_list[1]
-            # Extract subscription information from message
-            event_dict = {index: message_list[index] for index in range(len(message_list))}
-            async with websocket:
-                await handle_subscription_request(event_dict, websocket, subscription_id, origin)
+           subscription_id = message_list[1]
+           # Extract subscription information from message
+           event_dict = {index: message_list[index] for index in range(len(message_list))}
+           await handle_subscription_request(event_dict, websocket, subscription_id, origin)
         elif message_list[0] == "CLOSE":
             subscription_id = message_list[1]
             response = "NOTICE", f"closing {subscription_id}"
@@ -101,11 +100,11 @@ async def handle_websocket_connection(websocket, path):
                 logger.debug(f"Sending CLOSE Response: {json.dumps(response)}")
                 await websocket.send(json.dumps(response))
             else:
-                async with websocket:
-                    logger.debug(f"Sending CLOSE Response: {json.dumps(response)} and closing websocket")
-                    await websocket.send(json.dumps(response))
+                logger.debug(f"Sending CLOSE Response: {json.dumps(response)} and closing websocket")
+                await websocket.send(json.dumps(response))
+                await websocket.close()
         else:
-            logger.warning(f"Unsupported message format: {message_list}")
+           logger.warning(f"Unsupported message format: {message_list}")
 
 async def serialize(model):
     #Helper function to convert an SQLAlchemy model instance to a dictionary

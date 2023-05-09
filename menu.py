@@ -18,13 +18,10 @@ def start_nostpy_relay():
 def destroy_containers_and_images():
     # Change directory to the Docker stuff folder
     os.chdir("./docker_stuff")
-
-    # Stop and remove the relay and docker_stuff_postgres_1 containers
     subprocess.run(["docker", "stop", "relay", "docker_stuff_postgres_1"])
     subprocess.run(["docker", "rm", "relay", "docker_stuff_postgres_1"])
-
-    # Remove all Docker images associated with the containers
-    subprocess.run(["docker", "rmi", "-f", "$(docker images | grep 'relay\|docker_stuff_postgres_1' | awk '{print $3}')"])
+    subprocess.run(["docker", "image", "prune", "-f", "--filter", "label=container=relay"])
+    subprocess.run(["docker", "image", "prune", "-f", "--filter", "label=container=docker_stuff_postges_1"])
 
 
 
