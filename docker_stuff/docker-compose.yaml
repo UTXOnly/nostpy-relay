@@ -20,9 +20,6 @@ services:
       - DD_SERVICE=nostpy
     extra_hosts:
       - "host.docker.internal:host-gateway"
-
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
       - ./errors:/errors
     depends_on:

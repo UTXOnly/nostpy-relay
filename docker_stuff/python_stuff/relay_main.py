@@ -12,7 +12,13 @@ tracer.configure(hostname='host.docker.internal', port=8126)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-logging.basicConfig(level=logging.DEBUG)
+
+# Create a file handler and set its level to ERROR
+file_handler = logging.FileHandler('errors.log')
+file_handler.setLevel(logging.ERROR)
+
+# Add the file handler to the logger
+logger.addHandler(file_handler)
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 logger.debug(f"DATABASE_URL value: {DATABASE_URL}")
@@ -21,6 +27,7 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
+
 
 
 class Event(Base):
