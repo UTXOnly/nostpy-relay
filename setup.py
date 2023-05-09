@@ -1,5 +1,6 @@
 import os
-
+def print_color(text, color):
+    print(f"\033[1;{color}m{text}\033[0m")
 # Install required packages
 os.system("sudo apt-get update -y")
 os.system("sudo apt-get install -y docker-compose nginx certbot python3-certbot-nginx")
@@ -18,7 +19,7 @@ os.system("sudo usermod -aG docker realy_service")
 # Log out the user to realize the change
 os.system("pkill -KILL -u realy_service")
 
-
+print_color("Enter your domain name below:\n", "32" )
 # Get domain name from user
 domain_name = input("Enter domain name (e.g. subdomain.mydomain.com): ")
 

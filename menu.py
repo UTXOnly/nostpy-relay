@@ -50,11 +50,11 @@ while True:
     
     """ , "34")
     print("\nPlease select an option:\n")
-    print_color("1) Start Nostpy relay", "32")
-    print_color("2) Destroy all docker containers and images", "32")
-    print_color("3) Switch branches", "31")
-    print_color("4) Execute setup.py script", "33")
-    print_color("5) Exit menu", "32")
+    print_color("1) Execute setup.py script", "33")
+    print_color("2) Start Nostpy relay", "32")
+    print_color("3) Switch branches", "33")
+    print_color("4) Destroy all docker containers and images", "31")
+    print_color("5) Exit menu", "31")
 
     choice = input("\nEnter an option number (1-5): ")
 
