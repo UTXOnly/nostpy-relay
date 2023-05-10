@@ -14,17 +14,22 @@ tracer.configure(hostname='host.docker.internal', port=8126)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-# Create a file handler and set its level to ERROR
-file_handler = logging.FileHandler('errors.log')
-file_handler.setLevel(logging.ERROR)
+# Create a file handler and set its level to DEBUG
+file_handler = logging.FileHandler('app.log')
+file_handler.setLevel(logging.DEBUG)
 
-# Add the file handler to the logger
+# Create a stream handler and set its level to ERROR
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.ERROR)
+
+# Add the handlers to the logger
 logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 logger.debug(f"DATABASE_URL value: {DATABASE_URL}")
 
-redis_client = redis.Redis(host='localhost', port=6379)
+redis_client = redis.Redis(host='docker.host.internal', port=6379)
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -133,6 +138,7 @@ async def handle_subscription_request(subscription_dict, websocket, subscription
     if cached_result:
         logger.debug("Result found in Redis cache")
         result = json.loads(cached_result)
+        logger.debug(f"Result: {result}")
         await websocket.send(json.dumps(result))
         return
 

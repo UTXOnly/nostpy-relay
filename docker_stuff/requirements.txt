@@ -2,6 +2,7 @@ websockets
 sqlalchemy
 psycopg2
 ddtrace
+redis
 
 
 
