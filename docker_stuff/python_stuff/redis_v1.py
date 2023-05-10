@@ -157,7 +157,7 @@ async def handle_subscription_request(subscription_dict, websocket, subscription
         for event in query_result:
             serialized_event = await serialize(event)
             redis_filters.append(serialized_event)
-            response = "EVENT", subscription_id, json_query_result
+            response = "EVENT", subscription_id, redis_filters
             logger.debug(f"Response JSON = {json.dumps(response)}")
             await websocket.send(json.dumps(response))
 
@@ -165,14 +165,11 @@ async def handle_subscription_request(subscription_dict, websocket, subscription
         redis_client.set(cache_key, json.dumps(redis_filters), ex=3600)
         logger.debug("Result saved in Redis cache")
 
-
-        
-
-        for event in query_result:
-            json_query_result = await serialize(event)
-            response = "EVENT", subscription_id, json_query_result
-            logger.debug(f"Response JSON = {json.dumps(response)}")
-            await websocket.send(json.dumps(response))
+        #for event in query_result:
+        #    json_query_result = await serialize(event)
+        #    response = "EVENT", subscription_id, json_query_result
+        #    logger.debug(f"Response JSON = {json.dumps(response)}")
+        #    await websocket.send(json.dumps(response))
         
         EOSE = "EOSE", subscription_id
         logger.debug(f"EOSE Resonse = {json.dumps(EOSE)}")
