@@ -79,3 +79,8 @@ services:
     - "8125:8125"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+  redis:
+    image: redis:latest
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
