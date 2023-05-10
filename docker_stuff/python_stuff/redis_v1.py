@@ -4,12 +4,12 @@ import asyncio
 import websockets
 import redis
 import logging
-#from ddtrace import tracer
+from ddtrace import tracer
 from sqlalchemy.orm import class_mapper, sessionmaker
 from sqlalchemy import create_engine, Column, String, Integer, JSON
 from sqlalchemy.ext.declarative import declarative_base
 
-#tracer.configure(hostname='host.docker.internal', port=8126)
+tracer.configure(hostname='host.docker.internal', port=8126)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -102,13 +102,13 @@ async def handle_websocket_connection(websocket, path):
         elif message_list[0] == "CLOSE":
             subscription_id = message_list[1]
             response = "NOTICE", f"closing {subscription_id}"
-            if origin == "https://iris.to":
-                logger.debug(f"Sending CLOSE Response: {json.dumps(response)}")
-                await websocket.send(json.dumps(response))
-            else:
-                logger.debug(f"Sending CLOSE Response: {json.dumps(response)} and closing websocket")
-                await websocket.send(json.dumps(response))
-                await websocket.close()
+            #if origin == "https://iris.to":
+            #    logger.debug(f"Sending CLOSE Response: {json.dumps(response)}")
+            #    await websocket.send(json.dumps(response))
+            #else:
+            logger.debug(f"Sending CLOSE Response: {json.dumps(response)} and closing websocket")
+            await websocket.send(json.dumps(response))
+            await websocket.close()
         else:
            logger.warning(f"Unsupported message format: {message_list}")
 
@@ -174,10 +174,11 @@ async def handle_subscription_request(subscription_dict, websocket, subscription
         EOSE = "EOSE", subscription_id
         logger.debug(f"EOSE Resonse = {json.dumps(EOSE)}")
         await websocket.send(json.dumps(EOSE))
-        
-        if origin != "https://iris.to":
-            logger.debug("Closing non Iris websocket")
-            await websocket.close()
+        logger.debug("Closing websocket")
+        await websocket.close()
+        #if origin != "https://iris.to":
+        #    logger.debug("Closing non Iris websocket")
+        #    await websocket.close()
 
 
 if __name__ == "__main__":

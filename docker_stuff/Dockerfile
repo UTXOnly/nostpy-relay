@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./python_stuff .
 
-CMD ["python", "redis_v1.py"]
+CMD ["ddtrace-run", "python", "redis_v1.py"]
