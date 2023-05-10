@@ -13,6 +13,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
 
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -116,8 +117,6 @@ async def serialize(model):
     columns = [c.key for c in class_mapper(model.__class__).columns]
     return dict((c, getattr(model, c)) for c in columns)
 
-
-
 async def handle_subscription_request(subscription_dict, websocket, subscription_id, origin):
     filters = subscription_dict
     cache_key = json.dumps(filters)
@@ -129,6 +128,9 @@ async def handle_subscription_request(subscription_dict, websocket, subscription
         result = json.loads(cached_result)
         logger.debug(f"Result: {result}")
         await websocket.send(json.dumps(result))
+        EOSE = "EOSE", subscription_id
+        logger.debug(f"EOSE Resonse = {json.dumps(EOSE)}")
+        await websocket.send(json.dumps(EOSE))
         return
 
     with SessionLocal() as db:
@@ -149,17 +151,28 @@ async def handle_subscription_request(subscription_dict, websocket, subscription
             query = query.filter(Event.created_at > filters.get("since"))
         if filters.get("until"):
             query = query.filter(Event.created_at < filters.get("until"))
+        query_result = query.limit(filters.get("limit", 100)).all()
 
-        result = []
-        for event in query.all():
+        redis_filters = []
+        for event in query_result:
             serialized_event = await serialize(event)
-            result.append(serialized_event)
+            redis_filters.append(serialized_event)
+            response = "EVENT", subscription_id, json_query_result
+            logger.debug(f"Response JSON = {json.dumps(response)}")
+            await websocket.send(json.dumps(response))
 
         # Cache the result for future requests
-        redis_client.set(cache_key, json.dumps(result), ex=3600)
+        redis_client.set(cache_key, json.dumps(redis_filters), ex=3600)
         logger.debug("Result saved in Redis cache")
 
-        await websocket.send(json.dumps(result))
+
+        
+
+        for event in query_result:
+            json_query_result = await serialize(event)
+            response = "EVENT", subscription_id, json_query_result
+            logger.debug(f"Response JSON = {json.dumps(response)}")
+            await websocket.send(json.dumps(response))
         
         EOSE = "EOSE", subscription_id
         logger.debug(f"EOSE Resonse = {json.dumps(EOSE)}")
