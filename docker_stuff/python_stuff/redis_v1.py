@@ -4,7 +4,7 @@ import asyncio
 import websockets
 import redis
 import logging
-from ddtrace import tracer
+#from ddtrace import tracer
 from sqlalchemy.orm import class_mapper, sessionmaker
 from sqlalchemy import create_engine, Column, String, Integer, JSON
 from sqlalchemy.ext.declarative import declarative_base
