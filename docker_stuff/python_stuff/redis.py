@@ -18,7 +18,7 @@ logger.setLevel(logging.DEBUG)
 DATABASE_URL = os.environ.get("DATABASE_URL")
 logger.debug(f"DATABASE_URL value: {DATABASE_URL}")
 
-redis_client = redis.Redis(host='docker.host.internal', port=6379)
+redis_client = redis.Redis(host='host.docker.internal', port=6379)
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
