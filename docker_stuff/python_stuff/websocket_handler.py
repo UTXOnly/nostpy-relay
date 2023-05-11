@@ -32,7 +32,7 @@ async def handle_websocket_connection(websocket, path):
                 subscription_id = message_list[1]
                 # Extract subscription information from message
                 event_dict = {index: message_list[index] for index in range(len(message_list))}
-                await send_subscription_to_handler(session, event_dict, subscription_id, origin)
+                await send_subscription_to_handler(session, event_dict, subscription_id, origin, websocket)
             elif message_list[0] == "CLOSE":
                 subscription_id = message_list[1]
                 response = "NOTICE", f"closing {subscription_id}"
@@ -51,7 +51,7 @@ async def send_event_to_handler(session, event_dict):
         # Handle the response as needed
         pass
 
-async def send_subscription_to_handler(session, event_dict, subscription_id, origin):
+async def send_subscription_to_handler(session, event_dict, subscription_id, origin, websocket):
     # Make a POST request to the event_handler container with subscription data
     url = 'http://172.28.0.3/api/subscriptions'
     payload = {
@@ -65,10 +65,10 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
 
         # Handle the response as needed
         if response.status == 200:
-            await websockets.send(json.dumps(response_data))
+            await websocket.send(json.dumps(response_data))
 
         else:
-            await websockets.send(json.dumps(response_data))
+            await websocket.send(json.dumps(response_data))
             # Handle the error or send it back to the client
 
 
