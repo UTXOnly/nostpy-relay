@@ -47,7 +47,7 @@ async def send_event_to_handler(session, event_dict):
     # Make a POST request to the event_handler container
     url = 'http://172.28.0.3/api/events'
     async with session.post(url, json=event_dict) as response:
-        response_data = await response.json()
+        response_data = response.json()
         # Handle the response as needed
         pass
 
@@ -61,7 +61,7 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
     }
     async with session.post(url, json=payload) as response:
         # Wait for the response from the event_handler container
-        response_data = await response.json()
+        response_data = response.json()
 
         # Handle the response as needed
         if response.status == 200:
