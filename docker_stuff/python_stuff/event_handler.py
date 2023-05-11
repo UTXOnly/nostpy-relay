@@ -110,8 +110,8 @@ async def handle_subscription(request):
             }
             await web.json_response(json.dumps(response))
 
-        async with async_session(engine) as session:
-            query = session.query(Event)
+        async with async_session(engine) as session_ws:
+            query = session_ws.query(Event)
             if filters.get("ids"):
                 query = query.filter(Event.id.in_(filters.get("ids")))
             if filters.get("authors"):
