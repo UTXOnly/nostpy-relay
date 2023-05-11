@@ -61,7 +61,7 @@ async def handle_new_event(event_dict):
     sig = event_dict.get("sig")
 
     try:
-        with SessionLocal() as db:
+        with async_session() as db:
             new_event = Event(
                 id=event_id,
                 pubkey=pubkey,
@@ -109,7 +109,7 @@ async def handle_subscription(request):
             }
             await web.json_response(json.dumps(response))
 
-        async with SessionLocal() as db:
+        async with async_session() as db:
             query = db.query(Event)
             if filters.get("ids"):
                 query = query.filter(Event.id.in_(filters.get("ids")))
