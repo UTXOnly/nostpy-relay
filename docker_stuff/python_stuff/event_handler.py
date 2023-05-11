@@ -26,6 +26,7 @@ redis_client = redis.Redis(host='172.28.0.6', port=6379)
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
 Base = declarative_base()
 
 class Event(Base):
@@ -109,8 +110,8 @@ async def handle_subscription(request):
             }
             await web.json_response(json.dumps(response))
 
-        async with async_session() as db:
-            query = db.query(Event)
+        async with async_session(engine) as session:
+            query = session.query(Event)
             if filters.get("ids"):
                 query = query.filter(Event.id.in_(filters.get("ids")))
             if filters.get("authors"):
