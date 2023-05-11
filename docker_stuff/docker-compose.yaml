@@ -22,9 +22,16 @@ services:
       - DD_ENV=nostpy
       - DD_LOGS_INJECTION=true
       - DD_PROFILING_ENABLED=true
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     networks:
       my_network:
         ipv4_address: 172.28.0.3
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   postgres:
     image: postgres:latest
@@ -32,8 +39,8 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    ports:
-      - 5432:5432
+    #ports:
+    #  - 5432
     networks:
       my_network:
         ipv4_address: 172.28.0.4
@@ -50,7 +57,7 @@ services:
       ## GLOBALS
       - DD_API_KEY=${DD_API_KEY}
       - DD_SITE=datadoghq.com
-      - DD_HOSTNAME=nostpy
+      - DD_HOSTNAME=nostpy-test
       - DD_TAGS=env:nostr owner:brian service:nostpy
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
       - DD_DOCKER_LABELS_AS_TAGS=true
