@@ -29,7 +29,7 @@ server {{
 
     location / {{
         if ($http_accept ~* "application/nostr\+json") {{
-            return 200 '{{"name": "wss://nostpy.io", "description": "NostPy relay v0.1", "pubkey": "4503baa127bdfd0b054384dc5ba82cb0e2a8367cbdb0629179f00db1a34caacc", "contact": "bh419@protonmail.com", "supported_nips": [1, 2, 4, 15, 16, 25], "software": "git+https://github.com/UTXOnly/nost-py.git", "version": "0.1"}}';
+            return 200 '{{"name": "wss://nostpy.lol", "description": "NostPy relay v0.1", "pubkey": "4503baa127bdfd0b054384dc5ba82cb0e2a8367cbdb0629179f00db1a34caacc", "contact": "bh419@protonmail.com", "supported_nips": [1, 2, 4, 15, 16, 25], "software": "git+https://github.com/UTXOnly/nost-py.git", "version": "0.1"}}';
             add_header 'Content-Type' 'application/json';
         }}
 
