@@ -59,10 +59,10 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
         'subscription_id': subscription_id,
         'origin': origin
     }
-    response = await session.post(url, json=payload)
+    response = session.post(url, json=payload)
 
     # Wait for the response from the event_handler container
-    response_data = await response.json()
+    response_data = response.json()
 
     # Handle the response as needed
     if response.status == 200:
