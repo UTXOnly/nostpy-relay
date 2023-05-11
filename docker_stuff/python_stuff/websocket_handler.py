@@ -62,7 +62,7 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
     async with aiohttp.ClientSession() as session:
         async with session.post(url, json=payload) as response:
             # Wait for the response from the event_handler container
-            response_data = await response.json()
+            response_data = await response.text()
 
             # Handle the response as needed
             if response.status == 200:

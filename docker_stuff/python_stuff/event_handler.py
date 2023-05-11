@@ -9,6 +9,7 @@ from aiohttp import web
 from sqlalchemy.orm import class_mapper, sessionmaker
 from sqlalchemy import create_engine, Column, String, Integer, JSON
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.asyncio import async_session
 
 tracer.configure(hostname='172.28.0.5', port=8126)
 
@@ -108,7 +109,7 @@ async def handle_subscription(request):
             }
             await web.json_response(json.dumps(response))
 
-        with SessionLocal() as db:
+        async with SessionLocal() as db:
             query = db.query(Event)
             if filters.get("ids"):
                 query = query.filter(Event.id.in_(filters.get("ids")))
