@@ -9,6 +9,7 @@ services:
       - DD_ENV=nostpy
       - DD_LOGS_INJECTION=true
       - DD_PROFILING_ENABLED=true
+      - DD_AGENT_HOST=datadog-agent
     networks:
       my_network:
         ipv4_address: 172.28.0.2
@@ -19,6 +20,7 @@ services:
       dockerfile: Dockerfile.event_handler
     environment:
       - DD_SERVICE=event_handler
+      - DD_AGENT_HOST=datadog-agent
       - DD_ENV=nostpy
       - DD_LOGS_INJECTION=true
       - DD_PROFILING_ENABLED=true
