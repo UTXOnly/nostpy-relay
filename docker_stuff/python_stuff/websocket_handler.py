@@ -59,17 +59,18 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
         'subscription_id': subscription_id,
         'origin': origin
     }
-    async with session.post(url, json=payload) as response:
-        # Wait for the response from the event_handler container
-        response_data = response.json()
+    response = await session.post(url, json=payload)
 
-        # Handle the response as needed
-        if response.status == 200:
-            await websocket.send(json.dumps(response_data))
+    # Wait for the response from the event_handler container
+    response_data = await response.json()
 
-        else:
-            await websocket.send(json.dumps(response_data))
-            # Handle the error or send it back to the client
+    # Handle the response as needed
+    if response.status == 200:
+        await websocket.send(json.dumps(response_data))
+    else:
+        await websocket.send(json.dumps(response_data))
+        # Handle the error or send it back to the client
+
 
 
 if __name__ == "__main__":
