@@ -62,7 +62,7 @@ async def handle_new_event(event_dict):
     sig = event_dict.get("sig")
 
     try:
-        with async_session() as db:
+        with async_session(engine) as db:
             new_event = Event(
                 id=event_id,
                 pubkey=pubkey,
