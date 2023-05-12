@@ -45,7 +45,7 @@ async def handle_websocket_connection(websocket, path):
 async def send_event_to_handler(session, event_dict):
     event_dict['session'] = session
     # Make a POST request to the event_handler container
-    url = 'http://172.28.0.3/api/events'
+    url = 'http://172.28.0.3/api/new_event'
     async with session.post(url, json=event_dict) as response:
         response_data = response.json()
         # Handle the response as needed
@@ -53,7 +53,7 @@ async def send_event_to_handler(session, event_dict):
 
 async def send_subscription_to_handler(session, event_dict, subscription_id, origin, websocket):
     # Make a POST request to the event_handler container with subscription data
-    url = 'http://172.28.0.3/api/subscriptions'
+    url = 'http://172.28.0.3/api/subscription'
     payload = {
         'event_dict': event_dict,
         'subscription_id': subscription_id,
