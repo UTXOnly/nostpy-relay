@@ -113,6 +113,7 @@ async def handle_subscription(request: Request):
             logger.debug(f"Result: {result}")
             if len(result) != 0:
                 response = "EVENT", subscription_id, result
+                json_response = json.dumps(response)
 
         else:
             Session = sessionmaker(bind=engine)
@@ -150,6 +151,7 @@ async def handle_subscription(request: Request):
                     logger.debug(f"EOSE Resonse = {json_response}")
                 else:   
                     response = "EVENT", subscription_id, redis_filters
+                    json_response = json.dumps(response)
 
             except Exception as e:
                 # Handle the exception and return an error response
