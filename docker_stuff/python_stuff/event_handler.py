@@ -92,7 +92,6 @@ def serialize(model):
     columns = [c.key for c in class_mapper(model.__class__).columns]
     return dict((c, getattr(model, c)) for c in columns)
 
-
 @app.post("/subscription")
 async def handle_subscription(request: Request):
     try:
@@ -104,6 +103,7 @@ async def handle_subscription(request: Request):
 
         # Redis cache key from subscription filters
         cache_key = json.dumps(filters)
+
         # Check if the result is already cached
         cached_result = redis_client.get(cache_key)
         if cached_result:
@@ -111,62 +111,63 @@ async def handle_subscription(request: Request):
             result = json.loads(cached_result)
             logger.debug(f"Result: {result}")
 
-            #response = {
-            #    'result': result,
-            #    'subscription_id': subscription_id
-            #}
-            response = "EVENT", subscription_id, result
+            response = "EVENT", subscription_id, dict(result)
 
-            return JSONResponse(content=response)
+        else:
+            Session = sessionmaker(bind=engine)
+            session = Session()
+            try:
+                query = session.query(Event)
+                if filters.get("ids"):
+                    query = query.filter(Event.id.in_(filters.get("ids")))
+                if filters.get("authors"):
+                    query = query.filter(Event.pubkey.in_(filters.get("authors")))
+                if filters.get("kinds"):
+                    query = query.filter(Event.kind.in_(filters.get("kinds")))
+                if filters.get("#e"):
+                    query = query.filter(Event.tags.any(lambda tag: tag[0] == 'e' and tag[1] in filters.get("#e")))
+                if filters.get("#p"):
+                    query = query.filter(Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in filters.get("#p")))
+                if filters.get("#d"):
+                    query = query.filter(Event.tags.any(lambda tag: tag[0] == 'd' and tag[1] in filters.get("#d")))
+                if filters.get("since"):
+                    query = query.filter(Event.created_at > filters.get("since"))
+                if filters.get("until"):
+                    query = query.filter(Event.created_at < filters.get("until"))
+                query_result = query.limit(filters.get("limit", 100)).all()
 
-        Session = sessionmaker(bind=engine)
-        session = Session()
-        try:
-            query = session.query(Event)
-            if filters.get("ids"):
-                query = query.filter(Event.id.in_(filters.get("ids")))
-            if filters.get("authors"):
-                query = query.filter(Event.pubkey.in_(filters.get("authors")))
-            if filters.get("kinds"):
-                query = query.filter(Event.kind.in_(filters.get("kinds")))
-            if filters.get("#e"):
-                query = query.filter(Event.tags.any(lambda tag: tag[0] == 'e' and tag[1] in filters.get("#e")))
-            if filters.get("#p"):
-                query = query.filter(Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in filters.get("#p")))
-            if filters.get("#d"):
-                query = query.filter(Event.tags.any(lambda tag: tag[0] == 'd' and tag[1] in filters.get("#d")))
-            if filters.get("since"):
-                query = query.filter(Event.created_at > filters.get("since"))
-            if filters.get("until"):
-                query = query.filter(Event.created_at < filters.get("until"))
-            query_result = query.limit(filters.get("limit", 100)).all()
+                redis_filters = []
+                for event in query_result:
+                    serialized_event = serialize(event)
+                    redis_filters.append(serialized_event)
 
-            redis_filters = []
-            for event in query_result:
-                serialized_event = serialize(event)
-                redis_filters.append(serialized_event)
+                response = "EVENT", subscription_id, redis_filters
 
-            response = "EVENT", subscription_id, redis_filters
+                # Cache the result for future requests
+                redis_client.set(cache_key, json.dumps(redis_filters), ex=3600)
+                logger.debug("Result saved in Redis cache")
 
-            # Cache the result for future requests
-            redis_client.set(cache_key, json.dumps(redis_filters), ex=3600)
-            logger.debug("Result saved in Redis cache")
+            except Exception as e:
+                # Handle the exception and return an error response
+                error_message = str(e)
+                logger.error(f"Error occurred: {error_message}")
+                raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
+            finally:
+                session.close()
 
-            return JSONResponse(content=response)
-
-        except Exception as e:
-            # Handle the exception and return an error response
-            error_message = str(e)
-            logger.error(f"Error occurred: {error_message}")
-            raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
-        finally:
-            session.close()
+        return JSONResponse(content=response)
 
     except Exception as e:
         # Handle the exception and return an error response
         error_message = str(e)
         logger.error(f"Error occurred: {error_message}")
         raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
+    
+    finally:
+        EOSE = "EOSE", subscription_id
+        logger.debug(f"EOSE Resonse = {json.dumps(EOSE)}")
+        return JSONResponse(json.dumps(EOSE))
+
     
 if __name__ == "__main__":
     import uvicorn
