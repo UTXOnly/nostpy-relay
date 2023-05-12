@@ -43,13 +43,26 @@ async def handle_websocket_connection(websocket, path):
                 logger.warning(f"Unsupported message format: {message_list}")
 
 async def send_event_to_handler(session, event_dict):
-    event_dict['session'] = session
+    # Extract relevant data from the session object
+    session_data = {
+        'cookies': dict(session.cookie_jar),
+        'headers': dict(session._default_headers),
+        # Add other relevant session data if needed
+    }
+
+    # Create the payload dictionary
+    payload = {
+        'session': session_data,
+        'event': event_dict,
+    }
+
     # Make a POST request to the event_handler container
     url = 'http://event_handler/api/new_event'
-    async with session.post(url, json=event_dict) as response:
-        response_data = response.json()
-        # Handle the response as needed
+    async with session.post(url, data=json.dumps(payload)) as response:
+        response_data = await response.text()
         pass
+
+
 
 async def send_subscription_to_handler(session, event_dict, subscription_id, origin, websocket):
     # Make a POST request to the event_handler container with subscription data
@@ -60,7 +73,7 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
         'origin': origin
     }
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, json=payload) as response:
+        async with session.post(url, data=json.dumps(payload)) as response:
             # Wait for the response from the event_handler container
             response_data = await response.text()
 
@@ -68,15 +81,17 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
             if response.status == 200:
                 await websocket.send(json.dumps(response_data))
             else:
-                await websocket.send(json.dumps(response_data))
+                await websocket.send(response_data)
+                logger.debug(f"Response data is {response_data} but it failed")
                 # Handle the error or send it back to the client
 
     # Handle the response as needed
     if response.status == 200:
-        await websocket.send(json.dumps(response_data))
+        await websocket.send(response_data)
     else:
-        await websocket.send(json.dumps(response_data))
+        await websocket.send(response_data)
         # Handle the error or send it back to the client
+
 
 
 
