@@ -5,11 +5,13 @@ import redis
 import logging
 from ddtrace import tracer
 import aiohttp
-from aiohttp import web
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import JSONResponse
+
 from sqlalchemy.orm import class_mapper, sessionmaker
 from sqlalchemy import create_engine, Column, String, Integer, JSON
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.asyncio import async_session
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 tracer.configure(hostname='172.28.0.5', port=8126)
 
@@ -17,17 +19,14 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logging.basicConfig(level=logging.DEBUG)
 
-
 DATABASE_URL = os.environ.get("DATABASE_URL")
 logger.debug(f"DATABASE_URL value: {DATABASE_URL}")
 
 redis_client = redis.Redis(host='172.28.0.6', port=6379)
 
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-
+engine = create_async_engine(DATABASE_URL, echo=True)
 Base = declarative_base()
+
 
 class Event(Base):
     __tablename__ = 'event'
@@ -49,10 +48,17 @@ class Event(Base):
         self.content = content
         self.sig = sig
 
+
 logger.debug("Creating database metadata")
 Base.metadata.create_all(bind=engine)
 
-async def handle_new_event(event_dict):
+
+app = FastAPI()
+
+
+@app.post("/new_event")
+async def handle_new_event(request: Request):
+    event_dict = await request.json()
     pubkey = event_dict.get("pubkey")
     kind = event_dict.get("kind")
     created_at = event_dict.get("created_at")
@@ -61,8 +67,8 @@ async def handle_new_event(event_dict):
     event_id = event_dict.get("id")
     sig = event_dict.get("sig")
 
-    try:
-        with async_session(engine) as db:
+    async with AsyncSession(engine) as db:
+        try:
             new_event = Event(
                 id=event_id,
                 pubkey=pubkey,
@@ -73,21 +79,26 @@ async def handle_new_event(event_dict):
                 sig=sig
             )
             db.add(new_event)
-            db.commit()
-    except Exception as e:
-        logger.exception(f"Error saving event: {e}")
-        await web.json_response(json.dumps({"error": "Failed to save event to database"}))
-    else:
-        logger.debug("Event received and processed")
-        await web.json_response(json.dumps({"message": "Event received and processed"}))
+            await db.commit()
+            response = {"message": "Event added successfully"}
+            return JSONResponse(content=response, status_code=200)
+        except Exception as e:
+            logger.exception(f"Error saving event: {e}")
+            raise HTTPException(status_code=500, detail="Failed to save event to database")
+
+    logger.debug("Event received and processed")
+    response = {"message": "Event received and processed"}
+    return JSONResponse(content=response, status_code=200)
+
 
 async def serialize(model):
-    #Helper function to convert an SQLAlchemy model instance to a dictionary
+    # Helper function to convert an SQLAlchemy model instance to a dictionary
     columns = [c.key for c in class_mapper(model.__class__).columns]
     return dict((c, getattr(model, c)) for c in columns)
 
 
-async def handle_subscription(request):
+@app.post("/subscription")
+async def handle_subscription(request: Request):
     try:
         payload = await request.json()
         subscription_dict = payload.get('event_dict')
@@ -104,14 +115,15 @@ async def handle_subscription(request):
             logger.debug("Result found in Redis cache")
             result = json.loads(cached_result)
             logger.debug(f"Result: {result}")
+
             response = {
                 'result': result,
                 'subscription_id': subscription_id
             }
-            await web.json_response(json.dumps(response))
+            return JSONResponse(content=response)
 
-        async with async_session(engine) as session_ws:
-            query = session_ws.query(Event)
+        async with AsyncSession(engine) as session_ws:
+            query = session_ws.execute(Event)
             if filters.get("ids"):
                 query = query.filter(Event.id.in_(filters.get("ids")))
             if filters.get("authors"):
@@ -128,39 +140,33 @@ async def handle_subscription(request):
                 query = query.filter(Event.created_at > filters.get("since"))
             if filters.get("until"):
                 query = query.filter(Event.created_at < filters.get("until"))
-            query_result = query.limit(filters.get("limit", 100)).all()
+            query_result = await query.limit(filters.get("limit", 100)).all()
 
             redis_filters = []
             for event in query_result:
                 serialized_event = await serialize(event)
                 redis_filters.append(serialized_event)
-                response = "EVENT", subscription_id, redis_filters
-                logger.debug(f"Response JSON = {json.dumps(response)}")
-                await web.json_response(json.dumps(response))
+
+            response = {
+                'result': redis_filters,
+                'subscription_id': subscription_id
+            }
 
             # Cache the result for future requests
             redis_client.set(cache_key, json.dumps(redis_filters), ex=3600)
             logger.debug("Result saved in Redis cache")
 
-            EOSE = "EOSE", subscription_id
-            logger.debug(f"EOSE Response = {json.dumps(EOSE)}")
-            await web.json_response(json.dumps(EOSE))
+            return JSONResponse(content=response)
 
     except Exception as e:
         # Handle the exception and return an error response
         error_message = str(e)
         logger.error(f"Error occurred: {error_message}")
-        error_response = {
-            'error': error_message
-        }
-        return web.json_response(json.dumps(error_response), status=500)
+        raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
 
-# Create the aiohttp web application and routes
-app = web.Application()
-app.router.add_post('/api/subscriptions', handle_subscription)
-app.router.add_post('/api/events', handle_new_event)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=80)
 
-# Start the aiohttp server
-web.run_app(app, host='0.0.0.0', port=80)
 
 
