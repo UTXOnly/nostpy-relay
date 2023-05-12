@@ -4,3 +4,5 @@ psycopg2-binary
 ddtrace
 redis
 aiohttp
+fastapi
+uvicorn
