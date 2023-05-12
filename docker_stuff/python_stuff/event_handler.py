@@ -110,8 +110,8 @@ async def handle_subscription(request: Request):
             logger.debug("Result found in Redis cache")
             result = json.loads(cached_result)
             logger.debug(f"Result: {result}")
-
-            response = "EVENT", subscription_id, result
+            if len(result) != 0:
+                response = "EVENT", subscription_id, result
 
         else:
             Session = sessionmaker(bind=engine)
@@ -140,12 +140,14 @@ async def handle_subscription(request: Request):
                 for event in query_result:
                     serialized_event = serialize(event)
                     redis_filters.append(serialized_event)
-
-                response = "EVENT", subscription_id, redis_filters
-
-                # Cache the result for future requests
                 redis_client.set(cache_key, json.dumps(redis_filters), ex=3600)
                 logger.debug("Result saved in Redis cache")
+
+                if len(redis_filters) == 0:
+                    response = "EOSE", subscription_id
+                    logger.debug(f"EOSE Resonse = {json.dumps(response)}")
+                else:   
+                    response = "EVENT", subscription_id, redis_filters
 
             except Exception as e:
                 # Handle the exception and return an error response

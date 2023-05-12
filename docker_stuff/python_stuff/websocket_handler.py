@@ -59,7 +59,7 @@ async def send_event_to_handler(session, event_dict):
     # Make a POST request to the event_handler container
     url = 'http://event_handler/new_event'
     async with session.post(url, data=json.dumps(event_dict)) as response:
-        response_data = await response.text()
+        response_data = await response.json()
         pass
 
 
