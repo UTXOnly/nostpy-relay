@@ -54,7 +54,7 @@ app = FastAPI()
 
 
 @app.post("/new_event")
-def handle_new_event(request: Request):
+async def handle_new_event(request: Request):
     event_dict = request.json()
     pubkey = event_dict.get("pubkey")
     kind = event_dict.get("kind")
@@ -94,7 +94,7 @@ def serialize(model):
 
 
 @app.post("/subscription")
-def handle_subscription(request: Request):
+async def handle_subscription(request: Request):
     try:
         payload = request.json()
         subscription_dict = payload.get('event_dict')
