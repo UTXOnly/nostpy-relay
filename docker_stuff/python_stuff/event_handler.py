@@ -95,6 +95,7 @@ def serialize(model):
 @app.post("/subscription")
 async def handle_subscription(request: Request):
     try:
+        response = None
         payload = await request.json()
         subscription_dict = payload.get('event_dict')
         subscription_id = payload.get('subscription_id')
@@ -145,7 +146,8 @@ async def handle_subscription(request: Request):
 
                 if len(redis_filters) == 0:
                     response = "EOSE", subscription_id
-                    logger.debug(f"EOSE Resonse = {json.dumps(response)}")
+                    json_response = json.dumps(response)
+                    logger.debug(f"EOSE Resonse = {json_response}")
                 else:   
                     response = "EVENT", subscription_id, redis_filters
 
