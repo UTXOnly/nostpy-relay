@@ -44,21 +44,21 @@ async def handle_websocket_connection(websocket, path):
 
 async def send_event_to_handler(session, event_dict):
     # Extract relevant data from the session object
-    session_data = {
-        'cookies': dict(session.cookie_jar),
-        'headers': dict(session._default_headers),
-        # Add other relevant session data if needed
-    }
+    #session_data = {
+    #    'cookies': dict(session.cookie_jar),
+    #    'headers': dict(session._default_headers),
+    #    # Add other relevant session data if needed
+    #}
 
-    # Create the payload dictionary
-    payload = {
-        'session': session_data,
-        'event': event_dict,
-    }
+    ## Create the payload dictionary
+    #payload = {
+    #    'session': session_data,
+    #    'event': event_dict,
+    #}
 
     # Make a POST request to the event_handler container
     url = 'http://event_handler/new_event'
-    async with session.post(url, data=json.dumps(payload)) as response:
+    async with session.post(url, data=json.dumps(event_dict)) as response:
         response_data = await response.text()
         pass
 
