@@ -111,10 +111,12 @@ async def handle_subscription(request: Request):
             result = json.loads(cached_result)
             logger.debug(f"Result: {result}")
 
-            response = {
-                'result': result,
-                'subscription_id': subscription_id
-            }
+            #response = {
+            #    'result': result,
+            #    'subscription_id': subscription_id
+            #}
+            response = "EVENT", subscription_id, result
+
             return JSONResponse(content=response)
 
         Session = sessionmaker(bind=engine)
@@ -144,10 +146,7 @@ async def handle_subscription(request: Request):
                 serialized_event = serialize(event)
                 redis_filters.append(serialized_event)
 
-            response = {
-                'result': redis_filters,
-                'subscription_id': subscription_id
-            }
+            response = "EVENT", subscription_id, redis_filters
 
             # Cache the result for future requests
             redis_client.set(cache_key, json.dumps(redis_filters), ex=3600)
