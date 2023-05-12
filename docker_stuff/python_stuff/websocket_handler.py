@@ -57,7 +57,7 @@ async def send_event_to_handler(session, event_dict):
     }
 
     # Make a POST request to the event_handler container
-    url = 'http://event_handler/api/new_event'
+    url = 'http://event_handler/new_event'
     async with session.post(url, data=json.dumps(payload)) as response:
         response_data = await response.text()
         pass
@@ -66,7 +66,7 @@ async def send_event_to_handler(session, event_dict):
 
 async def send_subscription_to_handler(session, event_dict, subscription_id, origin, websocket):
     # Make a POST request to the event_handler container with subscription data
-    url = 'http://event_handler/api/subscription'
+    url = 'http://event_handler/subscription'
     payload = {
         'event_dict': event_dict,
         'subscription_id': subscription_id,
