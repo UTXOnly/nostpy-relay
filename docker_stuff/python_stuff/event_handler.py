@@ -1,17 +1,14 @@
 import os
 import json
-import asyncio
-import redis
 import logging
+import redis
 from ddtrace import tracer
 import aiohttp
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
-
-from sqlalchemy.orm import class_mapper, sessionmaker
+from sqlalchemy.orm import sessionmaker, class_mapper
 from sqlalchemy import create_engine, Column, String, Integer, JSON
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 tracer.configure(hostname='172.28.0.5', port=8126)
 
@@ -24,7 +21,7 @@ logger.debug(f"DATABASE_URL value: {DATABASE_URL}")
 
 redis_client = redis.Redis(host='172.28.0.6', port=6379)
 
-engine = create_async_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL, echo=True)
 Base = declarative_base()
 
 
@@ -57,8 +54,8 @@ app = FastAPI()
 
 
 @app.post("/new_event")
-async def handle_new_event(request: Request):
-    event_dict = await request.json()
+def handle_new_event(request: Request):
+    event_dict = request.json()
     pubkey = event_dict.get("pubkey")
     kind = event_dict.get("kind")
     created_at = event_dict.get("created_at")
@@ -67,40 +64,39 @@ async def handle_new_event(request: Request):
     event_id = event_dict.get("id")
     sig = event_dict.get("sig")
 
-    async with AsyncSession(engine) as db:
-        try:
-            new_event = Event(
-                id=event_id,
-                pubkey=pubkey,
-                kind=kind,
-                created_at=created_at,
-                tags=tags,
-                content=content,
-                sig=sig
-            )
-            db.add(new_event)
-            await db.commit()
-            response = {"message": "Event added successfully"}
-            return JSONResponse(content=response, status_code=200)
-        except Exception as e:
-            logger.exception(f"Error saving event: {e}")
-            raise HTTPException(status_code=500, detail="Failed to save event to database")
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    try:
+        new_event = Event(
+            id=event_id,
+            pubkey=pubkey,
+            kind=kind,
+            created_at=created_at,
+            tags=tags,
+            content=content,
+            sig=sig
+        )
+        session.add(new_event)
+        session.commit()
+        response = {"message": "Event added successfully"}
+        return JSONResponse(content=response, status_code=200)
+    except Exception as e:
+        logger.exception(f"Error saving event: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save event to database")
+    finally:
+        session.close()
 
-    logger.debug("Event received and processed")
-    response = {"message": "Event received and processed"}
-    return JSONResponse(content=response, status_code=200)
 
-
-async def serialize(model):
+def serialize(model):
     # Helper function to convert an SQLAlchemy model instance to a dictionary
     columns = [c.key for c in class_mapper(model.__class__).columns]
     return dict((c, getattr(model, c)) for c in columns)
 
 
 @app.post("/subscription")
-async def handle_subscription(request: Request):
+def handle_subscription(request: Request):
     try:
-        payload = await request.json()
+        payload = request.json()
         subscription_dict = payload.get('event_dict')
         subscription_id = payload.get('subscription_id')
         origin = payload.get('origin')
@@ -108,7 +104,6 @@ async def handle_subscription(request: Request):
 
         # Redis cache key from subscription filters
         cache_key = json.dumps(filters)
-
         # Check if the result is already cached
         cached_result = redis_client.get(cache_key)
         if cached_result:
@@ -122,8 +117,10 @@ async def handle_subscription(request: Request):
             }
             return JSONResponse(content=response)
 
-        async with AsyncSession(engine) as session_ws:
-            query = session_ws.execute(Event)
+        Session = sessionmaker(bind=engine)
+        session = Session()
+        try:
+            query = session.query(Event)
             if filters.get("ids"):
                 query = query.filter(Event.id.in_(filters.get("ids")))
             if filters.get("authors"):
@@ -140,11 +137,11 @@ async def handle_subscription(request: Request):
                 query = query.filter(Event.created_at > filters.get("since"))
             if filters.get("until"):
                 query = query.filter(Event.created_at < filters.get("until"))
-            query_result = await query.limit(filters.get("limit", 100)).all()
+            query_result = query.limit(filters.get("limit", 100)).all()
 
             redis_filters = []
             for event in query_result:
-                serialized_event = await serialize(event)
+                serialized_event = serialize(event)
                 redis_filters.append(serialized_event)
 
             response = {
@@ -158,15 +155,22 @@ async def handle_subscription(request: Request):
 
             return JSONResponse(content=response)
 
+        except Exception as e:
+            # Handle the exception and return an error response
+            error_message = str(e)
+            logger.error(f"Error occurred: {error_message}")
+            raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
+        finally:
+            session.close()
+
     except Exception as e:
         # Handle the exception and return an error response
         error_message = str(e)
         logger.error(f"Error occurred: {error_message}")
         raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
-
+    
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=80)
-
 
 
