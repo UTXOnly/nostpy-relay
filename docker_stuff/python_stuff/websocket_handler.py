@@ -75,25 +75,15 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
     async with aiohttp.ClientSession() as session:
         async with session.post(url, data=json.dumps(payload)) as response:
             # Wait for the response from the event_handler container
-            response_data = await response.text()
+            response_data = await response.json()
 
             # Handle the response as needed
             if response.status == 200:
-                await websocket.send(json.dumps(response_data))
-            else:
                 await websocket.send(response_data)
+            else:
+                #await websocket.send(response_data)
                 logger.debug(f"Response data is {response_data} but it failed")
                 # Handle the error or send it back to the client
-
-    # Handle the response as needed
-    if response.status == 200:
-        await websocket.send(response_data)
-    else:
-        await websocket.send(response_data)
-        # Handle the error or send it back to the client
-
-
-
 
 if __name__ == "__main__":
     start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)

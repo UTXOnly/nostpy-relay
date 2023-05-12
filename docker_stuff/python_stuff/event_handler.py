@@ -111,7 +111,7 @@ async def handle_subscription(request: Request):
             result = json.loads(cached_result)
             logger.debug(f"Result: {result}")
 
-            response = "EVENT", subscription_id, dict(result)
+            response = "EVENT", subscription_id, result
 
         else:
             Session = sessionmaker(bind=engine)
