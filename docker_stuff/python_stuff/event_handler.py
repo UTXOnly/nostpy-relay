@@ -155,7 +155,7 @@ async def handle_subscription(request: Request):
             finally:
                 session.close()
 
-        return JSONResponse(content=response)
+        return JSONResponse(content=response, status_code=200)
 
     except Exception as e:
         # Handle the exception and return an error response
@@ -163,10 +163,10 @@ async def handle_subscription(request: Request):
         logger.error(f"Error occurred: {error_message}")
         raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
     
-    finally:
-        EOSE = "EOSE", subscription_id
-        logger.debug(f"EOSE Resonse = {json.dumps(EOSE)}")
-        return JSONResponse(json.dumps(EOSE))
+    #finally:
+    #    EOSE = "EOSE", subscription_id
+    #    logger.debug(f"EOSE Resonse = {json.dumps(EOSE)}")
+    #    return JSONResponse(json.dumps(EOSE), status_code=200)
 
     
 if __name__ == "__main__":
