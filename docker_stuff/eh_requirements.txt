@@ -1,6 +1,6 @@
 websockets
 sqlalchemy
-psycopg2-binary
+asyncpg
 ddtrace
 redis
 aiohttp
