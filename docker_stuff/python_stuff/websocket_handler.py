@@ -43,25 +43,11 @@ async def handle_websocket_connection(websocket, path):
                 logger.warning(f"Unsupported message format: {message_list}")
 
 async def send_event_to_handler(session, event_dict):
-    # Extract relevant data from the session object
-    #session_data = {
-    #    'cookies': dict(session.cookie_jar),
-    #    'headers': dict(session._default_headers),
-    #    # Add other relevant session data if needed
-    #}
 
-    ## Create the payload dictionary
-    #payload = {
-    #    'session': session_data,
-    #    'event': event_dict,
-    #}
-
-    # Make a POST request to the event_handler container
     url = 'http://event_handler/new_event'
     async with session.post(url, data=json.dumps(event_dict)) as response:
         response_data = await response.json()
         pass
-
 
 
 async def send_subscription_to_handler(session, event_dict, subscription_id, origin, websocket):
