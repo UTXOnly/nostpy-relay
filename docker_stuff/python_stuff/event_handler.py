@@ -52,7 +52,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-#semi working, works iris to snort, not snort to iris
+#semi working, works iris to snort, not snort to iris.
 
 
 @app.post("/new_event")
