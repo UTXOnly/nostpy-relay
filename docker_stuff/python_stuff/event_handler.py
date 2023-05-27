@@ -146,6 +146,7 @@ async def handle_subscription(request: Request):
                     redis_filters.append(serialized_event)
                 redis_client.set(cache_key, json.dumps(redis_filters), ex=3600)
                 logger.debug("Result saved in Redis cache")
+                logger.debug(f"Len redis filter is {len(redis_filters)}")
 
                 if len(redis_filters) == 0:
                     response = "EOSE", subscription_id
