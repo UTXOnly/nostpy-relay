@@ -147,17 +147,23 @@ async def handle_subscription(request: Request):
                     serialized_event = serialize(event)
                     redis_filters.append(serialized_event)
                 redis_client.set(cache_key, json.dumps(redis_filters), ex=3600)
+                
+                # Debugging logs
                 logger.debug("Result saved in Redis cache")
-                logger.debug(f"Len redis filter is {len(redis_filters)}")
-
+                logger.debug(f"Data type of redis_filters: {type(redis_filters)}, Length of redis_filters variable is {len(redis_filters)}")
+                
                 if len(redis_filters) == 0:
                     response = "EOSE", subscription_id
                     json_response = json.dumps(response)
-                    logger.debug(f"EOSE Resonse = {json_response}")
-                else:   
-                    #response = "EVENT", subscription_id, event
+                    
+                    # Debugging log
+                    logger.debug(f"Data type of response: {type(response)}, End of stream event response: {json_response}")
+                else:
+                    # Debugging log
                     response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': redis_filters}
                     json_response = json.dumps(response)
+                    logger.debug(f"Data type of response: {type(response)}, Sending postgres query results: {json_response}")
+                
 
 
             except Exception as e:
