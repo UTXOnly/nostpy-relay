@@ -165,28 +165,28 @@ async def handle_subscription(request: Request):
                     response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': redis_filters}
                     #json_response = json.dumps(response)
                     logger.debug(f"Data type of response: {type(response)}, Sending postgres query results: {response}")
-
-                if response is None:
-                    logger.debug(f"Response type is None = {response}")
-                    response = {'event': "EOSE", 'subscription_id': subscription_id, 'results_json': "None"}
-                
-
-
             except Exception as e:
                 # Handle the exception and return an error response
                 error_message = str(e)
                 logger.error(f"Error occurred: {error_message}")
                 raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
-            finally:
-                session.close()
 
-        return JSONResponse(content=response, status_code=200)
+        if response is None:
+            logger.debug(f"Response type is None = {response}")
+            response = {'event': "EOSE", 'subscription_id': subscription_id, 'results_json': "None"}
+                
+
 
     except Exception as e:
         # Handle the exception and return an error response
         error_message = str(e)
         logger.error(f"Error occurred: {error_message}")
         raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
+    finally:
+        session.close()
+
+        return JSONResponse(content=response, status_code=200)
+
 
     
 if __name__ == "__main__":
