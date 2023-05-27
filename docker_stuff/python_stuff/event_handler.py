@@ -121,7 +121,7 @@ async def handle_subscription(request: Request):
             else:
                 logger.debug("Result not found in Redis cache")
 
-        else:
+        if not response:
             Session = sessionmaker(bind=engine)
             session = Session()
             try:
