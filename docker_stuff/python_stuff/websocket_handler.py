@@ -71,7 +71,7 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
 
             if response.status == 200:
                 logger.debug(f"Sending response data: {response_data}")
-                for event_item in results.items():
+                for event_item in results:
                     client_response = "EVENT" , subscription_id, event_item
                     await websocket.send(json.dumps(client_response))
 
