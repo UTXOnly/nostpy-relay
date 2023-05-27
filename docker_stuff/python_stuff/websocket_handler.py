@@ -47,7 +47,8 @@ async def send_event_to_handler(session, event_dict):
     url = 'http://event_handler/new_event'
     async with session.post(url, data=json.dumps(event_dict)) as response:
         response_data = await response.json()
-        pass
+        logger.debug(f"Recieved response from Event Handler {response_data}")
+
 
 
 async def send_subscription_to_handler(session, event_dict, subscription_id, origin, websocket):
@@ -65,6 +66,7 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
 
             # Handle the response as needed
             if response.status == 200:
+                logger.debug(f"Sending response data: {response}")
                 await websocket.send(response_data)
             else:
                 #await websocket.send(response_data)

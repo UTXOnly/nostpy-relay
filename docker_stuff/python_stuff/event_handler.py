@@ -113,9 +113,11 @@ async def handle_subscription(request: Request):
             logger.debug("Result found in Redis cache")
             result = json.loads(cached_result)
             logger.debug(f"Result: {result}")
+            logger.debug(f"Len of redis response is: {len(result)}")
             if len(result) != 0:
                 response = "EVENT", subscription_id, result
                 json_response = json.dumps(response)
+                logger.debug(f"Redis JSON was went to WS handler")
 
         else:
             Session = sessionmaker(bind=engine)
