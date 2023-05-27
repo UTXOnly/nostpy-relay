@@ -73,7 +73,7 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
                 #await websocket.send(response_data)
                 logger.debug(f"Response data is {response_data} but it failed")
                 # Handle the error or send it back to the client
-
+#working post from iris and snort, query works on snort, query from iris does not work"
 if __name__ == "__main__":
     start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
     asyncio.get_event_loop().run_until_complete(start_server)
