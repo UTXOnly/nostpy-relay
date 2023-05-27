@@ -156,7 +156,7 @@ async def handle_subscription(request: Request):
                     logger.debug(f"EOSE Resonse = {json_response}")
                 else:   
                     #response = "EVENT", subscription_id, event
-                    response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': event}
+                    response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': redis_filters}
                     json_response = json.dumps(response)
 
 
