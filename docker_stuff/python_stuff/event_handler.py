@@ -45,13 +45,10 @@ class Event(Base):
         self.content = content
         self.sig = sig
 
-
 logger.debug("Creating database metadata")
 Base.metadata.create_all(bind=engine)
 
-
 app = FastAPI()
-
 
 @app.post("/new_event")
 async def handle_new_event(request: Request):
@@ -114,7 +111,6 @@ async def handle_subscription(request: Request):
             logger.debug(f"Len of redis response is: {len(result)}")
             if len(result) != 0:
                 response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': result}
-                #json_response = json.dumps(response)
                 logger.debug(f"Redis JSON was went to WS handler")
             else:
                 logger.debug("Result not found in Redis cache")
@@ -147,8 +143,7 @@ async def handle_subscription(request: Request):
                     serialized_event = serialize(event)
                     redis_filters.append(serialized_event)
                 redis_client.set(cache_key, json.dumps(redis_filters), ex=3600)
-                
-                # Debugging logs
+
                 logger.debug("Result saved in Redis cache")
                 logger.debug(f"Data type of redis_filters: {type(redis_filters)}, Length of redis_filters variable is {len(redis_filters)}")
                 
@@ -157,10 +152,8 @@ async def handle_subscription(request: Request):
                     logger.debug(f"Data type of response: {type(response)}, End of stream event response: {response}")
                 else:
                     response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': redis_filters}
-                    #json_response = json.dumps(response)
                     logger.debug(f"Data type of response: {type(response)}, Sending postgres query results: {response}")
             except Exception as e:
-                # Handle the exception and return an error response
                 error_message = str(e)
                 logger.error(f"Error occurred: {error_message}")
                 raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
@@ -168,7 +161,6 @@ async def handle_subscription(request: Request):
                 session.close()
 
     except Exception as e:
-        # Handle the exception and return an error response
         error_message = str(e)
         logger.error(f"Error occurred: {error_message}")
         raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")

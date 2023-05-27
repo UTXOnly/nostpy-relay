@@ -39,7 +39,7 @@ async def handle_websocket_connection(websocket, path):
                 logger.debug(f"Sending CLOSE Response: {json.dumps(response)} and closing websocket")
                 await websocket.send(json.dumps(response))
                 
-                await websocket.close()
+                #await websocket.close()
             else:
                 logger.warning(f"Unsupported message format: {message_list}")
 
@@ -82,7 +82,8 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
                     for event_item in results:
                         client_response = event_type , subscription_id, event_item
                         await websocket.send(json.dumps(client_response))
-                    await websocket.send(json.dumps(EOSE))
+                    
+                await websocket.send(json.dumps(EOSE))
 
             else:
                 #await websocket.send(response_data)
