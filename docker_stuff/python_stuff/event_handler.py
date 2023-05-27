@@ -118,6 +118,8 @@ async def handle_subscription(request: Request):
                 response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': result}
                 #json_response = json.dumps(response)
                 logger.debug(f"Redis JSON was went to WS handler")
+            else:
+                logger.debug("Result not found in Redis cache")
 
         else:
             Session = sessionmaker(bind=engine)
@@ -163,6 +165,9 @@ async def handle_subscription(request: Request):
                     response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': redis_filters}
                     #json_response = json.dumps(response)
                     logger.debug(f"Data type of response: {type(response)}, Sending postgres query results: {response}")
+
+                if response == None:
+                    response = "EOSE", subscription_id
                 
 
 
