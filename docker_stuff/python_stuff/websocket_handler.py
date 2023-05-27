@@ -65,6 +65,7 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
             response_data = await response.json()
 
             logger.debug(f"Data type of response_data: {type(response_data)}, Response Data: {response_data}")
+            event_type = response_data.get("event")
             subscription_id = response_data.get("subscription_id")
             results = response_data.get("results_json")
             logger.debug(f"Response received as: {response_data}")
@@ -72,13 +73,21 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
             if response.status == 200:
                 logger.debug(f"Sending response data: {response_data}")
                 if origin == "https://snort.social":
-                    for event_item in results:
-                        client_response = "EVENT" , subscription_id, event_item
+                    if event_type == "EOSE":
+                        client_response = event_type, subscription_id
                         await websocket.send(client_response)
+                    else:
+                        for event_item in results:
+                            client_response = event_type , subscription_id, event_item
+                            await websocket.send(client_response)
                 else:
-                    for event_item in results:
-                        client_response = "EVENT" , subscription_id, event_item
+                    if event_type == "EOSE":
+                        client_response = event_type, subscription_id
                         await websocket.send(json.dumps(client_response))
+                    else:
+                        for event_item in results:
+                            client_response = event_type , subscription_id, event_item
+                            await websocket.send(json.dumps(client_response))
 
             else:
                 #await websocket.send(response_data)

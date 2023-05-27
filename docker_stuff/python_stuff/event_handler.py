@@ -155,7 +155,7 @@ async def handle_subscription(request: Request):
                 logger.debug(f"Data type of redis_filters: {type(redis_filters)}, Length of redis_filters variable is {len(redis_filters)}")
                 
                 if len(redis_filters) == 0:
-                    response = "EOSE", subscription_id
+                    response = {'event': "EOSE", 'subscription_id': subscription_id, 'results_json': "None"}
                     #json_response = json.dumps(response)
                     
                     # Debugging log
@@ -166,8 +166,9 @@ async def handle_subscription(request: Request):
                     #json_response = json.dumps(response)
                     logger.debug(f"Data type of response: {type(response)}, Sending postgres query results: {response}")
 
-                if response == None:
-                    response = "EOSE", subscription_id
+                if response is None:
+                    logger.debug(f"Response type is None = {response}")
+                    response = {'event': "EOSE", 'subscription_id': subscription_id, 'results_json': "None"}
                 
 
 
