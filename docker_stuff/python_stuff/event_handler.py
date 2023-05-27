@@ -115,11 +115,9 @@ async def handle_subscription(request: Request):
             logger.debug(f"Result: {result}")
             logger.debug(f"Len of redis response is: {len(result)}")
             if len(result) != 0:
-                response = "EVENT", subscription_id, result
+                response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': result}
                 json_response = json.dumps(response)
                 logger.debug(f"Redis JSON was went to WS handler")
-            else:
-                response = "EOSE", subscription_id
 
         else:
             Session = sessionmaker(bind=engine)
@@ -157,8 +155,9 @@ async def handle_subscription(request: Request):
                     json_response = json.dumps(response)
                     logger.debug(f"EOSE Resonse = {json_response}")
                 else:   
-                    response = "EVENT", subscription_id, redis_filters
+                    response = "EVENT", subscription_id, event
                     json_response = json.dumps(response)
+
 
             except Exception as e:
                 # Handle the exception and return an error response

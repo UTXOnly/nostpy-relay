@@ -63,12 +63,17 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
         async with session.post(url, data=json.dumps(payload)) as response:
             # Wait for the response from the event_handler container
             response_data = await response.json()
+            event = response_data.get("event")
+            subscription_id = response_data.get("subscription_id")
+            results = response_data.get("results_json")
             logger.debug(f"Response recieved as: {response_data}")
 
             # Handle the response as needed
             if response.status == 200:
                 logger.debug(f"Sending response data: {response_data}")
-                await websocket.send(json.dumps(response_data))
+                for event in results:
+                    client_response = event, subscription_id, event
+                    await websocket.send(json.dumps(client_response))
             else:
                 #await websocket.send(response_data)
                 logger.debug(f"Response data is {response_data} but it failed")
