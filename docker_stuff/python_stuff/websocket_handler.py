@@ -69,6 +69,7 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
             subscription_id = response_data.get("subscription_id")
             results = response_data.get("results_json")
             logger.debug(f"Response received as: {response_data}")
+            EOSE = "EOSE", subscription_id
 
             if response.status == 200:
                 logger.debug(f"Sending response data: {response_data}")
@@ -80,12 +81,13 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
                     for event_item in results:
                         client_response = event_type , subscription_id, event_item
                         await websocket.send(json.dumps(client_response))
+                    await websocket.send(json.dumps(EOSE))
 
             else:
                 #await websocket.send(response_data)
                 logger.debug(f"Response data is {response_data} but it failed")
                 # Handle the error or send it back to the client
-#working post and read from iris, snort coracle,Can read from all cleints. Still working on contact listst and profile metadata. loading profile page in snort crashes"
+#working all 3 clients for post/query. no snort crash, still no eose response. 
 if __name__ == "__main__":
     start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
     asyncio.get_event_loop().run_until_complete(start_server)

@@ -183,7 +183,7 @@ async def handle_subscription(request: Request):
         logger.error(f"Error occurred: {error_message}")
         raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
     finally:
-
+        logger.debug(f"Finally block, returning JSON response to wh client {response}")
         return JSONResponse(content=response, status_code=200)
 
 
