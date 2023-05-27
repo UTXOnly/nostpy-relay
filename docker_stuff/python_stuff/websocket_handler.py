@@ -38,6 +38,7 @@ async def handle_websocket_connection(websocket, path):
                 response = "NOTICE", f"closing {subscription_id}"
                 logger.debug(f"Sending CLOSE Response: {json.dumps(response)} and closing websocket")
                 await websocket.send(json.dumps(response))
+                break
                 #await websocket.close()
             else:
                 logger.warning(f"Unsupported message format: {message_list}")
