@@ -116,7 +116,7 @@ async def handle_subscription(request: Request):
             logger.debug(f"Len of redis response is: {len(result)}")
             if len(result) != 0:
                 response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': result}
-                json_response = json.dumps(response)
+                #json_response = json.dumps(response)
                 logger.debug(f"Redis JSON was went to WS handler")
 
         else:
@@ -154,15 +154,15 @@ async def handle_subscription(request: Request):
                 
                 if len(redis_filters) == 0:
                     response = "EOSE", subscription_id
-                    json_response = json.dumps(response)
+                    #json_response = json.dumps(response)
                     
                     # Debugging log
-                    logger.debug(f"Data type of response: {type(response)}, End of stream event response: {json_response}")
+                    logger.debug(f"Data type of response: {type(response)}, End of stream event response: {response}")
                 else:
                     # Debugging log
                     response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': redis_filters}
-                    json_response = json.dumps(response)
-                    logger.debug(f"Data type of response: {type(response)}, Sending postgres query results: {json_response}")
+                    #json_response = json.dumps(response)
+                    logger.debug(f"Data type of response: {type(response)}, Sending postgres query results: {response}")
                 
 
 
@@ -174,7 +174,7 @@ async def handle_subscription(request: Request):
             finally:
                 session.close()
 
-        return JSONResponse(content=json_response, status_code=200)
+        return JSONResponse(content=response, status_code=200)
 
     except Exception as e:
         # Handle the exception and return an error response

@@ -63,18 +63,12 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
         async with session.post(url, data=json.dumps(payload)) as response:
             # Wait for the response from the event_handler container
             response_data = await response.json()
-            #response_data = dict(response_json)
-            
-            # Debugging logs
-            #logger.debug(f"Data type of response_json: {type(response_json)}, Response Json data: {response_json}")
+
             logger.debug(f"Data type of response_data: {type(response_data)}, Response Data: {response_data}")
-            
-            #event = response_data.get("event")
             subscription_id = response_data.get("subscription_id")
             results = response_data.get("results_json")
             logger.debug(f"Response received as: {response_data}")
-    
-            # Handle the response as needed
+
             if response.status == 200:
                 logger.debug(f"Sending response data: {response_data}")
                 for event_item in results.items():
