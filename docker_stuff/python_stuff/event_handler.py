@@ -168,6 +168,8 @@ async def handle_subscription(request: Request):
                 error_message = str(e)
                 logger.error(f"Error occurred: {error_message}")
                 raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
+            finally:
+                session.close()
 
         if response is None:
             logger.debug(f"Response type is None = {response}")
@@ -181,7 +183,6 @@ async def handle_subscription(request: Request):
         logger.error(f"Error occurred: {error_message}")
         raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
     finally:
-        session.close()
 
         return JSONResponse(content=response, status_code=200)
 
