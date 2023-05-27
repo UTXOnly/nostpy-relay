@@ -118,6 +118,8 @@ async def handle_subscription(request: Request):
                 response = "EVENT", subscription_id, result
                 json_response = json.dumps(response)
                 logger.debug(f"Redis JSON was went to WS handler")
+            else:
+                response = "EOSE", subscription_id
 
         else:
             Session = sessionmaker(bind=engine)
