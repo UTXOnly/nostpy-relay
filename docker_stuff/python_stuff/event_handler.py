@@ -153,13 +153,9 @@ async def handle_subscription(request: Request):
                 logger.debug(f"Data type of redis_filters: {type(redis_filters)}, Length of redis_filters variable is {len(redis_filters)}")
                 
                 if len(redis_filters) == 0:
-                    response = {'event': "EOSE", 'subscription_id': subscription_id, 'results_json': "None"}
-                    #json_response = json.dumps(response)
-                    
-                    # Debugging log
+                    response = None #{'event': "EOSE", 'subscription_id': subscription_id, 'results_json': "None"}
                     logger.debug(f"Data type of response: {type(response)}, End of stream event response: {response}")
                 else:
-                    # Debugging log
                     response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': redis_filters}
                     #json_response = json.dumps(response)
                     logger.debug(f"Data type of response: {type(response)}, Sending postgres query results: {response}")
@@ -171,18 +167,15 @@ async def handle_subscription(request: Request):
             finally:
                 session.close()
 
-        if response is None:
-            logger.debug(f"Response type is None = {response}")
-            response = {'event': "EOSE", 'subscription_id': subscription_id, 'results_json': "None"}
-                
-
-
     except Exception as e:
         # Handle the exception and return an error response
         error_message = str(e)
         logger.error(f"Error occurred: {error_message}")
         raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
     finally:
+        if response is None:
+            logger.debug(f"Response type is None = {response}")
+            response = {'event': "EOSE", 'subscription_id': subscription_id, 'results_json': "None"}
         logger.debug(f"Finally block, returning JSON response to wh client {response}")
         return JSONResponse(content=response, status_code=200)
 

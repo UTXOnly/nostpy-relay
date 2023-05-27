@@ -37,7 +37,7 @@ async def handle_websocket_connection(websocket, path):
                 subscription_id = message_list[1]
                 response = "NOTICE", f"closing {subscription_id}"
                 logger.debug(f"Sending CLOSE Response: {json.dumps(response)} and closing websocket")
-                #await websocket.send(json.dumps(response))
+                await websocket.send(json.dumps(response))
                 
                 #await websocket.close()
             else:
