@@ -84,8 +84,8 @@ async def handle_subscription(request: Request):
             try:
                 query = session.query(Event)
                 conditions = [
-                    (filters.get("authors"), lambda x: Event.pubkey.in_(x)),
-                    (filters.get("kinds"), lambda x: Event.kind.in_(x)),
+                    (filters.get("authors"), lambda x: Event.pubkey == (x)),
+                    (filters.get("kinds"), lambda x: Event.kind == (x)),
                     (filters.get("#e"), lambda x: Event.tags.any(lambda tag: tag[0] == 'e' and tag[1] in x)),
                     (filters.get("#p"), lambda x: Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in x)),
                     (filters.get("#d"), lambda x: Event.tags.any(lambda tag: tag[0] == 'd' and tag[1] in x)),
