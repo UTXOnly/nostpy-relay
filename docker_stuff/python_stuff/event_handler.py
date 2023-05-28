@@ -49,6 +49,7 @@ logger.debug("Creating database metadata")
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+list_of_event = []
 
 @app.post("/new_event")
 async def handle_new_event(request: Request):
