@@ -35,6 +35,27 @@ services:
       postgres:
         condition: service_healthy
 
+  query_service:
+    build:
+      context: .
+      dockerfile: Dockerfile.query_service
+    environment:
+      - DD_SERVICE=event_handler
+      - DD_AGENT_HOST=datadog-agent
+      - DD_ENV=nostpy
+      - DD_LOGS_INJECTION=true
+      - DD_PROFILING_ENABLED=true
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    networks:
+      my_network:
+        ipv4_address: 172.28.0.7
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   postgres:
     image: postgres:latest
     environment:

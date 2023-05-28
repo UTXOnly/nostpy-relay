@@ -54,7 +54,7 @@ async def send_event_to_handler(session, event_dict):
 
 async def send_subscription_to_handler(session, event_dict, subscription_id, origin, websocket):
     # Make a POST request to the event_handler container with subscription data
-    url = 'http://event_handler/subscription'
+    url = 'http://query_service/subscription'
     payload = {
         'event_dict': event_dict,
         'subscription_id': subscription_id,
@@ -88,7 +88,7 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
                 #await websocket.send(response_data)
                 logger.debug(f"Response data is {response_data} but it failed")
                 # Handle the error or send it back to the client
-#working all 3 clients for post/query. snort works in begining but refreshing page in globabl causes missing value error but can still navigate around snort
+#All 3 working, can navigate thru snort but refreshing inay page crashes snort"
 if __name__ == "__main__":
     start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
     asyncio.get_event_loop().run_until_complete(start_server)

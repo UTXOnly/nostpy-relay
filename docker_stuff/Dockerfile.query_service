@@ -1,0 +1,18 @@
+# Use the Python slim base image
+FROM python:3.9-slim
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Copy the requirements file
+COPY eh_requirements.txt .
+
+# Install the Python dependencies
+RUN pip install --no-cache-dir -r eh_requirements.txt
+
+# Copy the application files to the container
+COPY ./python_stuff/query_service.py .
+
+
+# Run the Python application
+CMD ["ddtrace-run", "python", "query_service.py"]
