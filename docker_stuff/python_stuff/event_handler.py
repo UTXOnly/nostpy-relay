@@ -63,6 +63,9 @@ async def handle_new_event(request: Request):
 
     Session = sessionmaker(bind=engine)
     session = Session()
+    if kind == 0:
+        session.query(Event).filter_by(pubkey=pubkey, kind=0).delete()
+        logger.debug(f"Deleting exisitng metadata for pubkey {pubkey}")
     try:
         new_event = Event(
             id=event_id,
@@ -83,20 +86,6 @@ async def handle_new_event(request: Request):
     finally:
         session.close()
 
-@app.get("/health")
-def health_check():
-    try:
-        Session = sessionmaker(bind=engine)
-        session = Session()
-        session.execute('SELECT 1')
-        return {"status": "ok"}
-    except Exception as e:
-        logger.exception(f"Health check failed: {e}")
-        raise HTTPException(status_code=500, detail="Health check failed")
-    finally:
-        session.close()
-
-
 
 def serialize(model):
     # Helper function to convert an SQLAlchemy model instance to a dictionary
@@ -106,5 +95,3 @@ def serialize(model):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=80)
-
-
