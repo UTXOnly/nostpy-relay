@@ -63,12 +63,18 @@ async def handle_new_event(request: Request):
 
     Session = sessionmaker(bind=engine)
     session = Session()
-    if kind == 0:
-        session.query(Event).filter_by(pubkey=pubkey, kind=0).delete()
-        logger.debug(f"Deleting exisitng metadata for pubkey {pubkey}")
-    if kind == 3:
-        session.query(Event).filter_by(pubkey=pubkey, kind=3).delete()
-        logger.debug(f"Deleting exisitng metadata for pubkey {pubkey}")
+
+    delete_kind_mapping = {0: "Deleting existing metadata for pubkey {pubkey}", 3: "Deleting existing metadata for pubkey {pubkey}"}
+    delete_message = delete_kind_mapping.get(kind, None)
+    
+    if delete_message:
+        session.query(Event).filter_by(pubkey=pubkey, kind=kind).delete()
+        logger.debug(delete_message.format(pubkey=pubkey))
+    
+    switcher = {
+        1: "Event added successfully",
+        2: "Event updated successfully"
+    }
 
     try:
         new_event = Event(
@@ -80,16 +86,17 @@ async def handle_new_event(request: Request):
             content=content,
             sig=sig
         )
+
         session.add(new_event)
         session.commit()
-        response = {"message": "Event added successfully"}
+        
+        response = {"message": switcher.get(kind, "Event added successfully")}
         return JSONResponse(content=response, status_code=200)
     except Exception as e:
         logger.exception(f"Error saving event: {e}")
         raise HTTPException(status_code=500, detail="Failed to save event to database")
     finally:
         session.close()
-
 
 def serialize(model):
     # Helper function to convert an SQLAlchemy model instance to a dictionary
