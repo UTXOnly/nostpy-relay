@@ -45,9 +45,7 @@ class Event(Base):
         self.content = content
         self.sig = sig
 
-
 app = FastAPI()
-
 
 def serialize(model):
     # Helper function to convert an SQLAlchemy model instance to a dictionary
@@ -84,23 +82,20 @@ async def handle_subscription(request: Request):
             Session = sessionmaker(bind=engine)
             session = Session()
             try:
-                query = session.query(Event)
-                if filters.get("ids"):
-                    query = query.filter(Event.id.in_(filters.get("ids")))
-                if filters.get("authors"):
-                    query = query.filter(Event.pubkey.in_(filters.get("authors")))
-                if filters.get("kinds"):
-                    query = query.filter(Event.kind.in_(filters.get("kinds")))
-                if filters.get("#e"):
-                    query = query.filter(Event.tags.any(lambda tag: tag[0] == 'e' and tag[1] in filters.get("#e")))
-                if filters.get("#p"):
-                    query = query.filter(Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in filters.get("#p")))
-                if filters.get("#d"):
-                    query = query.filter(Event.tags.any(lambda tag: tag[0] == 'd' and tag[1] in filters.get("#d")))
-                if filters.get("since"):
-                    query = query.filter(Event.created_at > filters.get("since"))
-                if filters.get("until"):
-                    query = query.filter(Event.created_at < filters.get("until"))
+                conditions = [
+                    (filters.get("authors"), lambda x: Event.pubkey.in_(x)),
+                    (filters.get("kinds"), lambda x: Event.kind.in_(x)),
+                    (filters.get("#e"), lambda x: Event.tags.any(lambda tag: tag[0] == 'e' and tag[1] in x)),
+                    (filters.get("#p"), lambda x: Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in x)),
+                    (filters.get("#d"), lambda x: Event.tags.any(lambda tag: tag[0] == 'd' and tag[1] in x)),
+                    (filters.get("since"), lambda x: Event.created_at > x),
+                    (filters.get("until"), lambda x: Event.created_at < x),
+                ]
+                
+                for value, condition in conditions:
+                    if value:
+                        query = query.filter(condition(value))
+                
                 query_result = query.limit(filters.get("limit", 100)).all()
 
                 redis_filters = []
@@ -136,8 +131,6 @@ async def handle_subscription(request: Request):
         logger.debug(f"Finally block, returning JSON response to wh client {response}")
         return JSONResponse(content=response, status_code=200)
 
-
-    
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=80)
