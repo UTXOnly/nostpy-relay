@@ -36,8 +36,8 @@ async def handle_websocket_connection(websocket, path):
             elif message_list[0] == "CLOSE":
                 subscription_id = message_list[1]
                 response = "NOTICE", f"closing {subscription_id}"
-                logger.debug(f"Sending CLOSE Response: {json.dumps(response)} and closing websocket")
-                await websocket.send(json.dumps(response))
+                #logger.debug(f"Sending CLOSE Response: {json.dumps(response)} and closing websocket")
+                #await websocket.send(json.dumps(response))
                 
                 #await websocket.close()
             else:
@@ -82,9 +82,8 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
                     for event_item in results:
                         client_response = event_type , subscription_id, event_item
                         await websocket.send(json.dumps(client_response))
-                    
+              
                 await websocket.send(json.dumps(EOSE))
-
             else:
                 #await websocket.send(response_data)
                 logger.debug(f"Response data is {response_data} but it failed")
