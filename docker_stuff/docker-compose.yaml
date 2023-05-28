@@ -31,9 +31,15 @@ services:
     networks:
       my_network:
         ipv4_address: 172.28.0.3
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://event_handler/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     depends_on:
       postgres:
         condition: service_healthy
+
   query_service:
     build:
       context: .
@@ -53,11 +59,8 @@ services:
         ipv4_address: 172.28.0.7
     depends_on:
       event_handler
-    healthcheck:
-      test: ["CMD-SHELL", "curl --fail http://event_handler/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+        condition: service_healthy
+
 
 
   postgres:
