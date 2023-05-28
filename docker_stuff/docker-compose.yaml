@@ -58,7 +58,7 @@ services:
       my_network:
         ipv4_address: 172.28.0.7
     depends_on:
-      event_handler
+      event_handler:
         condition: service_healthy
 
 
