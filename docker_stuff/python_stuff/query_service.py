@@ -52,33 +52,8 @@ def serialize(model):
     columns = [c.key for c in class_mapper(model.__class__).columns]
     return dict((c, getattr(model, c)) for c in columns)
 
-@app.post("/subscription")
-async def handle_subscription(request: Request):
-    try:
-        response = None
-        payload = await request.json()
-        subscription_dict = payload.get('event_dict')
-        subscription_id = payload.get('subscription_id')
-        origin = payload.get('origin')
-        filters = subscription_dict
 
-        ## Redis cache key from subscription filters
-        #cache_key = json.dumps(filters)
-#
-        ## Check if the result is already cached
-        #cached_result = redis_client.get(cache_key)
-        #if cached_result:
-        #    logger.debug("Result found in Redis cache")
-        #    result = json.loads(cached_result)
-        #    logger.debug(f"Result: {result}")
-        #    logger.debug(f"Len of redis response is: {len(result)}")
-        #    if len(result) != 0:
-        #        response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': result}
-        #        logger.debug(f"Redis JSON was went to WS handler")
-        #    else:
-        #        logger.debug("Result not found in Redis cache")
-
-        if not response:
+async def kind_1_query(filters):
             Session = sessionmaker(bind=engine)
             session = Session()
             try:
@@ -92,34 +67,76 @@ async def handle_subscription(request: Request):
                     (filters.get("since"), lambda x: Event.created_at > x),
                     (filters.get("until"), lambda x: Event.created_at < x),
                 ]
-                
                 for value, condition in conditions:
                     if value:
                         query = query.filter(condition(value))
-                
                 query_result = query.limit(filters.get("limit", 100)).all()
-
-                redis_filters = []
-                for event in query_result:
-                    serialized_event = serialize(event)
-                    redis_filters.append(serialized_event)
-                #redis_client.set(cache_key, json.dumps(redis_filters), ex=3600)
-
-                logger.debug("Result saved in Redis cache")
-                logger.debug(f"Data type of redis_filters: {type(redis_filters)}, Length of redis_filters variable is {len(redis_filters)}")
-                
-                if len(redis_filters) == 0:
-                    response = None #{'event': "EOSE", 'subscription_id': subscription_id, 'results_json': "None"}
-                    logger.debug(f"Data type of response: {type(response)}, End of stream event response: {response}")
-                else:
-                    response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': redis_filters}
-                    logger.debug(f"Data type of response: {type(response)}, Sending postgres query results: {response}")
+                return query_result
             except Exception as e:
                 error_message = str(e)
                 logger.error(f"Error occurred: {error_message}")
                 raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
             finally:
                 session.close()
+
+async def kind_0_query(filters):
+            Session = sessionmaker(bind=engine)
+            session = Session()
+            try:
+                query = session.query(Event)
+                conditions = [
+                    (filters.get("authors"), lambda x: Event.pubkey == (x)),
+                    (filters.get("kinds"), lambda x: Event.kind == (x))
+                ]
+                for value, condition in conditions:
+                    if value:
+                        query = query.filter(condition(value))
+                query_result = query.limit(filters.get("limit", 100)).all()
+                return query_result
+            except Exception as e:
+                error_message = str(e)
+                logger.error(f"Error occurred: {error_message}")
+                raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
+            finally:
+                session.close()
+
+@app.post("/subscription")
+async def handle_subscription(request: Request):
+    try:
+        response = None
+        payload = await request.json()
+        subscription_dict = payload.get('event_dict')
+        subscription_id = payload.get('subscription_id')
+        origin = payload.get('origin')
+        filters = subscription_dict
+        Session = sessionmaker(bind=engine)
+        session = Session()
+
+        if filters.get("kinds") == 0:
+            query = kind_0_query(filters)
+        elif filters.get("kinds") == 1:
+            query = kind_1_query(filters)
+        try:
+            redis_filters = []
+            for event in query:
+                serialized_event = serialize(event)
+                redis_filters.append(serialized_event)
+            #redis_client.set(cache_key, json.dumps(redis_filters), ex=3600)    
+            logger.debug("Result saved in Redis cache")
+            logger.debug(f"Data type of redis_filters: {type(redis_filters)}, Length of redis_filters variable is {len(redis_filters)}")
+            
+            if len(redis_filters) == 0:
+                response = None #{'event': "EOSE", 'subscription_id': subscription_id, 'results_json': "None"}
+                logger.debug(f"Data type of response: {type(response)}, End of stream event response: {response}")
+            else:
+                response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': redis_filters}
+                logger.debug(f"Data type of response: {type(response)}, Sending postgres query results: {response}")
+        except Exception as e:
+            error_message = str(e)
+            logger.error(f"Error occurred: {error_message}")
+            raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
+        finally:
+            session.close()
 
     except Exception as e:
         error_message = str(e)
@@ -131,6 +148,7 @@ async def handle_subscription(request: Request):
             response = {'event': "EOSE", 'subscription_id': subscription_id, 'results_json': "None"}
         logger.debug(f"Finally block, returning JSON response to wh client {response}")
         return JSONResponse(content=response, status_code=200)
+
 
 if __name__ == "__main__":
     import uvicorn
