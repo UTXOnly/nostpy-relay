@@ -64,21 +64,21 @@ async def handle_subscription(request: Request):
         origin = payload.get('origin')
         filters = subscription_dict
 
-        # Redis cache key from subscription filters
-        cache_key = json.dumps(filters)
-
-        # Check if the result is already cached
-        cached_result = redis_client.get(cache_key)
-        if cached_result:
-            logger.debug("Result found in Redis cache")
-            result = json.loads(cached_result)
-            logger.debug(f"Result: {result}")
-            logger.debug(f"Len of redis response is: {len(result)}")
-            if len(result) != 0:
-                response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': result}
-                logger.debug(f"Redis JSON was went to WS handler")
-            else:
-                logger.debug("Result not found in Redis cache")
+        ## Redis cache key from subscription filters
+        #cache_key = json.dumps(filters)
+#
+        ## Check if the result is already cached
+        #cached_result = redis_client.get(cache_key)
+        #if cached_result:
+        #    logger.debug("Result found in Redis cache")
+        #    result = json.loads(cached_result)
+        #    logger.debug(f"Result: {result}")
+        #    logger.debug(f"Len of redis response is: {len(result)}")
+        #    if len(result) != 0:
+        #        response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': result}
+        #        logger.debug(f"Redis JSON was went to WS handler")
+        #    else:
+        #        logger.debug("Result not found in Redis cache")
 
         if not response:
             Session = sessionmaker(bind=engine)
@@ -107,7 +107,7 @@ async def handle_subscription(request: Request):
                 for event in query_result:
                     serialized_event = serialize(event)
                     redis_filters.append(serialized_event)
-                redis_client.set(cache_key, json.dumps(redis_filters), ex=3600)
+                #redis_client.set(cache_key, json.dumps(redis_filters), ex=3600)
 
                 logger.debug("Result saved in Redis cache")
                 logger.debug(f"Data type of redis_filters: {type(redis_filters)}, Length of redis_filters variable is {len(redis_filters)}")
