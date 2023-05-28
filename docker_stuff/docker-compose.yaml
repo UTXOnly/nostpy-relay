@@ -40,7 +40,7 @@ services:
       context: .
       dockerfile: Dockerfile.query_service
     environment:
-      - DD_SERVICE=event_handler
+      - DD_SERVICE=query_service
       - DD_AGENT_HOST=datadog-agent
       - DD_ENV=nostpy
       - DD_LOGS_INJECTION=true
