@@ -49,7 +49,6 @@ logger.debug("Creating database metadata")
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-list_of_event = []
 
 @app.post("/new_event")
 async def handle_new_event(request: Request):
@@ -83,6 +82,20 @@ async def handle_new_event(request: Request):
         raise HTTPException(status_code=500, detail="Failed to save event to database")
     finally:
         session.close()
+
+@app.get("/health")
+def health_check():
+    try:
+        Session = sessionmaker(bind=engine)
+        session = Session()
+        session.execute('SELECT 1')
+        return {"status": "ok"}
+    except Exception as e:
+        logger.exception(f"Health check failed: {e}")
+        raise HTTPException(status_code=500, detail="Health check failed")
+    finally:
+        session.close()
+
 
 
 def serialize(model):
