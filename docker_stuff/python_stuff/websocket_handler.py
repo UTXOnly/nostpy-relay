@@ -36,12 +36,10 @@ async def handle_websocket_connection(websocket, path):
             elif message_list[0] == "CLOSE":
                 subscription_id = message_list[1]
                 response = "NOTICE", f"closing {subscription_id}"
-                #logger.debug(f"Sending CLOSE Response: {json.dumps(response)} and closing websocket")
-                #await websocket.send(json.dumps(response))
-                
-                #await websocket.close()
             else:
                 logger.warning(f"Unsupported message format: {message_list}")
+    
+    await websocket.close()
 
 async def send_event_to_handler(session, event_dict):
 
@@ -77,23 +75,19 @@ async def send_subscription_to_handler(session, event_dict, subscription_id, ori
 
                 if event_type == "EOSE":
                     client_response = event_type, subscription_id
-                    if origin == "https://snort.social":
-                        pass
-                    else:
-                        await websocket.send(json.dumps(client_response))
+                    await websocket.send(json.dumps(client_response))
                 else:
                     for event_item in results:
                         client_response = event_type , subscription_id, event_item
                         await websocket.send(json.dumps(client_response))
 
-                if origin == "https://snort.social":
-                    pass
-                else:
                     await websocket.send(json.dumps(EOSE))  
             else:
                 #await websocket.send(response_data)
                 logger.debug(f"Response data is {response_data} but it failed")
                 # Handle the error or send it back to the client
+
+
 #All 3 working, can navigate thru snort but refreshing inay page crashes snort"
 if __name__ == "__main__":
     start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
