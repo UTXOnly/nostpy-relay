@@ -66,6 +66,10 @@ async def handle_new_event(request: Request):
     if kind == 0:
         session.query(Event).filter_by(pubkey=pubkey, kind=0).delete()
         logger.debug(f"Deleting exisitng metadata for pubkey {pubkey}")
+    if kind == 3:
+        session.query(Event).filter_by(pubkey=pubkey, kind=3).delete()
+        logger.debug(f"Deleting exisitng metadata for pubkey {pubkey}")
+
     try:
         new_event = Event(
             id=event_id,
