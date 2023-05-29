@@ -6,3 +6,4 @@ redis
 aiohttp
 fastapi
 uvicorn
+asyncio
