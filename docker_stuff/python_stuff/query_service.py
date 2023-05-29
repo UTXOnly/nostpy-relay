@@ -100,7 +100,10 @@ async def handle_subscription(request: Request):
         query = await event_query(filters)
         logger.debug(f"THE QUERY IS: {query}")
         # serialize results asynchronously and gather them into a list
-        serialized_events = await asyncio.gather(*(serialize(event) for event in query))
+        serialized_events = []
+        for event in query:
+            serialized_event = serialize(event)
+            serialized_events.append(serialized_event)
         
         # set Redis cache with all serialized events
         #redis_client.set(cache_key, json.dumps(serialized_events), ex=3600)    
