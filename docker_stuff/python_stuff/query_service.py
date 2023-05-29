@@ -60,7 +60,7 @@ async def kind_1_query(filters):
                 query = session.query(Event)
                 conditions = [
                     (filters.get("authors"), lambda x: Event.pubkey == (x)),
-                    (filters.get("kinds"), lambda x: Event.kind == (x)),
+                    (filters.get("kinds"), lambda x: Event.kind == (1)),
                     (filters.get("#e"), lambda x: Event.tags.any(lambda tag: tag[0] == 'e' and tag[1] in x)),
                     (filters.get("#p"), lambda x: Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in x)),
                     (filters.get("#d"), lambda x: Event.tags.any(lambda tag: tag[0] == 'd' and tag[1] in x)),
@@ -114,9 +114,12 @@ async def handle_subscription(request: Request):
 
         if filters.get("kinds") == 0:
             query = kind_0_query(filters)
+            logger.debug(f"query kind is: 0, THE QUERY IS: {query}")
         elif filters.get("kinds") == 1:
             query = kind_1_query(filters)
-        try:
+            logger.debug(f"query kind is: 1, THE QUERY IS: {query}")
+        else:
+            query = session.query(Event)
             redis_filters = []
             for event in query:
                 serialized_event = serialize(event)
@@ -131,12 +134,6 @@ async def handle_subscription(request: Request):
             else:
                 response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': redis_filters}
                 logger.debug(f"Data type of response: {type(response)}, Sending postgres query results: {response}")
-        except Exception as e:
-            error_message = str(e)
-            logger.error(f"Error occurred: {error_message}")
-            raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
-        finally:
-            session.close()
 
     except Exception as e:
         error_message = str(e)
