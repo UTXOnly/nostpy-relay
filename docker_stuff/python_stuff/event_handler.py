@@ -9,6 +9,8 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import sessionmaker, class_mapper
 from sqlalchemy import create_engine, Column, String, Integer, JSON
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.exc import SQLAlchemyError
+
 
 tracer.configure(hostname='172.28.0.5', port=8126)
 
@@ -64,19 +66,16 @@ async def handle_new_event(request: Request):
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    delete_kind_mapping = {0: "Deleting existing metadata for pubkey {pubkey}", 3: "Deleting existing metadata for pubkey {pubkey}"}
-    delete_message = delete_kind_mapping.get(kind, None)
-    
-    if delete_message:
-        session.query(Event).filter_by(pubkey=pubkey, kind=kind).delete()
-        logger.debug(delete_message.format(pubkey=pubkey))
-    
-    switcher = {
-        1: "Event added successfully",
-        2: "Event updated successfully"
-    }
-
     try:
+        delete_message = None
+        if kind in {0, 3}:
+            delete_message = f"Deleting existing metadata for pubkey {pubkey}"
+            session.query(Event).filter_by(pubkey=pubkey, kind=kind).delete()
+
+        existing_event = session.query(Event).filter_by(id=event_id).scalar()
+        if existing_event is not None:
+            raise HTTPException(status_code=409, detail=f"Event with ID {event_id} already exists")
+
         new_event = Event(
             id=event_id,
             pubkey=pubkey,
@@ -90,13 +89,19 @@ async def handle_new_event(request: Request):
         session.add(new_event)
         session.commit()
         
-        response = {"message": switcher.get(kind, "Event added successfully")}
+        message = "Event added successfully" if kind == 1 else "Event updated successfully"
+        response = {"message": message}
         return JSONResponse(content=response, status_code=200)
-    except Exception as e:
+    
+    except SQLAlchemyError as e:
         logger.exception(f"Error saving event: {e}")
         raise HTTPException(status_code=500, detail="Failed to save event to database")
+
     finally:
+        if delete_message:
+            logger.debug(delete_message.format(pubkey=pubkey))
         session.close()
+
 
 def serialize(model):
     # Helper function to convert an SQLAlchemy model instance to a dictionary
