@@ -59,7 +59,7 @@ async def event_query(filters):
         
         conditions = {
             "authors": lambda x: Event.pubkey == x,
-            "kinds": lambda x: Event.kind == x,
+            "kinds": lambda x: Event.kind.in_(x),
             "#e": lambda x: Event.tags.any(lambda tag: tag[0] == 'e' and tag[1] in x),
             "#p": lambda x: Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in x),
             "#d": lambda x: Event.tags.any(lambda tag: tag[0] == 'd' and tag[1] in x),
