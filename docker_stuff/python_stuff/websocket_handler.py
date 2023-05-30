@@ -28,7 +28,7 @@ async def handle_websocket_connection(websocket, path):
                 actions = {
                     "EVENT": lambda: send_event_to_handler(session, message_list[1]),
                     "REQ": lambda: send_subscription_to_handler(session, {index: message_list[index] for index in range(len_message)}, message_list[1], origin, websocket),
-                    "CLOSE": lambda: ("NOTICE", f"closing {message_list[1]}")
+                    "CLOSE": lambda: print("NOTICE", f"closing {message_list[1]}")
                 }
 
                 action = actions.get(message_list[0])
