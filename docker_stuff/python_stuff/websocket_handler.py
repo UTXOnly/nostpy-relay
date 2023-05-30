@@ -19,26 +19,27 @@ async def handle_websocket_connection(websocket, path):
 
     async with aiohttp.ClientSession() as session:
         async for message in websocket:
-            message_list = json.loads(message)
-            logger.debug(f"Received message: {message_list}")
-            len_message = len(message_list)
-            logger.debug(f"Received message length: {len_message}")
+            try:
+                message_list = json.loads(message)
+                logger.debug(f"Received message: {message_list}")
+                len_message = len(message_list)
+                logger.debug(f"Received message length: {len_message}")
 
-            if message_list[0] == "EVENT":
-                # Extract event information from message
-                event_dict = message_list[1]
-                await send_event_to_handler(session, event_dict)
-            elif message_list[0] == "REQ":
-                subscription_id = message_list[1]
-                # Extract subscription information from message
-                event_dict = {index: message_list[index] for index in range(len(message_list))}
-                await send_subscription_to_handler(session, event_dict, subscription_id, origin, websocket)
-            elif message_list[0] == "CLOSE":
-                subscription_id = message_list[1]
-                response = "NOTICE", f"closing {subscription_id}"
-            else:
-                logger.warning(f"Unsupported message format: {message_list}")
-    
+                actions = {
+                    "EVENT": lambda: send_event_to_handler(session, message_list[1]),
+                    "REQ": lambda: send_subscription_to_handler(session, {index: message_list[index] for index in range(len_message)}, message_list[1], origin, websocket),
+                    "CLOSE": lambda: ("NOTICE", f"closing {message_list[1]}")
+                }
+
+                action = actions.get(message_list[0])
+                if action:
+                    response = await action()
+                else:
+                    logger.warning(f"Unsupported message format: {message_list}")
+
+            except Exception as e:
+                logger.error(f"Error occurred while processing message.\nError: {e}")
+
     await websocket.close()
 
 async def send_event_to_handler(session, event_dict):
