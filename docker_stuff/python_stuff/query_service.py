@@ -71,7 +71,7 @@ async def event_query(filters):
             if key in conditions and value is not None:
                 query = query.filter(conditions[key](value))
                 
-        limit = filters.get("limit", 100)
+        limit = filters.get("limit")
         query_result = query.limit(limit).all()
         return query_result
     
