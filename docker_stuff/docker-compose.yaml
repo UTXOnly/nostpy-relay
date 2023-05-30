@@ -9,6 +9,7 @@ services:
       - DD_ENV=nostpy
       - DD_LOGS_INJECTION=true
       - DD_PROFILING_ENABLED=true
+      - DD_RUNTIME_METRICS_ENABLED=true
       - DD_AGENT_HOST=datadog-agent
     networks:
       my_network:
@@ -24,6 +25,7 @@ services:
       - DD_ENV=nostpy
       - DD_LOGS_INJECTION=true
       - DD_PROFILING_ENABLED=true
+      - DD_RUNTIME_METRICS_ENABLED=true
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -44,6 +46,7 @@ services:
       - DD_AGENT_HOST=datadog-agent
       - DD_ENV=nostpy
       - DD_LOGS_INJECTION=true
+      - DD_RUNTIME_METRICS_ENABLED=true
       - DD_PROFILING_ENABLED=true
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}

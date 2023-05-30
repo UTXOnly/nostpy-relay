@@ -1,10 +1,7 @@
 import os
-import asyncio
-import json
 import logging
 import redis
 from ddtrace import tracer
-import aiohttp
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import sessionmaker, class_mapper
@@ -131,5 +128,3 @@ async def handle_subscription(request: Request):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=80)
-
-
