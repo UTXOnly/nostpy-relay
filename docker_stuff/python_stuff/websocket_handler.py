@@ -52,41 +52,46 @@ async def send_event_to_handler(session, event_dict):
 
 
 async def send_subscription_to_handler(session, event_dict, subscription_id, origin, websocket):
-    # Make a POST request to the event_handler container with subscription data
-    url = 'http://query_service/subscription'
-    payload = {
-        'event_dict': event_dict,
-        'subscription_id': subscription_id,
-        'origin': origin
-    }
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, data=json.dumps(payload)) as response:
-            # Wait for the response from the event_handler container
-            response_data = await response.json()
+    try:
+        async with aiohttp.ClientSession() as session:
+            url = 'http://query_service/subscription'
+            payload = {
+                'event_dict': event_dict,
+                'subscription_id': subscription_id,
+                'origin': origin
+            }
+            async with session.post(url, data=json.dumps(payload)) as response:
+                if response.status != 200:
+                    logger.debug(f"Response data is {response_data} but it failed")
+                    # Handle the error or send it back to the client
+                    return
 
-            logger.debug(f"Data type of response_data: {type(response_data)}, Response Data: {response_data}")
-            event_type = response_data.get("event")
-            subscription_id = response_data.get("subscription_id")
-            results = response_data.get("results_json")
-            logger.debug(f"Response received as: {response_data}")
-            EOSE = "EOSE", subscription_id
+                response_data = await response.json()
+                logger.debug(f"Data type of response_data: {type(response_data)}, Response Data: {response_data}")
 
-            if response.status == 200:
-                logger.debug(f"Sending response data: {response_data}")
+                event_type = response_data.get("event")
+                subscription_id = response_data.get("subscription_id")
+                results = response_data.get("results_json")
+                logger.debug(f"Response received as: {response_data}")
+                EOSE = "EOSE", subscription_id
 
                 if event_type == "EOSE":
                     client_response = event_type, subscription_id
                     await websocket.send(json.dumps(client_response))
                 else:
                     for event_item in results:
-                        client_response = event_type , subscription_id, event_item
+                        client_response = event_type, subscription_id, event_item
                         await websocket.send(json.dumps(client_response))
 
-                    await websocket.send(json.dumps(EOSE))  
-            else:
-                #await websocket.send(response_data)
-                logger.debug(f"Response data is {response_data} but it failed")
-                # Handle the error or send it back to the client
+                    await websocket.send(json.dumps(EOSE))
+
+                logger.debug(f"Sending response data: {response_data}")
+
+    except Exception as e:
+        logger.error(f"Error occurred while processing the subscription - {str(e)}")
+        # Handle the error or send it back to the client
+        pass
+
 
 
 #All 3 working, can navigate thru snort but refreshing inay page crashes snort"
