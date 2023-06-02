@@ -5,7 +5,7 @@ from ddtrace import tracer
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import sessionmaker, class_mapper
-from sqlalchemy import create_engine, Column, String, Integer, JSON
+from sqlalchemy import create_engine, Column, String, Integer, JSON, desc
 from sqlalchemy.ext.declarative import declarative_base
 
 tracer.configure(hostname='172.28.0.5', port=8126)
@@ -72,7 +72,7 @@ async def event_query(filters):
                 query = query.filter(conditions[key](value))
                 
         limit = filters.get("limit")
-        query_result = query.limit(limit).all()
+        query_result = query.order_by(desc(Event.created_at)).limit(limit).all() # Sorts the query result by created_at value in descending order
         return query_result
     
     except Exception as e:
@@ -82,6 +82,7 @@ async def event_query(filters):
         
     finally:
         session.close()
+
 
 
 @app.post("/subscription")
