@@ -28,7 +28,7 @@ def create_event():
     tags = []
 
     # Generate a random sentence for the event content
-    words = ["apple", "banana", "carrot", "dog", "elephant", "fox", "grape", "house", "igloo", "jump"]
+    words = ["nostr", "so nice", "bless up", "send it", "working?", "the egg", "nip1 FTW", "chillllll", "sooo nice", "eggg"]
     random_sentence = " ".join([random.choice(words) for i in range(random.randint(3, 6))]).capitalize()
 
     # Get the current timestamp for the event creation time
