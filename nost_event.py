@@ -6,10 +6,13 @@ import random
 import time
 import websocket
 
+# Define the first keypair
+public_key1 = "d576043ce19fa2cb684de60ffb8fe529e420a1411b96b6788f11cb0442252eea"
+private_key_hex1 = "96f339c05410721070695040a410186de4fdd67714b1e466b97d1aa433707ef6"
 
-# Define public and private keys
-public_key = "0c4a687a4414e30b43a94e1492391512019e52c5cceaf87d81358fb6e238780a"
-private_key_hex = "71537cbf6585e194a836cc049a7094d5bc253f23bb6abf980624575d84b127b9"
+# Define the second keypair
+public_key2 = "b97b26c3ec44390727b5800598a9de42b222ae7b5402abcf13d2ae8f386e4e0c"
+private_key_hex2 = "310cc8246a8bf8d2c9945f255d72272b8d30f86c1e7abac2ad812cb1f1e5a617"
 
 def sign_event_id(event_id: str, private_key_hex: str) -> str:
     private_key = secp256k1.PrivateKey(bytes.fromhex(private_key_hex))
@@ -23,13 +26,16 @@ def calc_event_id(
     data_str = json.dumps(data, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(data_str.encode("UTF-8")).hexdigest()
 
-
-def create_event():
+def create_event(public_key, private_key_hex):
     # Create a list of tags for the event
     tags = []
 
-    # Generate a random sentence for the event content
-    words = ["nostr", "so nice", "bless up", "send it", "working?", "the egg", "nip1 FTW", "chillllll", "sooo nice", "eggg", "\U0001F993", "\U0001F596", "\U0001F60F" ]
+    words = ["nostr", "so nice", "bless up", "send it", "working?", "the egg", "nip1 FTW", "chillllll", "sooo nice", "eggg", "\U0001F993", "\U0001F596", "\U0001F60F",
+         "yolo", "cool beans", "hakuna matata", "let's go", "stay woke", "the bird", "biggie smalls", "Zen mode", "so fresh", "to infinity and beyond", "\U0001F981", "\U0001F4AA", "\U0001F92C",
+         "all good", "go with the flow", "shine on", "you got this", "grind time", "the nest", "GOAT status", "just breathe", "vibing out", "sunny side up", "\U0001F423", "\U0001F3B5", "\U0001F64F",
+         "mind over matter", "good vibes only", "rise up", "never give up", "hustle & flow", "bird brain", "OG status", "live laugh love", "feeling blessed", "egg-cellent adventure", "\U0001F986", "\U0001F525", "\U0001F601"]
+
+
     random_sentence = " ".join([random.choice(words) for i in range(random.randint(3, 6))]).capitalize()
 
     # Get the current timestamp for the event creation time
@@ -73,17 +79,15 @@ def verify_signature(event_id: str, pubkey: str, sig: str) -> bool:
 def print_color(text, color):
     print(f"\033[1;{color}m{text}\033[0m")
 
-
-
-def send_event():
+def send_event(public_key, private_key_hex):
     # Connect to the WebSocket server
     ws_relay = 'wss://nostpy.lol' # replace with your own websocket URL
     ws = websocket.create_connection(ws_relay)
     print("WebSocket connection created.")
 
-    for i in range(100):
+    for i in range(1):
         # Create a new event
-        event_data = create_event()
+        event_data = create_event(public_key, private_key_hex)
         sig = event_data.get("sig")
         id = event_data.get("id")
 
@@ -104,4 +108,9 @@ def send_event():
     ws.close()
     print("WebSocket connection closed.")
 
-send_event()
+while True:
+    send_event(public_key1, private_key_hex1) # Use the first keypair
+    time.sleep(60)
+    send_event(public_key2, private_key_hex2) # Use the second keypair
+    time.sleep(60)
+
