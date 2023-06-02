@@ -6,6 +6,7 @@ import random
 import time
 import websocket
 
+
 # Define public and private keys
 public_key = "0c4a687a4414e30b43a94e1492391512019e52c5cceaf87d81358fb6e238780a"
 private_key_hex = "71537cbf6585e194a836cc049a7094d5bc253f23bb6abf980624575d84b127b9"
@@ -61,13 +62,17 @@ def verify_signature(event_id: str, pubkey: str, sig: str) -> bool:
         pub_key = secp256k1.PublicKey(bytes.fromhex("02" + pubkey), True)
         result = pub_key.schnorr_verify(bytes.fromhex(event_id), bytes.fromhex(sig), None, raw=True)
         if result:
-            print(f"Verification successful for event {event_id}")
+            print_color(f"Verification successful for event: \033[0m{event_id}\033[0m", 32) # Prints "Verification successful for event " in green, followed by the event id without color
         else:
-            print(f"Verification failed for event {event_id}")
+            print_color(f"Verification failed for event {event_id}", 31) # Prints "verification failed for event " in red
         return result
     except (ValueError, TypeError, secp256k1.Error) as e:
-        print(f"Error verifying signature for event {event_id}: {e}")
+        print_color(f"Error verifying signature for event {event_id}: {e}", 31) # Prints error message in red
         return False
+
+def print_color(text, color):
+    print(f"\033[1;{color}m{text}\033[0m")
+
 
 
 def send_event():
