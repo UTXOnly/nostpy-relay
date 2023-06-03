@@ -66,7 +66,7 @@ async def send_event_to_handler(session: aiohttp.ClientSession, event_dict, orig
         logger.info(f"Received response from Event Handler {response_data}")
 
 
-async def send_subscription_to_handler(session: aiohttp.ClientSession, event_dict: dict, subscription_id: str, origin: str, websocket: WebSocket):
+async def send_subscription_to_handler(session: aiohttp.ClientSession, event_dict: dict, subscription_id: str, origin: str, websocket):
     try:
         async with session.post('http://query_service/subscription', json={
             'event_dict': event_dict,
