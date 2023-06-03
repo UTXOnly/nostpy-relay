@@ -1,11 +1,11 @@
 import asyncio
 import json
 import logging
-
 import aiohttp
 import asyncpg
 import uvloop
 import uvicorn
+import fastapi
 
 from ddtrace import tracer
 from fastapi import FastAPI, WebSocket, Request
@@ -46,9 +46,10 @@ async def handle_websocket_connection(websocket: WebSocket):
 
 async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: dict):
     url = 'http://event_handler/new_event'
-    async with session.post(url, data=json.dumps(event_dict)) as response:
+    async with session.post(url, json=event_dict) as response:
         response_data = await response.json()
         logger.info(f"Received response from Event Handler {response_data}")
+
 
 async def send_subscription_to_handler(session: aiohttp.ClientSession, event_dict: dict, subscription_id: str, origin: str, websocket: WebSocket):
     try:
