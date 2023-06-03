@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 
 app = FastAPI()
 
-@app.websocket("/ws")
+@app.websocket("/")
 async def handle_websocket_connection(websocket: WebSocket):
     headers = websocket.headers
     referer = headers.get("referer")  # Snort
