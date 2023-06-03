@@ -47,7 +47,7 @@ async def handle_websocket_connection(websocket: WebSocket):
                         response = await action(session, message, origin, websocket, subscription_id)
                     else:
                         message = message[1]
-                        response = await action(session, message, origin, websocket)
+                        response = await action(session, message, origin)
                 else:
                     logger.warning(f"Unsupported message format: {message}")
 
@@ -59,7 +59,7 @@ async def handle_websocket_connection(websocket: WebSocket):
                 break
 
 
-async def send_event_to_handler(session: aiohttp.ClientSession, event_dict, origin: str, websocket: WebSocket):
+async def send_event_to_handler(session: aiohttp.ClientSession, event_dict, origin: str):
     url = 'http://event_handler/new_event'
     async with session.post(url, json=event_dict) as response:
         response_data = await response.json()
@@ -103,6 +103,7 @@ async def send_subscription_to_handler(session: aiohttp.ClientSession, event_dic
         logger.error(f"Error occurred while processing the subscription - {str(e)}")
         # Handle the error or send it back to the client
         pass
+
 
 async def close_connection():
     print("NOTICE", f"closing connection")
