@@ -46,6 +46,7 @@ async def handle_websocket_connection(websocket: WebSocket):
                         subscription_id = message[1]
                         response = await action(session, message, origin, websocket, subscription_id)
                     else:
+                        message = message[1]
                         response = await action(session, message, origin, websocket)
                 else:
                     logger.warning(f"Unsupported message format: {message}")
