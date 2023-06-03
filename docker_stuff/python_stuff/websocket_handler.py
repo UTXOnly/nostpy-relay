@@ -24,27 +24,41 @@ async def handle_websocket_connection(websocket: WebSocket):
     referer = headers.get("referer")  # Snort
     origin = headers.get("origin")
     logger.info(f"New websocket connection established from URL: {referer or origin}")
+    await websocket.accept()
 
     async with aiohttp.ClientSession() as session:
-        async for message in websocket:
-            message_list = json.loads(message)
-            logger.info(f"Received message: {message_list}")
-            len_message = len(message_list)
-            logger.info(f"Received message length: {len_message}")
+        while True:
+            try:
+                message = await websocket.receive_json()
+                logger.info(f"Received message: {message}")
+                len_message = len(message)
+                logger.info(f"Received message length: {len_message}")
 
-            actions = {
-                "EVENT": send_event_to_handler,
-                "REQ": send_subscription_to_handler,
-                "CLOSE": close_connection
-            }
+                actions = {
+                    "EVENT": send_event_to_handler,
+                    "REQ": send_subscription_to_handler,
+                    "CLOSE": close_connection
+                }
+                
+                action = actions.get(message[0])
+                if action:
+                    if message[0] == "REQ":
+                        subscription_id = message[1]
+                        response = await action(session, message, origin, websocket, subscription_id)
+                    else:
+                        response = await action(session, message, origin, websocket)
+                else:
+                    logger.warning(f"Unsupported message format: {message}")
 
-            action = actions.get(message_list[0])
-            if action:
-                response = await action(session, message_list, origin, websocket)
-            else:
-                logger.warning(f"Unsupported message format: {message_list}")
 
-async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: dict):
+            except RuntimeError as e:
+                logger.error(f"WebSocket connection error: {str(e)}")
+                # Close the connection or handle the error as needed
+                await websocket.close()
+                break
+
+
+async def send_event_to_handler(session: aiohttp.ClientSession, event_dict, origin: str, websocket: WebSocket):
     url = 'http://event_handler/new_event'
     async with session.post(url, json=event_dict) as response:
         response_data = await response.json()
