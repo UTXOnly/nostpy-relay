@@ -44,7 +44,7 @@ async def handle_websocket_connection(websocket: WebSocket):
                 if action:
                     if message[0] == "REQ":
                         subscription_id = message[1]
-                        response = await action(session, message, origin, websocket, subscription_id)
+                        response = await action(session, message, subscription_id, origin, websocket )
                     else:
                         message = message[1]
                         response = await action(session, message, origin)
@@ -61,41 +61,51 @@ async def handle_websocket_connection(websocket: WebSocket):
 
 async def send_event_to_handler(session: aiohttp.ClientSession, event_dict, origin: str):
     url = 'http://event_handler/new_event'
-    async with session.post(url, json=event_dict) as response:
+    async with session.post(url, data=json.dumps(event_dict)) as response:
         response_data = await response.json()
         logger.info(f"Received response from Event Handler {response_data}")
 
 
 async def send_subscription_to_handler(session: aiohttp.ClientSession, event_dict: dict, subscription_id: str, origin: str, websocket):
-    try:
-        async with session.post('http://query_service/subscription', json={
+    payload = {
             'event_dict': event_dict,
             'subscription_id': subscription_id,
-            'origin': origin
-        }) as response:
+            'origin': origin}
+    try:
+        async with session.post('http://query_service/subscription', data=json.dumps(payload)) as response:
             if response.status != 200:
-                logger.info(f"Response data is {response_data} but it failed")
+                logger.info(f"Response data is {response} but it failed")
                 # Handle the error or send it back to the client
                 return
 
             response_data = await response.json()
             logger.info(f"Data type of response_data: {type(response_data)}, Response Data: {response_data}")
 
+            response_data = await response.json()
+            logger.debug(f"response_data: {response_data}")
+            
             event_type = response_data.get("event")
+            logger.debug(f"event_type: {event_type}")
+            
             subscription_id = response_data.get("subscription_id")
+            logger.debug(f"subscription_id: {subscription_id}")
+            
             results = response_data.get("results_json")
+            logger.debug(f"results: {results}")
+            
             logger.info(f"Response received as: {response_data}")
+
             EOSE = "EOSE", subscription_id
 
             if event_type == "EOSE":
                 client_response = event_type, subscription_id
-                await websocket.send_json(client_response)
+                await websocket.send(json.dumps(client_response))
             else:
                 for event_item in results:
                     client_response = event_type, subscription_id, event_item
-                    await websocket.send_json(client_response)
+                    await websocket.send(json.dumps(client_response))
 
-                await websocket.send_json(EOSE)
+                await websocket.send(json.dumps(EOSE))
 
             logger.info(f"Sending response data: {response_data}")
 

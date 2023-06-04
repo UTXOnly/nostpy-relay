@@ -90,10 +90,12 @@ async def handle_subscription(request: Request):
     try:
         response = None
         payload = await request.json()
+        logger.debug(payload)
         subscription_dict = payload.get('event_dict')
         subscription_id = payload.get('subscription_id')
         origin = payload.get('origin')
         filters = subscription_dict
+        logger.debug(f"Filters are: {filters} of the type: {type(filter)}")
 
         query = await event_query(filters)
         logger.debug(f"THE QUERY IS: {query}")
