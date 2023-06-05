@@ -1,9 +1,0 @@
-websockets
-sqlalchemy
-psycopg2
-
-
-
-
-
-

@@ -9,20 +9,19 @@ def print_color(text, color):
 # Function to start Nostpy relay
 def start_nostpy_relay():
     # Change directory and start Docker containers
-    os.chdir("docker_stuff")
-    subprocess.run(["sudo", "docker-compose", "up", "-d"])
+    os.chdir("./docker_stuff")
+    subprocess.run(["docker-compose", "up", "-d"])
 
 # Function to destroy all Docker containers and images
 def destroy_containers_and_images():
-    # Change directory and stop Docker containers
-    os.chdir("docker_stuff")
-    subprocess.run(["docker", "stop", "$(docker", "ps", "-aq)", "-f"])
+    # Change directory to the Docker stuff folder
+    os.chdir("./docker_stuff")
+    subprocess.run(["sudo", "-u", "relay_service", "docker", "stop", "relay", "docker_stuff_postgres_1"])
+    subprocess.run(["sudo", "-u", "relay_service", "docker", "rm", "relay", "docker_stuff_postgres_1"])
+    subprocess.run(["sudo", "-u", "relay_service", "docker", "image", "prune", "-f", "--filter", "label=container=relay"])
+    subprocess.run(["sudo", "-u", "relay_service", "docker", "image", "prune", "-f", "--filter", "label=container=docker_stuff_postges_1"])
 
-    # Remove all containers
-    subprocess.run(["docker", "rm", "$(docker", "ps", "-aq)", "-f"])
 
-    # Remove all images
-    subprocess.run(["docker", "rmi", "$(docker", "images", "-q)", "-f"])
 
 # Function to switch branches
 def switch_branches():
@@ -33,35 +32,41 @@ def switch_branches():
     subprocess.run(["git", "checkout", branch_name])
 
 
+# Function to execute setup.py script
+def execute_setup_script():
+    subprocess.run(["python3", "setup.py"])
+
 while True:
     print_color("\n##########################################################################################", "31")
-    print_color(""" \n_    __                        __      _______            
-/  \  /  |                      /  |    /       \           
-$$  \ $$ |  ______    _______  _$$ |_   $$$$$$$  | __    __ 
-$$$  \$$ | /      \  /       |/ $$   |  $$ |__$$ |/  |  /  |
-$$$$  $$ |/$$$$$$  |/$$$$$$$/ $$$$$$/   $$    $$/ $$ |  $$ |
-$$ $$ $$ |$$ |  $$ |$$      \   $$ | __ $$$$$$$/  $$ |  $$ |
-$$ |$$$$ |$$ \__$$ | $$$$$$  |  $$ |/  |$$ |      $$ \__$$ |
-$$ | $$$ |$$    $$/ /     $$/   $$  $$/ $$ |      $$    $$ |
-$$/   $$/  $$$$$$/  $$$$$$$/     $$$$/  $$/        $$$$$$$ |
-                                                  /  \__$$ |
-                                                  $$    $$/ 
-                                                   $$$$$$/    """ , "34")
+    print_color(""" \n
+    
+    ███╗   ██╗ ██████╗ ███████╗████████╗██████╗ ██╗   ██╗
+    ████╗  ██║██╔═══██╗██╔════╝╚══██╔══╝██╔══██╗╚██╗ ██╔╝
+    ██╔██╗ ██║██║   ██║███████╗   ██║   ██████╔╝ ╚████╔╝ 
+    ██║╚██╗██║██║   ██║╚════██║   ██║   ██╔═══╝   ╚██╔╝  
+    ██║ ╚████║╚██████╔╝███████║   ██║   ██║        ██║   
+    ╚═╝  ╚═══╝ ╚═════╝ ╚══════╝   ╚═╝   ╚═╝        ╚═╝   
+                                                     
+    
+    """ , "34")
     print("\nPlease select an option:\n")
-    print_color("1) Start Nostpy relay", "32")
-    print_color("2) Destroy all docker containers and images", "32")
-    print_color("3) Switch branches", "31")
-    print_color("4) Exit menu", "32")
+    print_color("1) Execute setup.py script", "33")
+    print_color("2) Start Nostpy relay", "32")
+    print_color("3) Switch branches", "33")
+    print_color("4) Destroy all docker containers and images", "31")
+    print_color("5) Exit menu", "31")
 
-    choice = input("\nEnter an option number (1-4): ")
+    choice = input("\nEnter an option number (1-5): ")
 
     if choice == "1":
-        start_nostpy_relay()
+        execute_setup_script()
     elif choice == "2":
-        destroy_containers_and_images()
+        start_nostpy_relay()      
     elif choice == "3":
         switch_branches()
     elif choice == "4":
+        destroy_containers_and_images()
+    elif choice == "5":
         print_color("Exited menu", "31")
         break
     else:
