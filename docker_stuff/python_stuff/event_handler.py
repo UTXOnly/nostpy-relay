@@ -7,7 +7,7 @@ import aiohttp
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import sessionmaker, class_mapper
-from sqlalchemy import create_engine, Column, String, Integer, JSON
+from sqlalchemy import create_engine, Column, String, Integer, JSON, desc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -102,11 +102,108 @@ async def handle_new_event(request: Request):
             logger.debug(delete_message.format(pubkey=pubkey))
         session.close()
 
-
 def serialize(model):
     # Helper function to convert an SQLAlchemy model instance to a dictionary
     columns = [c.key for c in class_mapper(model.__class__).columns]
     return dict((c, getattr(model, c)) for c in columns)
+
+import json
+import redis
+
+# ...
+
+redis_client = redis.Redis(host='172.28.0.6', port=6379)
+
+async def event_query(filters):
+    # Set a cache key based on the filters
+    cache_key = json.dumps(filters)
+
+    # Check if the query result exists in the Redis cache
+    cached_result = redis_client.get(cache_key)
+
+    if cached_result:
+        # If the result exists in the cache, return it
+        query_result = json.loads(cached_result)
+    else:
+        Session = sessionmaker(bind=engine)
+        session = Session()
+    
+        try:
+            query = session.query(Event)
+        
+            conditions = {
+                "authors": lambda x: Event.pubkey == x,
+                "kinds": lambda x: Event.kind.in_(x),
+                "#e": lambda x: Event.tags.any(lambda tag: tag[0] == 'e' and tag[1] in x),
+                "#p": lambda x: Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in x),
+                "#d": lambda x: Event.tags.any(lambda tag: tag[0] == 'd' and tag[1] in x),
+                "since": lambda x: Event.created_at > x,
+                "until": lambda x: Event.created_at < x
+            }
+        
+            for key, value in filters.items():
+                if key in conditions and value is not None:
+                    query = query.filter(conditions[key](value))
+                
+            limit = filters.get("limit")
+            query_result = query.order_by(desc(Event.created_at)).limit(limit).all()
+
+            # Store the query result in the Redis cache for future use
+            redis_client.set(cache_key, json.dumps(query_result), ex=3600)  # Set cache expiry time to 1 hour
+
+        except Exception as e:
+            error_message = str(e)
+            logger.error(f"Error occurred: {error_message}")
+            query_result = []
+        finally:
+            session.close()
+
+    return query_result
+
+
+
+
+@app.post("/subscription")
+async def handle_subscription(request: Request):
+    try:
+        response = None
+        payload = await request.json()
+        logger.debug(payload)
+        subscription_dict = payload.get('event_dict')
+        subscription_id = payload.get('subscription_id')
+        origin = payload.get('origin')
+        filters = subscription_dict
+        logger.debug(f"Filters are: {filters} of the type: {type(filter)}")
+
+        query = await event_query(filters)
+        logger.debug(f"THE QUERY IS: {query}")
+        # serialize results asynchronously and gather them into a list
+        serialized_events = []
+        for event in query:
+            serialized_event = serialize(event)
+            serialized_events.append(serialized_event)
+        
+        # set Redis cache with all serialized events
+        #redis_client.set(cache_key, json.dumps(serialized_events), ex=3600)    
+        logger.debug("Result saved in Redis cache")
+        logger.debug(f"Data type of redis_filters: {type(serialized_events)}, Length of redis_filters variable is {len(serialized_events)}")
+        if len(serialized_events) == 0:
+            response = None #{'event': "EOSE", 'subscription_id': subscription_id, 'results_json': "None"}
+            logger.debug(f"Data type of response: {type(response)}, End of stream event response: {response}")
+        else:
+            response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': serialized_events}
+            logger.debug(f"Data type of response: {type(response)}, Sending postgres query results: {response}")
+
+    except Exception as e:
+        error_message = str(e)
+        logger.error(f"Error occurred: {error_message}")
+        raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
+    finally:
+        if response is None:
+            logger.debug(f"Response type is None = {response}")
+            response = {'event': "EOSE", 'subscription_id': subscription_id, 'results_json': "None"}
+        logger.debug(f"Finally block, returning JSON response to wh client {response}")
+        return JSONResponse(content=response, status_code=200)
     
 if __name__ == "__main__":
     import uvicorn
