@@ -81,7 +81,7 @@ def send_event():
     ws = websocket.create_connection(ws_relay)
     print("WebSocket connection created.")
 
-    for i in range(100):
+    for i in range(5):
         # Create a new event
         event_data = create_event()
         sig = event_data.get("sig")
@@ -104,4 +104,7 @@ def send_event():
     ws.close()
     print("WebSocket connection closed.")
 
-send_event()
+
+while True:
+    send_event()
+    time.sleep(10)

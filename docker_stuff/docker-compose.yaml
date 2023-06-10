@@ -126,7 +126,8 @@ services:
     networks:
       my_network:
         ipv4_address: 172.28.0.6
-
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 networks:
   my_network:
     driver: bridge
