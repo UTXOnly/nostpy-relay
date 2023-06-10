@@ -1,7 +1,10 @@
 websockets
 ddtrace
 aiohttp
-
+uvloop
+asyncpg
+uvicorn
+fastapi
 
 
 
