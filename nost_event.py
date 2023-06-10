@@ -1,10 +1,11 @@
-import secp256k1
 import hashlib
 import json
-import binascii
 import random
 import time
+
+import secp256k1
 import websocket
+
 
 # Define the first keypair
 public_key1 = "d576043ce19fa2cb684de60ffb8fe529e420a1411b96b6788f11cb0442252eea"
