@@ -82,7 +82,7 @@ def print_color(text, color):
 
 def send_event(public_key, private_key_hex):
     # Connect to the WebSocket server
-    ws_relay = 'wss://nostpy.lol' # replace with your own websocket URL
+    ws_relay = 'ws://172.28.0.2:8008' # replace with your own websocket URL
     ws = websocket.create_connection(ws_relay)
     print("WebSocket connection created.")
 

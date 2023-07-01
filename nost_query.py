@@ -92,7 +92,7 @@ async def send_event(public_key, private_key_hex):
     async with websockets.connect(ws_relay) as ws:
         print("WebSocket connection created.")
 
-        for i in range(5):
+        for i in range(1):
             # Create a new event
             event_data = create_event(public_key, private_key_hex)
             sig = event_data.get("sig")
@@ -131,11 +131,16 @@ async def query(ws_relay):
         q = query_dict
         query_ws = json.dumps(("REQ", "5326483051590112", q))
         await ws.send(query_ws)
-        print("Event sent:", query_ws)
+        #print("Event sent:", query_ws)
+        print_color(f"Event sent: \033[0m{query_ws}\033[0m", 32)
 
         # Wait for a response from the server and print it
         response = await ws.recv()
-        print("Response received:", response)
+        #print("Response received:", response)
+        #print_color(f"Response from websocket server: \033[0m{response}\033[0m", 32)
+        print_color(f"Response from websocket server:", 32)
+        print_color(f"{response}", 31)
+
 
         #return query
 

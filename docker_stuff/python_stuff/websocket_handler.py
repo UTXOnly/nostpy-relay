@@ -31,8 +31,13 @@ async def handle_websocket_connection(websocket, path):
             elif message_list[0] == "REQ":
                 subscription_id = message_list[1]
                 # Extract subscription information from message
-                event_dict = {index: message_list[index] for index in range(len(message_list))}
+                #event_dict = {index: message_list[index] for index in range(2, len(message_list))}
+                
+
+                event_dict = [{index: message_list[index]} for index in range(2, len(message_list))]
+
                 await send_subscription_to_handler(session, event_dict, subscription_id, origin, websocket)
+            
             elif message_list[0] == "CLOSE":
                 subscription_id = message_list[1]
                 response = "NOTICE", f"closing {subscription_id}"
