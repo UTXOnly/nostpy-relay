@@ -73,8 +73,8 @@ def verify_signature(event_id: str, pubkey: str, sig: str) -> bool:
         logger.error(f"Error verifying signature for event {event_id}: {e}")
         return False
 
-#ws_relay = 'ws://172.28.0.2:8008'
-ws_relay = 'wss://nostpy.lol'
+ws_relay = 'ws://172.28.0.2:8008'
+#ws_relay = 'wss://nostpy.lol'
 
 async def send_event(public_key, private_key_hex):
     async with websockets.connect(ws_relay) as ws:

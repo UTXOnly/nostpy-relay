@@ -32,7 +32,6 @@ async def handle_websocket_connection(websocket, path):
                 subscription_id = message_list[1]
                 event_dict = [{index: message_list[index]} for index in range(2, len(message_list))]
                 await send_subscription_to_handler(session, event_dict, subscription_id, origin, websocket)
-            
             elif message_list[0] == "CLOSE":
                 subscription_id = message_list[1]
                 response = "NOTICE", f"closing {subscription_id}"
@@ -40,14 +39,12 @@ async def handle_websocket_connection(websocket, path):
                 logger.warning(f"Unsupported message format: {message_list}")
 
 async def send_event_to_handler(session, event_dict):
-
     url = 'http://event_handler/new_event'
     async with session.post(url, data=json.dumps(event_dict)) as response:
         response_data = await response.json()
         logger.debug(f"Recieved response from Event Handler {response_data}")
 
 async def send_subscription_to_handler(session, event_dict, subscription_id, origin, websocket):
-    # Make a POST request to the event_handler container with subscription data
     url = 'http://event_handler/subscription'
     payload = {
         'event_dict': event_dict,

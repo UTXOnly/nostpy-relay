@@ -14,6 +14,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 
 tracer.configure(hostname='172.28.0.5', port=8126)
+redis_client = redis.Redis(host='172.28.0.6', port=6379)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -21,8 +22,6 @@ logging.basicConfig(filename='./logs/event_handler.log', level=logging.DEBUG, fo
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 logger.debug(f"DATABASE_URL value: {DATABASE_URL}")
-
-redis_client = redis.Redis(host='172.28.0.6', port=6379)
 
 engine = create_engine(DATABASE_URL, echo=True)
 Base = declarative_base()
@@ -156,16 +155,17 @@ async def event_query(filters):
                 }
 
                 for index, dict_item in enumerate(output_list):
+                    query_limit = int(min(dict_item.get('limit', 20), 20))
                     del dict_item['limit']
                     for key, value in dict_item.items():
                         logger.debug(f"Key value is: {key}, {value}")
                         query = query.filter(conditions[key](value))
-                logger.debug(f"for loop working {query}")
-                query_result = query.order_by(desc(Event.created_at)).limit(10).all()
+                query_result = query.order_by(desc(Event.created_at)).limit(query_limit).all()
                 serialized_events = []
-                for event in query_result:
-                    serialized_event = serialize(event)
-                    serialized_events.append(serialized_event)
+                serialized_events = [serialize(event) for event in query_result]
+                #for event in query_result:
+                #    serialized_event = serialize(event)
+                #    serialized_events.append(serialized_event)
     
                 redis_set = redis_client.set(redis_get, str(serialized_events), ex=3600)  # Set cache expiry time to 1 hour
                 logger.debug(f"Query result stored in cache. Stored as: {redis_set} ({inspect.currentframe().f_lineno})")
@@ -208,7 +208,6 @@ async def handle_subscription(request: Request):
             response = {'event': "EOSE", 'subscription_id': subscription_id, 'results_json': "None"}
         logger.debug(f"Finally block, returning JSON response to wh client {response} ({inspect.currentframe().f_lineno})")
         return JSONResponse(content=response, status_code=200)
-
-    
+ 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=80)
