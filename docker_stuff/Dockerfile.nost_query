@@ -14,7 +14,7 @@ RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r nq_requirements.txt
 
 # Copy the nost_query.py file into the container
-COPY nost_query.py .
+COPY ./python_stuff/nost_query.py .
 
 # Start the program when the container is run
 CMD ["python", "nost_query.py"]
