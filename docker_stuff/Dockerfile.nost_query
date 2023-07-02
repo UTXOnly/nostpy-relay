@@ -1,20 +1,11 @@
-# Use an official Python runtime as the base image
 FROM python:3.10
-
-#RUN apt-get update && apt-get install -y pkg-config
-
-# Set the working directory inside the container
 WORKDIR /app
 
-# Copy the requirements.txt file into the container
 COPY nq_requirements.txt .
 
 RUN pip install --upgrade pip
-# Install the Python dependencies specified in requirements.txt
 RUN pip install --no-cache-dir -r nq_requirements.txt
 
-# Copy the nost_query.py file into the container
 COPY ./python_stuff/nost_query.py .
 
-# Start the program when the container is run
 CMD ["python", "nost_query.py"]
