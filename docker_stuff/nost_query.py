@@ -86,15 +86,16 @@ def verify_signature(event_id: str, pubkey: str, sig: str) -> bool:
         logger.error(f"Error verifying signature for event {event_id}: {e}") # Log error
         return False
 
-ws_relay = 'ws://172.28.0.2:8008'
+#ws_relay = 'ws://172.28.0.2:8008'
+ws_relay = 'wss://nostpy.lol'
 
 async def send_event(public_key, private_key_hex):
     # Connect to the WebSocket server
-    ws_relay = 'ws://172.28.0.2:8008'  # replace with your own websocket URL
+    #ws_relay = 'ws://172.28.0.2:8008'  # replace with your own websocket URL
     async with websockets.connect(ws_relay) as ws:
         logger.info("WebSocket connection created.")
 
-        for i in range(1):
+        for i in range(100):
             # Create a new event
             event_data = create_event(public_key, private_key_hex)
             sig = event_data.get("sig")
@@ -109,7 +110,7 @@ async def send_event(public_key, private_key_hex):
 
                 # Send the event over the WebSocket connection
                 await ws.send(event_json)
-                logger.info("Event sent:", event_json)
+                logger.info(f"Event sent: {event_json}")
             else:
                 logger.error("Invalid signature, event not sent.")
 
@@ -117,7 +118,7 @@ async def send_event(public_key, private_key_hex):
         logger.info("WebSocket connection closed.")
 
 async def query(ws_relay):
-    ws_relay = 'ws://172.28.0.2:8008'
+    #ws_relay = 'ws://172.28.0.2:8008'
     async with websockets.connect(ws_relay) as ws:
         logger.info("WebSocket connection created.")
 
@@ -133,7 +134,7 @@ async def query(ws_relay):
         q = query_dict
         query_ws = json.dumps(("REQ", "5326483051590112", q))
         await ws.send(query_ws)
-        logger.info(f"Event sent: {query_ws}")
+        logger.info(f"Query sent: {query_ws}")
         response = await ws.recv()
         logger.info(f"Response from websocket server: {response}")
 
