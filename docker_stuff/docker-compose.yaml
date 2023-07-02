@@ -11,6 +11,8 @@ services:
       - DD_PROFILING_ENABLED=true
       - DD_RUNTIME_METRICS_ENABLED=true
       - DD_AGENT_HOST=datadog-agent
+    ports:
+      - 8008:8008
     networks:
       my_network:
         ipv4_address: 172.28.0.2
@@ -36,6 +38,23 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  nostr_query:
+    build:
+      context: .
+      dockerfile: Dockerfile.nost_query
+    environment:
+      - DD_SERVICE=nost_query
+      - DD_ENV=nostpytest
+      - DD_LOGS_INJECTION=true
+      - DD_PROFILING_ENABLED=true
+      - DD_RUNTIME_METRICS_ENABLED=true
+      - DD_AGENT_HOST=datadog-agent
+    networks:
+      my_network:
+        ipv4_address: 172.28.0.16
+    depends_on:
+      - event_handler
 
   postgres:
     image: postgres:latest

@@ -2,7 +2,6 @@ import hashlib
 import json
 import random
 import time
-
 import asyncio
 import secp256k1
 import websockets
@@ -64,7 +63,6 @@ def create_event(public_key, private_key_hex):
 
     return event_data
 
-
 def verify_signature(event_id: str, pubkey: str, sig: str) -> bool:
     try:
         pub_key = secp256k1.PublicKey(bytes.fromhex("02" + pubkey), True)
@@ -80,9 +78,6 @@ def verify_signature(event_id: str, pubkey: str, sig: str) -> bool:
 
 def print_color(text, color):
     print(f"\033[1;{color}m{text}\033[0m")
-
-
-
 
 ws_relay = 'ws://172.28.0.2:8008'
 
@@ -115,6 +110,7 @@ async def send_event(public_key, private_key_hex):
         print("WebSocket connection closed.")
 
 async def query(ws_relay):
+    #ws_relay = 'ws://172.28.0.2:8008'
     ws_relay = 'ws://172.28.0.2:8008'
     async with websockets.connect(ws_relay) as ws:
         print("WebSocket connection created.")
@@ -133,25 +129,14 @@ async def query(ws_relay):
         await ws.send(query_ws)
         #print("Event sent:", query_ws)
         print_color(f"Event sent: \033[0m{query_ws}\033[0m", 32)
-
-        # Wait for a response from the server and print it
         response = await ws.recv()
-        #print("Response received:", response)
-        #print_color(f"Response from websocket server: \033[0m{response}\033[0m", 32)
         print_color(f"Response from websocket server:", 32)
         print_color(f"{response}", 31)
-
-
         #return query
-
-
-
-
 
 async def main():
     while True:
         #event =await send_event(public_key1, private_key_hex1)  # Use the first keypair
-        
         #await asyncio.sleep(20)
         await send_event(public_key2, private_key_hex2)  # Use the second keypair
         await query(ws_relay)

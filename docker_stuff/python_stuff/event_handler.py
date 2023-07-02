@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import redis
+import inspect
 from ddtrace import tracer
 import aiohttp
 from fastapi import FastAPI, Request, HTTPException
@@ -107,14 +108,10 @@ def serialize(model):
     columns = [c.key for c in class_mapper(model.__class__).columns]
     return dict((c, getattr(model, c)) for c in columns)
 
-import json
-import redis
-
-# ...
 
 redis_client = redis.Redis(host='172.28.0.6', port=6379)
 
-import inspect
+
 
 async def event_query(filters):
     # Set a cache key based on the filters
@@ -154,7 +151,7 @@ async def event_query(filters):
                 query = session.query(Event)
             
                 conditions = {
-                    "authors": lambda x: Event.pubkey == x,
+                    "authors": lambda x: Event.pubkey.in_(x),
                     "kinds": lambda x: Event.kind.in_(x),
                     "#e": lambda x: Event.tags.any(lambda tag: tag[0] == 'e' and tag[1] in x),
                     "#p": lambda x: Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in x),
@@ -173,7 +170,7 @@ async def event_query(filters):
                         #print(len(dict_item))
                         logger.debug(f"Key value is: {key}, {value}")
                         query = query.filter(conditions[key](value))
-                        logger.debug(f"for loop working {query}")
+                        
                     #for dict_element, value in dict_item:
                     #    print(dict_element, value)
                     #    print(value)
@@ -184,6 +181,7 @@ async def event_query(filters):
                         #        logger.debug(f"for loop working {query}")
                             
                 #limit = filters.get("limit")
+                logger.debug(f"for loop working {query}")
                 query_result = query.order_by(desc(Event.created_at)).limit(10).all()
                 #query_result = query.order_by(desc(Event.created_at)).all()
                 serialized_events = []
@@ -191,8 +189,8 @@ async def event_query(filters):
                     serialized_event = serialize(event)
                     serialized_events.append(serialized_event)
     
-                #redis_set = redis_client.set(cache_key, json.dumps(serialized_events), ex=3600)  # Set cache expiry time to 1 hour
-                #logger.debug(f"Query result stored in cache. Stored as: {redis_set} ({inspect.currentframe().f_lineno})")
+                redis_set = redis_client.set(str(output_list), str(json.dumps(serialized_events)), ex=3600)  # Set cache expiry time to 1 hour
+                logger.debug(f"Query result stored in cache. Stored as: {redis_set} ({inspect.currentframe().f_lineno})")
     
                 # Store the query result in the Redis cache for future use
     
