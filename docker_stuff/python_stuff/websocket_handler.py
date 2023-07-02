@@ -9,7 +9,9 @@ tracer.configure(hostname='172.28.0.5', port=8126)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(filename='./logs/websocket_handler.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 async def handle_websocket_connection(websocket, path):
     headers = websocket.request_headers

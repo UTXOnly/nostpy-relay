@@ -17,7 +17,9 @@ tracer.configure(hostname='172.28.0.5', port=8126)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(filename='./logs/event_handler.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 logger.debug(f"DATABASE_URL value: {DATABASE_URL}")
@@ -108,10 +110,7 @@ def serialize(model):
     columns = [c.key for c in class_mapper(model.__class__).columns]
     return dict((c, getattr(model, c)) for c in columns)
 
-
 redis_client = redis.Redis(host='172.28.0.6', port=6379)
-
-
 
 async def event_query(filters):
     # Set a cache key based on the filters
@@ -128,11 +127,11 @@ async def event_query(filters):
         extracted_dict = results[list_index][str(index)]
         if isinstance(request, dict):
             output_list.append(extracted_dict)
-        cached_result = redis_client.get(str(results[list_index][str(index)]))
-        #logger.debug(f"cached result result is: {cached_result} ")
+        redis_get = str(results[list_index][str(index)])
+        logger.debug(f"Redis get is {redis_get} ")
+        cached_result = redis_client.get(redis_get)
         index += 1
         list_index += 1
-        #cache_key = results['subscription_event']
         logger.debug(f"Cache key: {cached_result} ({inspect.currentframe().f_lineno})")
 
         logger.debug(f"Output list is: {output_list} and length is: {len(output_list)}")
@@ -140,9 +139,13 @@ async def event_query(filters):
     #cached_result = redis_client.get(cache_key)
         if cached_result:
             # If the result exists in the cache, return it
-            query_result = json.loads(cached_result)
+            query_result = cached_result # json.loads(cached_result)
+            query_result_utf8 = query_result.decode('utf-8')
+            query_result_cleaned = query_result_utf8.strip("[b\"")
+            logger.debug(f"Query result CLEANED = {query_result_cleaned}")
             logger.debug(f"Query result found in cache. ({inspect.currentframe().f_lineno})")
-            serialized_events.append(query_result)
+            serialized_events.append(query_result_cleaned)
+            
         else:
             Session = sessionmaker(bind=engine)
             session = Session()
@@ -160,41 +163,21 @@ async def event_query(filters):
                     "until": lambda x: Event.created_at < x
                 }
 
-                
-            
                 for index, dict_item in enumerate(output_list):
                     #limit_var = dict_item['limit']
                     del dict_item['limit']
                     for key, value in dict_item.items():
-                        #print(dict_item)
-                        #print(len(dict_item))
                         logger.debug(f"Key value is: {key}, {value}")
                         query = query.filter(conditions[key](value))
-                        
-                    #for dict_element, value in dict_item:
-                    #    print(dict_element, value)
-                    #    print(value)
-                    #    print(len(dict_element))
-                        #for key, value in dict_element:
-                        #    if key in conditions and value is not None:
-                        #        query = query.filter(conditions[key](value))
-                        #        logger.debug(f"for loop working {query}")
-                            
-                #limit = filters.get("limit")
                 logger.debug(f"for loop working {query}")
                 query_result = query.order_by(desc(Event.created_at)).limit(10).all()
-                #query_result = query.order_by(desc(Event.created_at)).all()
                 serialized_events = []
                 for event in query_result:
                     serialized_event = serialize(event)
                     serialized_events.append(serialized_event)
     
-                redis_set = redis_client.set(str(output_list), str(json.dumps(serialized_events)), ex=3600)  # Set cache expiry time to 1 hour
+                redis_set = redis_client.set(redis_get, str(serialized_events), ex=3600)  # Set cache expiry time to 1 hour
                 logger.debug(f"Query result stored in cache. Stored as: {redis_set} ({inspect.currentframe().f_lineno})")
-    
-                # Store the query result in the Redis cache for future use
-    
-
             except Exception as e:
                 error_message = str(e)
                 logger.error(f"Error occurred: {error_message} ({inspect.currentframe().f_lineno})")
@@ -212,27 +195,12 @@ async def handle_subscription(request: Request):
         logger.debug(f"Payload is: {payload}", inspect.currentframe().f_lineno)
         subscription_dict = payload.get('event_dict')
         subscription_id = payload.get('subscription_id')
-        #keys_list = {value for value in subscription_dict.values()}
-        #logger.debug(f"Key list is : {keys_list}")
-        #filters = {'subscription_event': {}}
-        #filters['subscription_event'].update(subscription_dict)
         filters = subscription_dict
         logger.debug(f"Filters are: {filters} of the type: {type(filters)} {inspect.currentframe().f_lineno}")
 
         serialized_events = await event_query(json.dumps(filters))#event_query(filters)
         logger.debug(f"THE QUERY IS: {serialized_events} ({inspect.currentframe().f_lineno})")
-
-
-        # serialize results asynchronously and gather them into a list
-        #serialized_events = []
-        #for event in query:
-        #    serialized_event = serialize(event)
-        #    serialized_events.append(serialized_event)
-        
-        # set Redis cache with all serialized events
-        #redis_client.set(cache_key, json.dumps(serialized_events), ex=3600)    
-        #logger.debug("Result saved in Redis cache", inspect.currentframe().f_lineno)
-        logger.debug(f"Data type of redis_filters: {type(serialized_events)}, Length of redis_filters variable is {len(serialized_events)} ({inspect.currentframe().f_lineno})")
+        logger.debug(f"Data type of wh_filters: {type(serialized_events)}, Length of wh_filters variable is {len(serialized_events)} ({inspect.currentframe().f_lineno})")
         if len(serialized_events) == 0:
             response = None #{'event': "EOSE", 'subscription_id': subscription_id, 'results_json': "None"}
             logger.debug(f"Data type of response: {type(response)}, End of stream event response: {response} ({inspect.currentframe().f_lineno})")

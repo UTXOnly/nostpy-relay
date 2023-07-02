@@ -16,6 +16,8 @@ services:
     networks:
       my_network:
         ipv4_address: 172.28.0.2
+    volumes:
+      - ./logs:/app/logs
 
   event_handler:
     build:
@@ -38,6 +40,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
 
   nostr_query:
     build:
@@ -55,6 +59,8 @@ services:
         ipv4_address: 172.28.0.16
     depends_on:
       - event_handler
+    volumes:
+      - ./logs:/app/logs
 
   postgres:
     image: postgres:latest
