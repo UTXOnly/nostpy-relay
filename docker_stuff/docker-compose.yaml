@@ -6,14 +6,18 @@ services:
       dockerfile: Dockerfile.websocket_handler
     environment:
       - DD_SERVICE=websocket_handler
-      - DD_ENV=nostpy
+      - DD_ENV=nostpytest
       - DD_LOGS_INJECTION=true
       - DD_PROFILING_ENABLED=true
       - DD_RUNTIME_METRICS_ENABLED=true
       - DD_AGENT_HOST=datadog-agent
+    ports:
+      - 8008:8008
     networks:
       my_network:
         ipv4_address: 172.28.0.2
+    volumes:
+      - ./logs:/app/logs
 
   event_handler:
     build:
@@ -22,7 +26,7 @@ services:
     environment:
       - DD_SERVICE=event_handler
       - DD_AGENT_HOST=datadog-agent
-      - DD_ENV=nostpy
+      - DD_ENV=nostpytest
       - DD_LOGS_INJECTION=true
       - DD_PROFILING_ENABLED=true
       - DD_RUNTIME_METRICS_ENABLED=true
@@ -36,28 +40,27 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
 
-  query_service:
+  nostr_query:
     build:
       context: .
-      dockerfile: Dockerfile.query_service
+      dockerfile: Dockerfile.nost_query
     environment:
-      - DD_SERVICE=query_service
-      - DD_AGENT_HOST=datadog-agent
-      - DD_ENV=nostpy
+      - DD_SERVICE=nost_query
+      - DD_ENV=nostpytest
       - DD_LOGS_INJECTION=true
-      - DD_RUNTIME_METRICS_ENABLED=true
       - DD_PROFILING_ENABLED=true
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - DD_RUNTIME_METRICS_ENABLED=true
+      - DD_AGENT_HOST=datadog-agent
     networks:
       my_network:
-        ipv4_address: 172.28.0.7
+        ipv4_address: 172.28.0.16
     depends_on:
       - event_handler
-
+    volumes:
+      - ./logs:/app/logs
 
   postgres:
     image: postgres:latest
@@ -76,50 +79,48 @@ services:
       timeout: 5s
       retries: 5
 
-datadog-agent:
-  container_name: datadog-agent
-  image: datadog/agent:latest
-  environment:
-    ## GLOBALS
-    - DD_API_KEY=${DD_API_KEY}
-    - DD_SITE=datadoghq.com
-    - DD_HOSTNAME=nostpy-test
-    - DD_TAGS=env:nostr owner:brian service:nostpy
-    - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
-    - DD_DOCKER_LABELS_AS_TAGS=true
-    - DD_DOCKER_ENV_AS_TAGS=true
-    - DD_SYSTEM_PROBE_ENABLED=true
-    - DD_PROCESS_AGENT_ENABLED=true
-    - DD_APM_NON_LOCAL_TRAFFIC=true
-    - DD_AGENT_HOST=host.docker.internal
-    - DD_LOGS_ENABLED=true
-    - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
-    - DD_LOG_LEVEL=debug
-  volumes:
-    - /var/run/docker.sock:/var/run/docker.sock:ro
-    - /proc/:/host/proc/:ro
-    - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
-    - /sys/kernel/debug:/sys/kernel/debug
-  cap_add:
-    - SYS_ADMIN
-    - SYS_RESOURCE
-    - SYS_PTRACE
-    - NET_ADMIN
-    - NET_BROADCAST
-    - NET_RAW
-    - IPC_LOCK
-    - CHOWN
-  security_opt:
-    - apparmor:unconfined
-  ports:
-    - "8126:8126"
-    - "8125:8125"
-  networks:
-    my_network:
-      ipv4_address: 172.28.0.5
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
+  datadog-agent:
+    container_name: datadog-agent
+    image: datadog/agent:latest
+    environment:
+      ## GLOBALS
+      - DD_API_KEY=${DD_API_KEY}
+      - DD_SITE=datadoghq.com
+      - DD_HOSTNAME=nostpytest
+      - DD_TAGS=env:nostpytest owner:brian service:nostpytest
+      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+      - DD_DOCKER_LABELS_AS_TAGS=true
+      - DD_DOCKER_ENV_AS_TAGS=true
+      - DD_SYSTEM_PROBE_ENABLED=true
+      - DD_PROCESS_AGENT_ENABLED=true
+      - DD_APM_NON_LOCAL_TRAFFIC=true
+      - DD_AGENT_HOST=host.docker.internal
+      - DD_LOGS_ENABLED=true
+      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
+      - DD_LOG_LEVEL=debug
+      - DD_REMOTE_CONFIGURATION_ENABLED=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
+      - /sys/kernel/debug:/sys/kernel/debug
+    cap_add:
+      - SYS_ADMIN
+      - SYS_RESOURCE
+      - SYS_PTRACE
+      - NET_ADMIN
+      - NET_BROADCAST
+      - NET_RAW
+      - IPC_LOCK
+      - CHOWN
+    security_opt:
+      - apparmor:unconfined
+    ports:
+      - "8126:8126"
+      - "8125:8125"
+    networks:
+      my_network:
+        ipv4_address: 172.28.0.5
 
   redis:
     image: redis:latest
@@ -129,8 +130,7 @@ datadog-agent:
     networks:
       my_network:
         ipv4_address: 172.28.0.6
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+
 networks:
   my_network:
     driver: bridge
