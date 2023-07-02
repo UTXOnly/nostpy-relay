@@ -163,7 +163,7 @@ async def event_query(filters):
                 query_result = query.order_by(desc(Event.created_at)).limit(query_limit).all()
                 serialized_events = []
                 serialized_events = [serialize(event) for event in query_result]
-                redis_set = redis_client.set(redis_get, str(serialized_events), ex=3600)  # Set cache expiry time to 1 hour
+                redis_set = redis_client.set(redis_get, str(serialized_events), ex=120)  # Set cache expiry time to 2 min
                 logger.debug(f"Query result stored in cache. Stored as: {redis_set} ({inspect.currentframe().f_lineno})")
             except Exception as e:
                 error_message = str(e)
