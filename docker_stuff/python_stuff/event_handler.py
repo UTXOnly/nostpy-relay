@@ -3,23 +3,21 @@ import json
 import logging
 import redis
 import inspect
+import uvicorn
 from ddtrace import tracer
 import aiohttp
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse
-from sqlalchemy.orm import sessionmaker, class_mapper
 from sqlalchemy import create_engine, Column, String, Integer, JSON, desc
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, class_mapper
 from sqlalchemy.exc import SQLAlchemyError
-
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import JSONResponse
 
 tracer.configure(hostname='172.28.0.5', port=8126)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-#logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig(filename='./logs/event_handler.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 logger.debug(f"DATABASE_URL value: {DATABASE_URL}")
@@ -28,7 +26,6 @@ redis_client = redis.Redis(host='172.28.0.6', port=6379)
 
 engine = create_engine(DATABASE_URL, echo=True)
 Base = declarative_base()
-
 
 class Event(Base):
     __tablename__ = 'event'
@@ -52,7 +49,6 @@ class Event(Base):
 
 logger.debug("Creating database metadata")
 Base.metadata.create_all(bind=engine)
-
 app = FastAPI()
 
 @app.post("/new_event")
@@ -110,8 +106,6 @@ def serialize(model):
     columns = [c.key for c in class_mapper(model.__class__).columns]
     return dict((c, getattr(model, c)) for c in columns)
 
-redis_client = redis.Redis(host='172.28.0.6', port=6379)
-
 async def event_query(filters):
     # Set a cache key based on the filters
     serialized_events = []
@@ -133,13 +127,11 @@ async def event_query(filters):
         index += 1
         list_index += 1
         logger.debug(f"Cache key: {cached_result} ({inspect.currentframe().f_lineno})")
-
         logger.debug(f"Output list is: {output_list} and length is: {len(output_list)}")
-    # Check if the query result exists in the Redis cache
-    #cached_result = redis_client.get(cache_key)
+
         if cached_result:
             # If the result exists in the cache, return it
-            query_result = cached_result # json.loads(cached_result)
+            query_result = cached_result
             query_result_utf8 = query_result.decode('utf-8')
             query_result_cleaned = query_result_utf8.strip("[b\"")
             logger.debug(f"Query result CLEANED = {query_result_cleaned}")
@@ -164,7 +156,6 @@ async def event_query(filters):
                 }
 
                 for index, dict_item in enumerate(output_list):
-                    #limit_var = dict_item['limit']
                     del dict_item['limit']
                     for key, value in dict_item.items():
                         logger.debug(f"Key value is: {key}, {value}")
@@ -184,7 +175,6 @@ async def event_query(filters):
                 query_result = []
             finally:
                 session.close()
-
     return serialized_events
 
 @app.post("/subscription")
@@ -221,5 +211,4 @@ async def handle_subscription(request: Request):
 
     
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=80)
