@@ -11,6 +11,7 @@ services:
       - DD_PROFILING_ENABLED=true
       - DD_RUNTIME_METRICS_ENABLED=true
       - DD_AGENT_HOST=datadog-agent
+      - DD_APPSEC_ENABLED=true
     ports:
       - 8008:8008
     networks:
@@ -34,6 +35,7 @@ services:
       - DD_LOGS_INJECTION=true
       - DD_PROFILING_ENABLED=true
       - DD_RUNTIME_METRICS_ENABLED=true
+      - DD_APPSEC_ENABLED=true
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -127,8 +129,8 @@ services:
       - DD_AGENT_HOST=host.docker.internal
       - DD_LOGS_ENABLED=true
       - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
-      - DD_CONTAINER_EXCLUDE="name:datadog-agent"
-      - DD_LOG_LEVEL=debug
+      - DD_CONTAINER_EXCLUDE="datadog-agent"
+      - DD_LOG_LEVEL=info
       - DD_REMOTE_CONFIGURATION_ENABLED=true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
