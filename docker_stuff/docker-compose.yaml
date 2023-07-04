@@ -119,6 +119,7 @@ services:
       - DD_AGENT_HOST=host.docker.internal
       - DD_LOGS_ENABLED=true
       - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
+      - DD_CONTAINER_EXCLUDE="name:datadog-agent"
       - DD_LOG_LEVEL=debug
       - DD_REMOTE_CONFIGURATION_ENABLED=true
     volumes:
