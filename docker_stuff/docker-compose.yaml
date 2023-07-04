@@ -76,7 +76,7 @@ services:
         ipv4_address: 172.28.0.4
     command: postgres -c 'config_file=/postgresql.conf'
     volumes:
-      - ${PWD}/postgresql.conf:/postgresql.conf
+      - ./postgresql.conf:/postgresql.conf
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U nostr"] # database username here - nostr, should be changed if other user
       interval: 10s
