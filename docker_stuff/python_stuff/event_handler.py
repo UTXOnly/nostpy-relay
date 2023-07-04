@@ -121,7 +121,8 @@ async def event_query(filters):
             output_list.append(extracted_dict)
         redis_get = str(results[list_index][str(index)])
         logger.debug(f"Redis get is {redis_get} ")
-        cached_result = redis_client.get(redis_get)
+        #cached_result = redis_client.get(redis_get)
+        cached_result = redis_client.get(index)
         index += 1
         list_index += 1
         logger.debug(f"Cache key: {cached_result} ({inspect.currentframe().f_lineno})")
@@ -154,7 +155,7 @@ async def event_query(filters):
                 }
 
                 for index, dict_item in enumerate(output_list):
-                    query_limit = int(min(dict_item.get('limit', 20), 20))
+                    query_limit = int(min(dict_item.get('limit', 20), 100))
                     del dict_item['limit']
                     for key, value in dict_item.items():
                         logger.debug(f"Key value is: {key}, {value}")
