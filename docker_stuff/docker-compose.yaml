@@ -18,6 +18,9 @@ services:
         ipv4_address: 172.28.0.2
     volumes:
       - ./logs:/app/logs
+    labels:
+      com.datadoghq.ad.logs: '[{"type":"file", "source": "websocket_handler", "service": "websocket_handler", "path": "/logs/websocket_handler.log"}]'
+    
 
   event_handler:
     build:
@@ -43,6 +46,8 @@ services:
         condition: service_healthy
     volumes:
       - ./logs:/app/logs
+    labels:
+      com.datadoghq.ad.logs: '[{"type":"file", "source": "event_handler", "service": "event_handler", "path": "/logs/event_handler.log"}]'
 
   nostr_query:
     build:
@@ -62,6 +67,9 @@ services:
       - event_handler
     volumes:
       - ./logs:/app/logs
+    labels:
+      com.datadoghq.ad.logs: '[{"type":"file", "source": "nostr_query", "service": "nostr_query", "path": "/logs/nost_query.log"}]'
+
 
   postgres:
     image: postgres:latest
@@ -109,7 +117,7 @@ services:
       - DD_SITE=datadoghq.com
       - DD_HOSTNAME=nostpy-EC2
       - DD_ENV=${DD_ENV}
-      - DD_TAGS=owner:brian service:nostpytest
+      - DD_TAGS=owner:brian
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
       - DD_DOCKER_LABELS_AS_TAGS=true
       - DD_DOCKER_ENV_AS_TAGS=true
