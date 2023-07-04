@@ -21,7 +21,6 @@ logger.setLevel(logging.DEBUG)
 logging.basicConfig(filename='./logs/event_handler.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
-logger.debug(f"DATABASE_URL value: {DATABASE_URL}")
 
 engine = create_engine(DATABASE_URL, echo=True)
 Base = declarative_base()
@@ -110,7 +109,7 @@ async def event_query(filters):
     serialized_events = []
     logger.debug(f"type of filters recieved is: {type(filters)}")
     results = json.loads(filters)
-    logger.debug(f"Results to be quired are: {results}, of datatype: {type(results)}")
+    logger.debug(f"Results to be queried are: {results}, of datatype: {type(results)}")
     list_index = 0
     index = 2
     logger.debug(f"event_query func results are: {(results[list_index][str(index)])}")
@@ -161,9 +160,9 @@ async def event_query(filters):
                         logger.debug(f"Key value is: {key}, {value}")
                         query = query.filter(conditions[key](value))
                 query_result = query.order_by(desc(Event.created_at)).limit(query_limit).all()
-                serialized_events = []
                 serialized_events = [serialize(event) for event in query_result]
-                redis_set = redis_client.set(redis_get, str(serialized_events), ex=120)  # Set cache expiry time to 2 min
+                redis_set = redis_client.set(redis_get, str(serialized_events))  # Set cache expiry time to 2 min
+                redis_client.expire(redis_get, 300)
                 logger.debug(f"Query result stored in cache. Stored as: {redis_set} ({inspect.currentframe().f_lineno})")
             except Exception as e:
                 error_message = str(e)
