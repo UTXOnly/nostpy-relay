@@ -19,7 +19,7 @@ services:
     volumes:
       - ./logs:/app/logs
     labels:
-      com.datadoghq.ad.logs: '[{"type":"file", "source": "websocket_handler", "service": "websocket_handler", "path": "./logs/websocket_handler.log"}]'
+      com.datadoghq.ad.logs: '[{"type":"file", "source": "websocket_handler", "service": "websocket_handler", "path": "/logs/websocket_handler.log"}]'
     
 
   event_handler:
@@ -47,7 +47,7 @@ services:
     volumes:
       - ./logs:/app/logs
     labels:
-      com.datadoghq.ad.logs: '[{"type":"file", "source": "event_handler", "service": "event_handler", "path": "./logs/event_handler.log"}]'
+      com.datadoghq.ad.logs: '[{"type":"file", "source": "event_handler", "service": "event_handler", "path": "/logs/event_handler.log"}]'
 
   nostr_query:
     build:
@@ -68,7 +68,7 @@ services:
     volumes:
       - ./logs:/app/logs
     labels:
-      com.datadoghq.ad.logs: '[{"type":"file", "source": "nostr_query", "service": "nostr_query", "path": "./logs/nost_query.log"}]'
+      com.datadoghq.ad.logs: '[{"type":"file", "source": "nostr_query", "service": "nostr_query", "path": "/logs/nost_query.log"}]'
 
 
   postgres:
@@ -133,6 +133,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./logs:/logs
       - /proc/:/host/proc/:ro
       - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
       - /sys/kernel/debug:/sys/kernel/debug
