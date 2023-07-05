@@ -122,7 +122,6 @@ async def event_query(filters):
         redis_get = str(results[list_index][str(index)])
         logger.debug(f"Redis get is {redis_get} ")
         cached_result = redis_client.get(redis_get)
-        cached_result = redis_client.get(index)
         index += 1
         list_index += 1
         logger.debug(f"Cache key: {cached_result} ({inspect.currentframe().f_lineno})")
