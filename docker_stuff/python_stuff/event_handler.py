@@ -155,7 +155,7 @@ async def event_query(filters):
                 }
 
                 for index, dict_item in enumerate(output_list):
-                    query_limit = int(min(dict_item.get('limit', 20), 100))
+                    query_limit = int(min(dict_item.get('limit', 100), 100))
                     if 'limit' in dict_item:
                         del dict_item['limit']
                     #del dict_item['limit']
@@ -170,7 +170,6 @@ async def event_query(filters):
             except Exception as e:
                 error_message = str(e)
                 logger.error(f"Error occurred: {error_message} ({inspect.currentframe().f_lineno})")
-                query_result = []
             finally:
                 session.close()
     return serialized_events
