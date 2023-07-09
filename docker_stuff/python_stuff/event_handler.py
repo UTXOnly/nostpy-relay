@@ -5,19 +5,26 @@ import redis
 import inspect
 import uvicorn
 from ddtrace import tracer
-import aiohttp
 from sqlalchemy import create_engine, Column, String, Integer, JSON, desc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, class_mapper
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
+from datadog import initialize, statsd
+import time
+
+options = {
+    'statsd_host':'172.28.0.5',
+    'statsd_port':8125
+}
+
+initialize(**options)
 
 tracer.configure(hostname='172.28.0.5', port=8126)
 redis_client = redis.Redis(host='172.28.0.6', port=6379)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 logging.basicConfig(filename='./logs/event_handler.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -49,6 +56,9 @@ logger.debug("Creating database metadata")
 Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
+Session = sessionmaker(bind=engine)
+session = Session()
+
 @app.post("/new_event")
 async def handle_new_event(request: Request):
     event_dict = await request.json()
@@ -60,8 +70,8 @@ async def handle_new_event(request: Request):
     event_id = event_dict.get("id")
     sig = event_dict.get("sig")
 
-    Session = sessionmaker(bind=engine)
-    session = Session()
+    #Session = sessionmaker(bind=engine)
+    #session = Session()
 
     try:
         delete_message = None
@@ -85,7 +95,7 @@ async def handle_new_event(request: Request):
 
         session.add(new_event)
         session.commit()
-        
+        statsd.increment('nostr.event.added.count', tags=["func:new_event"])
         message = "Event added successfully" if kind == 1 else "Event updated successfully"
         response = {"message": message}
         return JSONResponse(content=response, status_code=200)
@@ -134,11 +144,12 @@ async def event_query(filters):
             query_result_cleaned = query_result_utf8.strip("[b\"")
             logger.debug(f"Query result CLEANED = {query_result_cleaned}")
             logger.debug(f"Query result found in cache. ({inspect.currentframe().f_lineno})")
+            statsd.increment('nostr.event.found.redis.count', tags=["func:event_query"])
             serialized_events.append(query_result_cleaned)
             
         else:
-            Session = sessionmaker(bind=engine)
-            session = Session()
+            #Session = sessionmaker(bind=engine)
+            #session = Session()
         
             try:
                 query = session.query(Event)
@@ -162,6 +173,7 @@ async def event_query(filters):
                         logger.debug(f"Key value is: {key}, {value}")
                         query = query.filter(conditions[key](value))
                 query_result = query.order_by(desc(Event.created_at)).limit(query_limit).all()
+                statsd.increment('nostr.event.queryied.postgres', tags=["func:event_query"])
                 serialized_events = [serialize(event) for event in query_result]
                 redis_set = redis_client.set(redis_get, str(serialized_events))  # Set cache expiry time to 2 min
                 redis_client.expire(redis_get, 300)
@@ -170,7 +182,8 @@ async def event_query(filters):
                 error_message = str(e)
                 logger.error(f"Error occurred: {error_message} ({inspect.currentframe().f_lineno})")
             finally:
-                session.close()
+                logger.debug("FINISH PG BLOCK")
+                #session.close()
     return serialized_events
 
 @app.post("/subscription")
@@ -182,6 +195,7 @@ async def handle_subscription(request: Request):
         subscription_dict = payload.get('event_dict')
         subscription_id = payload.get('subscription_id')
         filters = subscription_dict
+        statsd.increment('nostr.subscription.recieved.count', tags=["func:subscription"])
         logger.debug(f"Filters are: {filters} of the type: {type(filters)} {inspect.currentframe().f_lineno}")
 
         serialized_events = await event_query(json.dumps(filters))#event_query(filters)
