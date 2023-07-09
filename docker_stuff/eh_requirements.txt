@@ -7,3 +7,4 @@ aiohttp
 fastapi
 uvicorn
 asyncio
+datadog
