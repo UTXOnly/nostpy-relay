@@ -1,18 +1,18 @@
 import os
 import json
 import logging
-import redis
 import inspect
 import uvicorn
 from ddtrace import tracer
+from datadog import initialize, statsd
+import redis
 from sqlalchemy import create_engine, Column, String, Integer, JSON, desc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, class_mapper
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
-from datadog import initialize, statsd
-import time
+
 
 options = {
     'statsd_host':'172.28.0.5',
@@ -62,17 +62,9 @@ session = Session()
 @app.post("/new_event")
 async def handle_new_event(request: Request):
     event_dict = await request.json()
-    pubkey = event_dict.get("pubkey")
-    kind = event_dict.get("kind")
-    created_at = event_dict.get("created_at")
-    tags = event_dict.get("tags")
-    content = event_dict.get("content")
-    event_id = event_dict.get("id")
-    sig = event_dict.get("sig")
-
-    #Session = sessionmaker(bind=engine)
-    #session = Session()
-
+    pubkey, kind, created_at, tags, content, event_id, sig = (
+        event_dict.get(key) for key in ["pubkey", "kind", "created_at", "tags", "content", "id", "sig"]
+    )
     try:
         delete_message = None
         if kind in {0, 3}:
@@ -107,7 +99,7 @@ async def handle_new_event(request: Request):
     finally:
         if delete_message:
             logger.debug(delete_message.format(pubkey=pubkey))
-        session.close()
+
 
 def serialize(model):
     # Helper function to convert an SQLAlchemy model instance to a dictionary
@@ -119,22 +111,16 @@ async def event_query(filters):
     serialized_events = []
     logger.debug(f"type of filters recieved is: {type(filters)}")
     results = json.loads(filters)
-    logger.debug(f"Results to be queried are: {results}, of datatype: {type(results)}")
-    list_index = 0
-    index = 2
-    logger.debug(f"event_query func results are: {(results[list_index][str(index)])}")
     output_list = []
-    for request in results:
-        logger.debug(f"request in result is: {(results[list_index][str(index)])} ")
-        extracted_dict = results[list_index][str(index)]
-        if isinstance(request, dict):
+    for result in results:
+        extracted_dict = result[2]
+        if isinstance(result, dict):
             output_list.append(extracted_dict)
-        redis_get = str(results[list_index][str(index)])
-        logger.debug(f"Redis get is {redis_get} ")
+        redis_get = str(result[2])
+        logger.debug(f"Redis get is {redis_get}")
         cached_result = redis_client.get(redis_get)
-        index += 1
-        list_index += 1
         logger.debug(f"Cache key: {cached_result} ({inspect.currentframe().f_lineno})")
+
         logger.debug(f"Output list is: {output_list} and length is: {len(output_list)}")
 
         if cached_result:
@@ -148,8 +134,6 @@ async def event_query(filters):
             serialized_events.append(query_result_cleaned)
             
         else:
-            #Session = sessionmaker(bind=engine)
-            #session = Session()
         
             try:
                 query = session.query(Event)
@@ -168,7 +152,6 @@ async def event_query(filters):
                     query_limit = int(min(dict_item.get('limit', 100), 100))
                     if 'limit' in dict_item:
                         del dict_item['limit']
-                    #del dict_item['limit']
                     for key, value in dict_item.items():
                         logger.debug(f"Key value is: {key}, {value}")
                         query = query.filter(conditions[key](value))
@@ -183,7 +166,6 @@ async def event_query(filters):
                 logger.error(f"Error occurred: {error_message} ({inspect.currentframe().f_lineno})")
             finally:
                 logger.debug("FINISH PG BLOCK")
-                #session.close()
     return serialized_events
 
 @app.post("/subscription")
@@ -197,7 +179,6 @@ async def handle_subscription(request: Request):
         filters = subscription_dict
         statsd.increment('nostr.subscription.recieved.count', tags=["func:subscription"])
         logger.debug(f"Filters are: {filters} of the type: {type(filters)} {inspect.currentframe().f_lineno}")
-
         serialized_events = await event_query(json.dumps(filters))#event_query(filters)
         logger.debug(f"THE QUERY IS: {serialized_events} ({inspect.currentframe().f_lineno})")
         logger.debug(f"Data type of wh_filters: {type(serialized_events)}, Length of wh_filters variable is {len(serialized_events)} ({inspect.currentframe().f_lineno})")
