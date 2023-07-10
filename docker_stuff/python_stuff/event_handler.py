@@ -116,18 +116,15 @@ async def event_query(filters):
     index = 2
     logger.debug(f"event_query func results are: {(results[list_index][str(index)])}")
     output_list = []
-    for request in results:
-        logger.debug(f"request in result is: {(results[list_index][str(index)])} ")
-        extracted_dict = results[list_index][str(index)]
-        if isinstance(request, dict):
+
+    for result in results:
+        extracted_dict = result[2]
+        if isinstance(result, dict):
             output_list.append(extracted_dict)
-        redis_get = str(results[list_index][str(index)])
-        logger.debug(f"Redis get is {redis_get} ")
+        redis_get = str(result[2])
+        logger.debug(f"Redis get is {redis_get}")
         cached_result = redis_client.get(redis_get)
-        index += 1
-        list_index += 1
         logger.debug(f"Cache key: {cached_result} ({inspect.currentframe().f_lineno})")
-        logger.debug(f"Output list is: {output_list} and length is: {len(output_list)}")
 
         if cached_result:
             # If the result exists in the cache, return it
