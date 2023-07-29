@@ -12,6 +12,8 @@ contact=os.getenv('CONTACT')
 hex_pubkey=os.getenv('HEX_PUBKEY')
 script_user=os.getenv('SCRIPT_USER')
 
+print(f"script user is {script_user}")
+
 default_conf = "/etc/nginx/sites-available/default"
 
 if os.path.exists(default_conf):
@@ -22,9 +24,7 @@ add_user_command = ["sudo", "adduser", "--disabled-password", "--gecos", "", "re
 process = subprocess.Popen(add_user_command, stdin=subprocess.PIPE)
 process.communicate(input=b'\n\n\n\n\n\n\n')
 
-username = os.getenv('script_user')
-print(username)
-add_to_docker_group_command = ["sudo", "usermod", "-aG", f"docker,{username}", "relay_service"]
+add_to_docker_group_command = ["sudo", "usermod", "-aG", f"docker,{script_user}", "relay_service"]
 
 subprocess.check_call(add_to_docker_group_command)
 
