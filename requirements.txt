@@ -1,4 +1,1 @@
-docker-compose
-certbot 
-python3-certbot-nginx
 python-dotenv
