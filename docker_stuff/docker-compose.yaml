@@ -117,7 +117,7 @@ services:
       ## GLOBALS
       - DD_API_KEY=${DD_API_KEY}
       - DD_SITE=datadoghq.com
-      - DD_HOSTNAME=nostpy-ec2
+      - DD_HOSTNAME=nostpy-local-test
       - DD_ENV=${DD_ENV}
       - DD_TAGS=owner:brian
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true

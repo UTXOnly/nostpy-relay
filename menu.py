@@ -20,10 +20,20 @@ def destroy_containers_and_images():
     # Change directory to the Docker stuff folder
     os.chdir("./docker_stuff")
     subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "down"])
-    subprocess.run(["sudo", "-u", "relay_service", "docker", "stop", "relay", "docker_stuff_postgres_1"])
-    subprocess.run(["sudo", "-u", "relay_service", "docker", "rm", "relay", "docker_stuff_postgres_1"])
-    subprocess.run(["sudo", "-u", "relay_service", "docker", "image", "prune", "-f", "--filter", "label=container=relay"])
-    subprocess.run(["sudo", "-u", "relay_service", "docker", "image", "prune", "-f", "--filter", "label=container=docker_stuff_postges_1"])
+
+    # Delete container images by their name
+    image_names = [
+        "docker_stuff_nostr_query:latest",
+        "docker_stuff_event_handler:latest",
+        "docker_stuff_websocket_handler:latest",
+        "redis:latest",
+        "postgres:latest",
+        "datadog/agent:latest",
+    ]
+
+    for image_name in image_names:
+        subprocess.run(["sudo", "-u", "relay_service", "docker", "image", "rm", "-f", image_name])
+
 
 
 
