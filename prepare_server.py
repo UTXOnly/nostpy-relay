@@ -10,9 +10,6 @@ load_dotenv(dotenv_path)
 domain_name=os.getenv('DOMAIN_NAME')
 contact=os.getenv('CONTACT')
 hex_pubkey=os.getenv('HEX_PUBKEY')
-# Install required packages
-#os.system("sudo apt-get update -y")
-#os.system("sudo apt-get install -y docker-compose nginx certbot python3-certbot-nginx")
 
 default_conf = "/etc/nginx/sites-available/default"
 
@@ -29,12 +26,6 @@ process.communicate(input=b'\n\n\n\n\n\n\n')
 # Add the user to the docker group
 add_to_docker_group_command = ["sudo", "usermod", "-aG", "docker", "relay_service"]
 subprocess.check_call(add_to_docker_group_command)
-
-# Log out the user to realize the change
-logout_command = ["sudo", "pkill", "-KILL", "-u", "relay_service"]
-subprocess.check_call(logout_command)
-
-
 
 nginx_config = f"""
 server {{
