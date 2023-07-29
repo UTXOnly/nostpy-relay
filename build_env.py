@@ -12,4 +12,4 @@ commands = [
     'python prepare_server.py'
 ]
 for cmd in commands:
-    subprocess.run(['bash', '-c', activate_cmd + cmd], check=True)
+    subprocess.run(['sudo', 'bash', '-c', activate_cmd + cmd], check=True)

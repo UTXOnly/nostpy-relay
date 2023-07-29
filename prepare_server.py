@@ -60,7 +60,7 @@ with open(f"/etc/nginx/sites-available/default", "w") as f:
 
 os.system("sudo service nginx restart")
 
-file_path = "/etc/letsencrypt/live/nostpy.lol/fullchain.pem"
+file_path = f"/etc/letsencrypt/live/{domain_name}/fullchain.pem"
 
 if os.path.isfile(file_path):
     print("The file exists!")
