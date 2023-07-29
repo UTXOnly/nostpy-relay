@@ -23,7 +23,7 @@ process.communicate(input=b'\n\n\n\n\n\n\n')
 
 username = os.getenv('USER')
 print(username)
-add_to_docker_group_command = ["sudo", "usermod", "-aG", "docker," + username, "relay_service"]
+add_to_docker_group_command = ["sudo", "usermod", "-aG", f"docker,{username}", "relay_service"]
 
 subprocess.check_call(add_to_docker_group_command)
 
