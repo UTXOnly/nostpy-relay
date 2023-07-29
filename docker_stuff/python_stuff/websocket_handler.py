@@ -14,12 +14,8 @@ logger.setLevel(logging.DEBUG)
 
 log_file = './logs/websocket_handler.log'
 handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
-
-
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
-
-# Add the handler to the logger
 logger.addHandler(handler)
 
 async def handle_websocket_connection(websocket, path):

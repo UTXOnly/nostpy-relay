@@ -3,6 +3,8 @@ import json
 import logging
 import inspect
 import uvicorn
+import secp256k1
+import hashlib
 from ddtrace import tracer
 from datadog import initialize, statsd
 import redis
@@ -66,12 +68,30 @@ app = FastAPI()
 Session = sessionmaker(bind=engine)
 session = Session()
 
+async def verify_signature(event_id: str, pubkey: str, sig: str) -> bool:
+    try:
+        pub_key = secp256k1.PublicKey(bytes.fromhex("02" + pubkey), True)
+        result = pub_key.schnorr_verify(bytes.fromhex(event_id), bytes.fromhex(sig), None, raw=True)
+        if result:
+            logger.info(f"Verification successful for event: {event_id}")
+        else:
+            logger.error(f"Verification failed for event: {event_id}")
+        return result
+    except (ValueError, TypeError, secp256k1.Error) as e:
+        logger.error(f"Error verifying signature for event {event_id}: {e}")
+        return False
+
 @app.post("/new_event")
 async def handle_new_event(request: Request):
     event_dict = await request.json()
     pubkey, kind, created_at, tags, content, event_id, sig = (
         event_dict.get(key) for key in ["pubkey", "kind", "created_at", "tags", "content", "id", "sig"]
     )
+
+    if not await verify_signature(event_id, pubkey, sig):
+        raise HTTPException(status_code=401, detail="Signature verification failed")
+
+
     try:
         delete_message = None
         if kind in {0, 3}:

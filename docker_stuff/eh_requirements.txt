@@ -8,3 +8,4 @@ fastapi
 uvicorn
 asyncio
 datadog
+secp256k1
