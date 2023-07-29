@@ -19,14 +19,16 @@ default_conf = "/etc/nginx/sites-available/default"
 if os.path.exists(default_conf):
     os.system("sudo rm -rf {}".format(default_conf))
 
-# Add the user relay_service
 add_user_command = ["sudo", "adduser", "--disabled-password", "--gecos", "", "relay_service"]
 process = subprocess.Popen(add_user_command, stdin=subprocess.PIPE)
 process.communicate(input=b'\n\n\n\n\n\n\n')
 
 add_to_docker_group_command = ["sudo", "usermod", "-aG", f"docker,{script_user}", "relay_service"]
-
 subprocess.check_call(add_to_docker_group_command)
+
+chmod_command = ["sudo", "chmod", "g+r", "docker_stuff/.env"]
+subprocess.check_call(chmod_command)
+
 
 nginx_config = f"""
 server {{
