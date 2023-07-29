@@ -10,8 +10,9 @@ def print_color(text, color):
 def start_nostpy_relay():
     # Change directory and start Docker containers
     os.chdir("./docker_stuff")
-    subprocess.run(["echo", "$PWD"])
+    #subprocess.run(["echo", $PWD])
     subprocess.run(["ls", "-l"])
+    subprocess.run(["groups", "relay_service"])
     subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "up", "-d"])
 
 # Function to destroy all Docker containers and images
