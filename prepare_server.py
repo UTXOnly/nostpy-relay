@@ -15,13 +15,13 @@ if os.path.exists(default_conf):
     os.system("sudo rm -rf {}".format(default_conf))
 
 # Create a new user
-os.system("sudo adduser relay_service")
+#os.system("sudo adduser relay_service")
 
 # Add the user to the docker group
-os.system("sudo usermod -aG docker realy_service")
+#os.system("sudo usermod -aG docker realy_service")
 
 # Log out the user to realize the change
-os.system("pkill -KILL -u relay_service")
+#os.system("pkill -KILL -u relay_service")
 
 
 nginx_config = f"""
