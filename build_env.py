@@ -1,7 +1,7 @@
 import os
 import subprocess
 os.system("sudo apt-get update -y")
-os.system("sudo apt install python3.10-venv -y")
+os.system("sudo apt install python3.10-venv nginx -y")
 
 subprocess.run(['python3', '-m', 'venv', 'snmpenv'], check=True)
 # Activate the virtual environment and run subsequent commands within it
