@@ -1,7 +1,5 @@
 import os
 import subprocess
-from dotenv import dotenv_values, set_key
-
 
 script_user = os.getenv('USER')
 print(f"{script_user}")
