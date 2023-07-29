@@ -10,12 +10,16 @@ def print_color(text, color):
 def start_nostpy_relay():
     # Change directory and start Docker containers
     os.chdir("./docker_stuff")
-    subprocess.run(["docker-compose", "up", "-d"])
+    #subprocess.run(["echo", $PWD])
+    subprocess.run(["ls", "-l"])
+    subprocess.run(["groups", "relay_service"])
+    subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "up", "-d"])
 
 # Function to destroy all Docker containers and images
 def destroy_containers_and_images():
     # Change directory to the Docker stuff folder
     os.chdir("./docker_stuff")
+    subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "down"])
     subprocess.run(["sudo", "-u", "relay_service", "docker", "stop", "relay", "docker_stuff_postgres_1"])
     subprocess.run(["sudo", "-u", "relay_service", "docker", "rm", "relay", "docker_stuff_postgres_1"])
     subprocess.run(["sudo", "-u", "relay_service", "docker", "image", "prune", "-f", "--filter", "label=container=relay"])
@@ -34,7 +38,7 @@ def switch_branches():
 
 # Function to execute setup.py script
 def execute_setup_script():
-    subprocess.run(["python3", "setup.py"])
+    subprocess.run(["python3", "build_env.py"])
 
 while True:
     print_color("\n##########################################################################################", "31")
@@ -50,7 +54,7 @@ while True:
     
     """ , "34")
     print("\nPlease select an option:\n")
-    print_color("1) Execute setup.py script", "33")
+    print_color("1) Execute server setup script", "33")
     print_color("2) Start Nostpy relay", "32")
     print_color("3) Switch branches", "33")
     print_color("4) Destroy all docker containers and images", "31")

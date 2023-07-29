@@ -80,7 +80,7 @@ async def send_event(public_key, private_key_hex):
     async with websockets.connect(ws_relay) as ws:
         logger.info("WebSocket connection created.")
 
-        for i in range(100):
+        for i in range(5):
             event_data = create_event(public_key, private_key_hex)
             sig = event_data.get("sig")
             id = event_data.get("id")
@@ -98,12 +98,15 @@ async def query(ws_relay):
     async with websockets.connect(ws_relay) as ws:
         logger.info("WebSocket connection created.")
 
+        current_time = int(time.time())  # Get the current timestamp
+        past_time = current_time - 120  # Subtract 180 seconds (3 minutes)
+
         query_dict = {
             "kinds": [1],
             "limit": 300,
-            "since": 1685757900,
+            "since": past_time,
             "authors": [
-                "b97b26c3ec44390727b5800598a9de42b222ae7b5402abcf13d2ae8f386e4e0c"
+                "b97b26c3ec44390727b5800598a9de42b222ae7b5402abcf13d2ae8f386e4e0c", "d576043ce19fa2cb684de60ffb8fe529e420a1411b96b6788f11cb0442252eea"
             ]
         }
 
