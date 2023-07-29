@@ -47,7 +47,7 @@ This is relay is actively worked on, it's is only a proof of concept right now. 
 - [x] NIP-02: Contact list and petnames
 - [x] NIP-04: Encrypted Direct Message
 - [] NIP-09: Event deletion
-- [] NIP-11: Relay information document
+- [x] NIP-11: Relay information document
 - [] NIP-11a: Relay Information Document Extensions
 - [] NIP-12: Generic tag queries
 - [] NIP-13: Proof of Work
@@ -57,4 +57,4 @@ This is relay is actively worked on, it's is only a proof of concept right now. 
 
 ### Contributing
 
-If you would like to contribute feel free to fork and put in a PR! Also please report any bugs int he issues section of this repo.
+If you would like to contribute feel free to fork and put in a PR! Also please report any bugs in the issues section of this repo.
