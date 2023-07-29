@@ -6,6 +6,7 @@ import uvicorn
 from ddtrace import tracer
 from datadog import initialize, statsd
 import redis
+from logging.handlers import TimedRotatingFileHandler
 from sqlalchemy import create_engine, Column, String, Integer, JSON, desc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, class_mapper
@@ -25,7 +26,23 @@ tracer.configure(hostname='172.28.0.5', port=8126)
 redis_client = redis.Redis(host='172.28.0.6', port=6379)
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(filename='./logs/event_handler.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logger.setLevel(logging.DEBUG)
+
+# Create a timed rotating file handler
+log_file = './logs/event_handler.log'
+handler = TimedRotatingFileHandler(log_file, when='m', interval=1, backupCount=5)
+
+# Set the log format
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+
+# Add the handler to the logger
+logger.addHandler(handler)
+
+#log_file = './logs/event_handler.log'
+#logger = logging.getLogger(__name__)
+#handler = TimedRotatingFileHandler(log_file, when='m', interval=1, backupCount=5)
+#logging.basicConfig(filename= log_file, level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
