@@ -6,6 +6,10 @@ def print_color(text, color):
 
 dotenv_path = "./docker_stuff/.env"
 load_dotenv(dotenv_path)
+
+domain_name=os.getenv('DOMAIN_NAME')
+contact=os.getenv('CONTACT')
+hex_pubkey=os.getenv('HEX_PUBKEY')
 # Install required packages
 #os.system("sudo apt-get update -y")
 #os.system("sudo apt-get install -y docker-compose nginx certbot python3-certbot-nginx")
@@ -27,11 +31,11 @@ if os.path.exists(default_conf):
 
 nginx_config = f"""
 server {{
-    server_name {DOMAIN_NAME};
+    server_name {domain_name};
 
     location / {{
         if ($http_accept ~* "application/nostr\+json") {{
-            return 200 '{{"name": "{DOMAIN_NAME}", "description": "NostPy relay v0.1", "pubkey": "{HEX_PUBKEY}", "contact": "{CONTACT}", "supported_nips": [1, 2, 4, 15, 16, 25], "software": "git+https://github.com/UTXOnly/nost-py.git", "version": "0.1"}}';
+            return 200 '{{"name": "{domain_name}", "description": "NostPy relay v0.1", "pubkey": "{hex_pubkey}", "contact": "{contact}", "supported_nips": [1, 2, 4, 15, 16, 25], "software": "git+https://github.com/UTXOnly/nost-py.git", "version": "0.1"}}';
             add_header 'Content-Type' 'application/json';
         }}
     
@@ -62,7 +66,7 @@ if os.path.isfile(file_path):
     print("The file exists!")
 else:
     print("The file doesn't exist!")
-    os.system(f"sudo certbot --nginx -d {DOMAIN_NAME} --non-interactive --agree-tos --email {CONTACT}")
+    os.system(f"sudo certbot --nginx -d {domain_name} --non-interactive --agree-tos --email {contact}")
 
 
 os.system("sudo service nginx restart")
