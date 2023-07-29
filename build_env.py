@@ -4,6 +4,7 @@ import subprocess
 script_user = os.getenv('USER')
 print(f"{script_user}")
 os.environ['script_user'] = script_user
+os.system('export script_user')
 
 os.system("sudo apt-get update -y")
 os.system("sudo apt-get install -y docker-compose nginx certbot python3.10-venv python3-certbot-nginx")
