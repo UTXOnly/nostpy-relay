@@ -4,23 +4,18 @@ import logging
 import aiohttp
 from ddtrace import tracer
 import websockets
-from logging.handlers import TimedRotatingFileHandler
+from logging.handlers import RotatingFileHandler
 
 
 tracer.configure(hostname='172.28.0.5', port=8126)
 
-#logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
-#logging.basicConfig(filename='./logs/websocket_handler.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-# Create a timed rotating file handler
-log_file = './logs/event_handler.log'
-handler = TimedRotatingFileHandler(log_file, when='m', interval=1, backupCount=5)
+log_file = './logs/websocket_handler.log'
+handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
 
-# Set the log format
+
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 

@@ -34,7 +34,7 @@ def switch_branches():
 
 # Function to execute setup.py script
 def execute_setup_script():
-    subprocess.run(["python3", "setup.py"])
+    subprocess.run(["python3", "build_env.py"])
 
 while True:
     print_color("\n##########################################################################################", "31")
@@ -50,7 +50,7 @@ while True:
     
     """ , "34")
     print("\nPlease select an option:\n")
-    print_color("1) Execute setup.py script", "33")
+    print_color("1) Execute server setup script", "33")
     print_color("2) Start Nostpy relay", "32")
     print_color("3) Switch branches", "33")
     print_color("4) Destroy all docker containers and images", "31")

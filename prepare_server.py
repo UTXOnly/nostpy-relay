@@ -1,9 +1,13 @@
 import os
+import subprocess
+from dotenv import load_dotenv
 def print_color(text, color):
     print(f"\033[1;{color}m{text}\033[0m")
+
+
 # Install required packages
 os.system("sudo apt-get update -y")
-os.system("sudo apt-get install -y docker-compose nginx certbot python3-certbot-nginx")
+#os.system("sudo apt-get install -y docker-compose nginx certbot python3-certbot-nginx")
 
 default_conf = "/etc/nginx/sites-available/default"
 
@@ -19,25 +23,22 @@ os.system("sudo usermod -aG docker realy_service")
 # Log out the user to realize the change
 os.system("pkill -KILL -u relay_service")
 
-print_color("Enter your domain name below:\n", "32" )
-# Get domain name from user
-domain_name = input("Enter domain name (e.g. subdomain.mydomain.com): ")
 
 nginx_config = f"""
 server {{
-    server_name {domain_name};
+    server_name {DOMAIN_NAME};
 
     location / {{
         if ($http_accept ~* "application/nostr\+json") {{
-            return 200 '{{"name": "wss://nostpy.lol", "description": "NostPy relay v0.1", "pubkey": "4503baa127bdfd0b054384dc5ba82cb0e2a8367cbdb0629179f00db1a34caacc", "contact": "bh419@protonmail.com", "supported_nips": [1, 2, 4, 15, 16, 25], "software": "git+https://github.com/UTXOnly/nost-py.git", "version": "0.1"}}';
+            return 200 '{{"name": "{DOMAIN_NAME}", "description": "NostPy relay v0.1", "pubkey": "{HEX_PUBKEY}", "contact": "{CONTACT}", "supported_nips": [1, 2, 4, 15, 16, 25], "software": "git+https://github.com/UTXOnly/nost-py.git", "version": "0.1"}}';
             add_header 'Content-Type' 'application/json';
         }}
-
+    
         add_header 'Access-Control-Allow-Origin' '*';
         add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
         add_header 'Access-Control-Allow-Headers' 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization';
         add_header 'Content-Type' 'application/json';
-
+    
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Host $host;
         proxy_pass http://127.0.0.1:8008;
@@ -60,7 +61,7 @@ if os.path.isfile(file_path):
     print("The file exists!")
 else:
     print("The file doesn't exist!")
-    os.system(f"sudo certbot --nginx -d {domain_name} --non-interactive --agree-tos --email bh419@protonmail.com")
+    os.system(f"sudo certbot --nginx -d {DOMAIN_NAME} --non-interactive --agree-tos --email {CONTACT}")
 
 
 os.system("sudo service nginx restart")
