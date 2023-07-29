@@ -10,6 +10,7 @@ load_dotenv(dotenv_path)
 domain_name=os.getenv('DOMAIN_NAME')
 contact=os.getenv('CONTACT')
 hex_pubkey=os.getenv('HEX_PUBKEY')
+script_user=os.getenv('SCRIPT_USER')
 
 default_conf = "/etc/nginx/sites-available/default"
 

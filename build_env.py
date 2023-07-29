@@ -1,12 +1,16 @@
 import os
 import subprocess
+from dotenv import dotenv_values, set_key
 
 
 script_user = os.getenv('USER')
 print(f"{script_user}")
-os.environ['script_user'] = script_user
 
-os.system(f'export script_user={script_user}')
+# Export 'script_user' to .env file
+env_file = '.env'
+values = dotenv_values(env_file)  # Load existing variables from .env file
+values['SCRIPT_USER'] = script_user  # Add/Update 'SCRIPT_USER' variable
+set_key(env_file, 'SCRIPT_USER', values['SCRIPT_USER'])
 
 os.system("sudo apt-get update -y")
 os.system("sudo apt-get install -y docker-compose nginx certbot python3.10-venv python3-certbot-nginx")
