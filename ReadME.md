@@ -31,8 +31,7 @@ This will bring up the menu below and you can control the program from there!
 
 ### Install demo
 
-
-[![Run Nostpy](https://img.youtube.com/vi/9Fmu7K2_t6Y/0.jpg)](https://www.youtube.com/watch?v=9Fmu7K2_t6Y)
+* [Youtube video showing you how to clone and run nostpy](https://www.youtube.com/watch?v=9Fmu7K2_t6Y)
 
 
 
