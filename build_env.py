@@ -7,7 +7,7 @@ script_user = os.getenv('USER')
 print(f"{script_user}")
 
 # Export 'script_user' to .env file
-env_file = '.env'
+env_file = './docker_stuff/.env'
 values = dotenv_values(env_file)  # Load existing variables from .env file
 values['SCRIPT_USER'] = script_user  # Add/Update 'SCRIPT_USER' variable
 set_key(env_file, 'SCRIPT_USER', values['SCRIPT_USER'])
