@@ -7,14 +7,14 @@ A simple and easy to deploy nostr relay using `asyncio` & `websockets` to server
 ![nostpy_auto_x2_colored_toned_light_ai](https://user-images.githubusercontent.com/49233513/236724405-bea4f3da-8728-4b0f-b583-1944faf52d09.jpg)
 
 
-A containerized Python relay paried with a Postgres databse, reachable via a NGINX reverse proxy. This has been tested on [Iris.to](https://Iris.to) and [Snort.social](https://Snort.social) clients and works for the NIPS listed below.
+A containerized Python relay paried with a Postgres databse, reachable via a NGINX reverse proxy. This has been tested on [Coracle](https://coracle.social), [Iris.to](https://Iris.to) and [Snort.social](https://Snort.social) clients and works for the NIPS listed below.
 
 Numerous branches in development,trying to improve performance, reliability and ease of use. The Datadog branch deploys a Datadog agent container to collect logs, metrics and traces to better observe application performance.
 
 ### Requirements
 
 * Ubuntu amd64 host server
-* At least 1 GB of available RAM ( 4GB recomended )
+* At least 2 GB of available RAM ( 4GB recomended )
 * Your own domain
 
 ## Instructions
@@ -27,7 +27,8 @@ python3 menu.py
 
 This will bring up the menu below and you can control the program from there!
 
-![image](https://user-images.githubusercontent.com/49233513/236729712-bb3963f9-0a13-4c8e-940b-6afd7dd7da4b.png)
+![Screenshot from 2023-07-29 18-33-34](https://github.com/UTXOnly/nost-py/assets/49233513/b2a22cfc-2c4a-43c7-855e-427ba02efe9a)
+
 
 ### Future plans
 
