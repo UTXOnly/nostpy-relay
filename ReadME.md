@@ -29,6 +29,13 @@ This will bring up the menu below and you can control the program from there!
 
 ![Screenshot from 2023-07-29 18-33-34](https://github.com/UTXOnly/nost-py/assets/49233513/b2a22cfc-2c4a-43c7-855e-427ba02efe9a)
 
+### Install demo
+
+
+[![Run Nostpy](https://img.youtube.com/vi/9Fmu7K2_t6Y/0.jpg)](https://www.youtube.com/watch?v=9Fmu7K2_t6Y)
+
+
+
 
 ### Future plans
 
