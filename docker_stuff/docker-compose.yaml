@@ -51,6 +51,27 @@ services:
     labels:
       com.datadoghq.ad.logs: '[{"type":"file", "source": "event_handler", "service": "event_handler", "path": "/logs/event_handler.log"}]'
 
+  nostr_query:
+    build:
+      context: .
+      dockerfile: Dockerfile.nost_query
+    environment:
+      - DD_SERVICE=nost_query
+      - DD_ENV=${DD_ENV}
+      - DD_LOGS_INJECTION=true
+      - DD_PROFILING_ENABLED=true
+      - DD_RUNTIME_METRICS_ENABLED=true
+      - DD_AGENT_HOST=datadog-agent
+    networks:
+      my_network:
+        ipv4_address: 172.28.0.16
+    depends_on:
+      - event_handler
+    volumes:
+      - ./logs:/app/logs
+    labels:
+      com.datadoghq.ad.logs: '[{"type":"file", "source": "nostr_query", "service": "nostr_query", "path": "/logs/nost_query.log"}]'
+
   postgres:
     image: postgres:latest
     environment:
