@@ -19,13 +19,35 @@ Numerous branches in development,trying to improve performance, reliability and 
 
 ## Instructions
 
-To run this program run the command below from the main repo direcotory to bring up the NostPy menu
+### Setup
+
+To setup this program, you need to update the variables in the `nostpy/docker_stuff/.env`, for example:
+
+```
+POSTGRES_DB=nostr
+POSTGRES_USER=nostr
+POSTGRES_PASSWORD=nostr
+POSTGRES_PORT=5432
+POSTGRES_HOST=localhost
+DD_ENV=<DATADOG_ENV_TAG>
+DD_API_KEY=<YOUR_DATADOG_API_KEY>
+DOMAIN_NAME=<YOUR_DOMAIN_NAME>
+HEX_PUBKEY=<YOUR_HEX_PUBLIC_KEY_FOR_NIP_11>
+CONTACT=<YOUR_EMAIL_OR_NPUB>
+
+```
+
+Aside from adding the environmental variables, all you need to do is run the `menu.py` script to load the menu. Once you select the `Execute server setup script` option, the script will install all dependencies, setup your NGINX reverse proxy server and request an TLS certificate, load environmental variables, build and launch the application and database containers. From there you are ready to start relaying notes!
+
+To get started run the command below from the main repo direcotory to bring up the NostPy menu
 
 ```
 python3 menu.py
 ```
 
 This will bring up the menu below and you can control the program from there!
+
+
 
 ![Screenshot from 2023-07-29 18-33-34](https://github.com/UTXOnly/nost-py/assets/49233513/b2a22cfc-2c4a-43c7-855e-427ba02efe9a)
 
