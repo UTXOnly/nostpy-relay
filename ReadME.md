@@ -16,6 +16,8 @@ Numerous branches in development,trying to improve performance, reliability and 
 * Ubuntu amd64 host server
 * At least 2 GB of available RAM ( 4GB recomended )
 * Your own domain
+* Right now the main branch deploys the Datadog agent along with the application containers and has APM, DBM, and NPM preconfigured as well as some custom nostr StatsD metrics.
+  * If you don't have a Datadog developer account, you can apply for a developer account [here](https://partners.datadoghq.com/s/login/?ec=302&startURL=%2Fs%2F), or sign up for a trial [here](https://www.datadoghq.com/free-datadog-trial/) to get a Datadog API key. 
 
 ## Instructions
 
