@@ -13,7 +13,7 @@ Numerous branches in development,trying to improve performance, reliability and 
 
 ### Requirements
 
-* Ubuntu amd64 host server
+* Ubuntu 22.04 amd64 host server (Will likely work on other versions but this is all that has been tested)
 * At least 2 GB of available RAM ( 4GB recomended )
 * Your own domain
 * Right now the main branch deploys the Datadog agent along with the application containers and has APM, DBM, and NPM preconfigured as well as some custom nostr StatsD metrics.
