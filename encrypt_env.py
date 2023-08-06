@@ -22,9 +22,11 @@ def change_file_permissions(file_path):
         print("An error occurred while changing file permissions:", str(e))
 
 
-def encrypt_file(file_path):
+def encrypt_file(file_path, entered_password=None):
     try:
-        entered_password = get_password()
+        if entered_password is None:
+            entered_password = get_password()
+        
         with open(file_path, 'rb') as f:
             data = f.read()
 
@@ -43,6 +45,7 @@ def encrypt_file(file_path):
         subprocess.run(['cat', file_path], check=True)
     except Exception as e:
         print("An error occurred while encrypting the file:", str(e))
+
 
 
 def get_password() -> str:
@@ -67,11 +70,16 @@ def get_password() -> str:
                     
                     # Set file permissions to read and write only for the owner
                     change_file_permissions(filename)
+                else:
+                    # Append the hashed password to a new line in the existing file
+                    with open(filename, "a") as f:
+                        f.write("\n" + hashed_password)
                 
                 return password
         except Exception as e:
             error_message = "An error occurred while getting the password: " + str(e)
             return error_message, ""
+
 
 def hash_password(password):
     # Hash the password using SHA256 algorithm
@@ -125,6 +133,7 @@ def decrypt_file(file_path):
                 print("\nDecrypted content is:")
                 subprocess.run(['cat', file_path], check=True)
                 print("\n")
+                return entered_password
                 break
             else:
                 print_color("Incorrect password. Please try again.", "31")

@@ -14,14 +14,14 @@ def start_nostpy_relay():
         # Change directory and start Docker containers
         
         
-        encrypt_env.decrypt_file("./docker_stuff/.env")
+        pass_holder = encrypt_env.decrypt_file("./docker_stuff/.env")
         os.chdir("./docker_stuff")
         subprocess.run(["ls", "-al"])
         subprocess.run(["groups", "relay_service"])
         subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "up", "-d"])
         os.chdir("..")
         #re-encrypt env file to keep it encrypted when not in use
-        encrypt_env.encrypt_file("./docker_stuff/.env")
+        encrypt_env.encrypt_file("./docker_stuff/.env", pass_holder)
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
 
