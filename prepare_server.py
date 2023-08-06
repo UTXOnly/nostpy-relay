@@ -21,11 +21,6 @@ try:
 except subprocess.CalledProcessError as e:
     print(f"An error occurred while adding the user: {e}")
 
-try:
-    add_group_command = ["sudo", "groupadd", "relay_service"]
-    subprocess.run(add_group_command, check=True)
-except subprocess.CalledProcessError as e:
-    print(f"An error occurred while creating the group: {e}")
 
 try:
     change_group_command = ["sudo", "chgrp", "relay_service", dotenv_path]
