@@ -81,9 +81,8 @@ def get_password() -> str:
                 else:
                     try:
                         # Append the hashed password to a new line in the existing file
-                        os.seteuid(0)
-                        with open(filename, "a") as f:
-                            f.write("\n" + hashed_password)
+                        command = f"echo \"{hashed_password}\" >> {filename}"
+                        subprocess.run(["sudo", "sh", "-c", command])
                         return password
                     
                     except IOError as e:
