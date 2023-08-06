@@ -66,22 +66,35 @@ def get_password() -> str:
                 filename = "h_land"
                 
                 if not os.path.isfile(filename):
-                    # Create the file if it doesn't exist
-                    with open(filename, "w") as f:
-                        f.write(hashed_password)
+                    try:
+                        # Create the file if it doesn't exist
+                        with open(filename, "w") as f:
+                            f.write(hashed_password)
+                        
+                        # Set file permissions to read and write only for the owner
+                        change_file_permissions(filename)
                     
-                    # Set file permissions to read and write only for the owner
-                    change_file_permissions(filename)
+                    except IOError as e:
+                        error_message = "An error occurred while creating the file: " + str(e)
+                        return error_message, ""
+                
                 else:
-                    # Append the hashed password to a new line in the existing file
-                    os.seteuid(0)
-                    with open(filename, "a") as f:
-                        f.write("\n" + hashed_password)
+                    try:
+                        # Append the hashed password to a new line in the existing file
+                        os.seteuid(0)
+                        with open(filename, "a") as f:
+                            f.write("\n" + hashed_password)
+                    
+                    except IOError as e:
+                        error_message = "An error occurred while appending to the file: " + str(e)
+                        return error_message, ""
                 
                 return password
+        
         except Exception as e:
             error_message = "An error occurred while getting the password: " + str(e)
             return error_message, ""
+
 
 
 def hash_password(password):
