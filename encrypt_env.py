@@ -4,7 +4,7 @@ import subprocess
 import hashlib
 import stat
 
-env_file = './.env'
+env_file = './docker_stuff/.env'
 
 def print_color(text, color):
     print(f"\033[1;{color}m{text}\033[0m")
