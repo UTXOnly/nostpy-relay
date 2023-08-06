@@ -70,7 +70,7 @@ def decrypt_file(file_path):
 
 
 
-env_file = './.env2'
+env_file = './.env'
 
 while True:
     try:
