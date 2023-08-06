@@ -18,6 +18,9 @@ nginx_filepath = os.getenv('NGINX_FILE_PATH')
 try:
     add_user_command = ["sudo", "adduser", "--disabled-password", "--gecos", "", "relay_service"]
     subprocess.run(add_user_command, input=b'\n\n\n\n\n\n\n', check=True)
+
+    add_to_docker_group_command = ["sudo", "usermod", "-aG", "docker", "relay_service"]
+    subprocess.run(add_to_docker_group_command, check=True)
 except subprocess.CalledProcessError as e:
     print(f"An error occurred while adding the user: {e}")
 
