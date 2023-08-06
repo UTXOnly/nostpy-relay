@@ -66,7 +66,7 @@ def get_password() -> str:
                         f.write(hashed_password)
                     
                     # Set file permissions to read and write only for the owner
-                    os.chmod(filename, stat.S_IRUSR | stat.S_IWUSR)
+                    change_file_permissions(filename)
                 
                 return password
         except Exception as e:

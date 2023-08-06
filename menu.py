@@ -12,9 +12,10 @@ def print_color(text, color):
 def start_nostpy_relay():
     try:
         # Change directory and start Docker containers
-        os.chdir("./docker_stuff")
+        
 
-        encrypt_env.decrypt_file(".env")
+        encrypt_env.decrypt_file("./docker_stuff/.env")
+        os.chdir("./docker_stuff")
 
         subprocess.run(["ls", "-l"])
         subprocess.run(["groups", "relay_service"])
