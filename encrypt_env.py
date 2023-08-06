@@ -22,12 +22,13 @@ def change_file_permissions(file_path):
         print("An error occurred while changing file permissions:", str(e))
 
 
-def encrypt_file(file_path, password):
+def encrypt_file(file_path):
     try:
+        entered_password = get_password()
         with open(file_path, 'rb') as f:
             data = f.read()
 
-        password_bytes = password.encode()
+        password_bytes = entered_password.encode()
 
         encrypted_data = bytearray()
         for i, byte in enumerate(data):
@@ -44,11 +45,10 @@ def encrypt_file(file_path, password):
         print("An error occurred while encrypting the file:", str(e))
 
 
-
 def get_password() -> tuple[str, str]:
     while True:
         try:
-            password = getpass.getpass("Enter password: ")
+            password = getpass.getpass("Enter password to encrypt your env file: ")
             confirm_password = getpass.getpass("Confirm password: ")
 
             if password != confirm_password:
