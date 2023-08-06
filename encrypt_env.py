@@ -30,10 +30,10 @@ def encrypt_file(file_path, entered_password=None):
         password_bytes = entered_password.encode()
 
         # Check if the file is already encrypted
-        is_encrypted = all(byte == (byte ^ password_bytes[i % len(password_bytes)]) for i, byte in enumerate(data))
-        if is_encrypted:
-            print("The file is already encrypted. Skipping encryption.")
-            return
+        #is_encrypted = all(byte == (byte ^ password_bytes[i % len(password_bytes)]) for i, byte in enumerate(data))
+        #if is_encrypted:
+        #    print("The file is already encrypted. Skipping encryption.")
+        #    return
 
         encrypted_data = bytearray()
         for i, byte in enumerate(data):
