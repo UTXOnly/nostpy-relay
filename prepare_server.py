@@ -1,34 +1,45 @@
 import os
 import subprocess
+import encrypt_env
 from dotenv import load_dotenv
+
 def print_color(text, color):
     print(f"\033[1;{color}m{text}\033[0m")
 
 dotenv_path = "./docker_stuff/.env"
-load_dotenv(dotenv_path)
+load_dotenv(dotenv_path, override=True)
 
-domain_name=os.getenv('DOMAIN_NAME')
-contact=os.getenv('CONTACT')
-hex_pubkey=os.getenv('HEX_PUBKEY')
-script_user=os.getenv('SCRIPT_USER')
+domain_name = os.getenv('DOMAIN_NAME')
+contact = os.getenv('CONTACT')
+hex_pubkey = os.getenv('HEX_PUBKEY')
+env_file_path = os.getenv('ENV_FILE_PATH')
+nginx_filepath = os.getenv('NGINX_FILE_PATH')
 
-print(f"script user is {script_user}")
+try:
+    add_user_command = ["sudo", "adduser", "--disabled-password", "--gecos", "", "relay_service"]
+    subprocess.run(add_user_command, input=b'\n\n\n\n\n\n\n', check=True)
+except subprocess.CalledProcessError as e:
+    print(f"An error occurred while adding the user: {e}")
 
-default_conf = "/etc/nginx/sites-available/default"
+try:
+    add_group_command = ["sudo", "groupadd", "relay_service"]
+    subprocess.run(add_group_command, check=True)
+except subprocess.CalledProcessError as e:
+    print(f"An error occurred while creating the group: {e}")
 
-if os.path.exists(default_conf):
-    os.system("sudo rm -rf {}".format(default_conf))
+try:
+    change_group_command = ["sudo", "chgrp", "relay_service", dotenv_path]
+    subprocess.run(change_group_command, check=True)
+except subprocess.CalledProcessError as e:
+    print(f"An error occurred while changing the group of the file: {e}")
 
-add_user_command = ["sudo", "adduser", "--disabled-password", "--gecos", "", "relay_service"]
-process = subprocess.Popen(add_user_command, stdin=subprocess.PIPE)
-process.communicate(input=b'\n\n\n\n\n\n\n')
 
-add_to_docker_group_command = ["sudo", "usermod", "-aG", f"docker,{script_user}", "relay_service"]
-subprocess.check_call(add_to_docker_group_command)
-
-chmod_command = ["sudo", "chmod", "g+r", "docker_stuff/.env"]
-subprocess.check_call(chmod_command)
-
+if os.path.exists(nginx_filepath):
+    try:
+        subprocess.run(["rm", nginx_filepath], check=True)
+        print_color("File removed successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred while removing the file: {e}")
 
 nginx_config = f"""
 server {{
@@ -36,7 +47,7 @@ server {{
 
     location / {{
         if ($http_accept ~* "application/nostr\+json") {{
-            return 200 '{{"name": "{domain_name}", "description": "NostPy relay v0.1", "pubkey": "{hex_pubkey}", "contact": "{contact}", "supported_nips": [1, 2, 4, 15, 16, 25], "software": "git+https://github.com/UTXOnly/nost-py.git", "version": "0.1"}}';
+            return 200 '{{"name": "{domain_name}", "description": "NostPy relay v0.2", "pubkey": "{hex_pubkey}", "contact": "{contact}", "supported_nips": [1, 2, 4, 15, 16, 25], "software": "git+https://github.com/UTXOnly/nost-py.git", "version": "0.1"}}';
             add_header 'Content-Type' 'application/json';
         }}
     
@@ -55,20 +66,34 @@ server {{
 }}
 """
 
-# Write nginx config file to disk
-with open(f"/etc/nginx/sites-available/default", "w") as f:
-    f.write(nginx_config)
+if os.path.exists(nginx_filepath):
+    print_color("The default configuration file already exists.", "31")
+else:
+    try:
+        with open(nginx_filepath, "w") as f:
+            f.write(nginx_config)
+        print_color("The default configuration file has been written successfully.", "32")
+    except Exception as e:
+        print_color(f"An error occurred while writing the default configuration file: {e}", "31")
 
-os.system("sudo service nginx restart")
 
-file_path = f"/etc/letsencrypt/live/{domain_name}/fullchain.pem"
+try:
+    subprocess.run(["sudo", "service", "nginx", "restart"], check=True)
+except subprocess.CalledProcessError as e:
+    print(f"An error occurred while restarting nginx: {e}")
 
-if os.path.isfile(file_path):
+cert_file_path = f"/etc/letsencrypt/live/{domain_name}/fullchain.pem"
+
+if os.path.isfile(cert_file_path):
     print("The file exists!")
 else:
     print("The file doesn't exist!")
-    os.system(f"sudo certbot --nginx -d {domain_name} --non-interactive --agree-tos --email {contact}")
+    try:
+        subprocess.run(["sudo", "certbot", "--nginx", "-d", domain_name, "--non-interactive", "--agree-tos", "--email", contact], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred while running certbot: {e}")
 
-
-os.system("sudo service nginx restart")
-
+try:
+    subprocess.run(["sudo", "service", "nginx", "restart"], check=True)
+except subprocess.CalledProcessError as e:
+    print(f"An error occurred while restarting nginx: {e}")

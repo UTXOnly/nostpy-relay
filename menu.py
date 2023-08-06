@@ -1,5 +1,6 @@
 import subprocess
 import os
+import encrypt_env
 
 # Function to print colored text to the console
 def print_color(text, color):
@@ -8,47 +9,56 @@ def print_color(text, color):
 
 # Function to start Nostpy relay
 def start_nostpy_relay():
-    # Change directory and start Docker containers
-    os.chdir("./docker_stuff")
-    #subprocess.run(["echo", $PWD])
-    subprocess.run(["ls", "-l"])
-    subprocess.run(["groups", "relay_service"])
-    subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "up", "-d"])
+    try:
+        # Change directory and start Docker containers
+        os.chdir("./docker_stuff")
+        encrypt_env.decrypt_file(".env")
+
+        subprocess.run(["ls", "-l"])
+        subprocess.run(["groups", "relay_service"])
+        subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "up", "-d"])
+    except subprocess.CalledProcessError as e:
+        print_color(f"Error occurred: {e}", "31")
 
 # Function to destroy all Docker containers and images
 def destroy_containers_and_images():
-    # Change directory to the Docker stuff folder
-    os.chdir("./docker_stuff")
-    subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "down"])
+    try:
+        # Change directory to the Docker stuff folder
+        os.chdir("./docker_stuff")
+        subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "down"])
 
-    # Delete container images by their name
-    image_names = [
-        "docker_stuff_nostr_query:latest",
-        "docker_stuff_event_handler:latest",
-        "docker_stuff_websocket_handler:latest",
-        "redis:latest",
-        "postgres:latest",
-        "datadog/agent:latest",
-    ]
+        # Delete container images by their name
+        image_names = [
+            "docker_stuff_nostr_query:latest",
+            "docker_stuff_event_handler:latest",
+            "docker_stuff_websocket_handler:latest",
+            "redis:latest",
+            "postgres:latest",
+            "datadog/agent:latest",
+        ]
 
-    for image_name in image_names:
-        subprocess.run(["sudo", "-u", "relay_service", "docker", "image", "rm", "-f", image_name])
-
-
-
+        for image_name in image_names:
+            subprocess.run(["sudo", "-u", "relay_service", "docker", "image", "rm", "-f", image_name])
+    except subprocess.CalledProcessError as e:
+        print_color(f"Error occurred: {e}", "31")
 
 # Function to switch branches
 def switch_branches():
-    
-    branch_name = input("Enter the name of the branch you want to switch to: ")
+    try:
+        branch_name = input("Enter the name of the branch you want to switch to: ")
 
-    # Change branch
-    subprocess.run(["git", "checkout", branch_name])
-
+        # Change branch
+        subprocess.run(["git", "checkout", branch_name], check=True)
+    except subprocess.CalledProcessError as e:
+        print_color(f"Error occurred: {e}", "31")
 
 # Function to execute setup.py script
 def execute_setup_script():
-    subprocess.run(["python3", "build_env.py"])
+    try:
+        os.chdir("./docker_stuff")
+        subprocess.run(["python3", "build_env.py"])
+    except subprocess.CalledProcessError as e:
+        print_color(f"Error occurred: {e}", "31")
 
 while True:
     print_color("\n##########################################################################################", "31")
@@ -85,3 +95,4 @@ while True:
         break
     else:
         print_color("Invalid choice. Please enter a valid option number.", "31")
+
