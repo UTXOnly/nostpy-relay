@@ -32,7 +32,7 @@ except subprocess.CalledProcessError as e:
 if os.path.exists(nginx_filepath):
     try:
         subprocess.run(["rm", nginx_filepath], check=True)
-        print_color("File removed successfully.")
+        print_color("File removed successfully.", "32")
     except subprocess.CalledProcessError as e:
         print(f"An error occurred while removing the file: {e}")
 
