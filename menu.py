@@ -104,7 +104,7 @@ while True:
     print_color("5) Decrypt/encrypt .env file to edit", "33")
     print_color("6) Exit menu", "31")
 
-    choice = input("\nEnter an option number (1-5): ")
+    choice = input("\nEnter an option number (1-6): ")
 
     if choice == "1":
         execute_setup_script()

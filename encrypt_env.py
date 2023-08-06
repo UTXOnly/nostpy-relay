@@ -82,8 +82,8 @@ def get_password() -> str:
                 else:
                     try:
                         # Append the hashed password to a new line in the existing file
-                        command = f"echo -e '\n{hashed_password}' >> {filename}"
-                        subprocess.run(["sudo", "echo", "-e", "\n", hashed_password, ">>", filename], check=True)
+                        command = f"echo -e '\n{hashed_password}' >> {file_path}"
+                        subprocess.run(["sudo", "sh", "-c", command])
                         return password
                     
                     except IOError as e:
@@ -95,8 +95,6 @@ def get_password() -> str:
             error_message = "An error occurred while getting the password: " + str(e)
             print(error_message)
             return error_message, ""
-
-
 
 
 def hash_password(password):
@@ -127,31 +125,31 @@ def check_password(entered_password) -> bool:
 
     return False
 
+
 def decrypt_file(file_path):
     try:
-        while True:
-            entered_password = getpass.getpass("Enter password to decrypt file: ")
-            if check_password(entered_password):
-                with open(file_path, 'rb') as f:
-                    encrypted_data = f.read()
+        entered_password = getpass.getpass("Enter password to decrypt file: ")
+        if check_password(entered_password):
+            with open(file_path, 'rb') as f:
+                encrypted_data = f.read()
 
-                password_bytes = entered_password.encode()
-                decrypted_data = bytearray()
-                for i, byte in enumerate(encrypted_data):
-                    decrypted_byte = byte ^ password_bytes[i % len(password_bytes)]
-                    decrypted_data.append(decrypted_byte)
+            password_bytes = entered_password.encode()
+            decrypted_data = bytearray()
+            for i, byte in enumerate(encrypted_data):
+                decrypted_byte = byte ^ password_bytes[i % len(password_bytes)]
+                decrypted_data.append(decrypted_byte)
 
-                with open(file_path, 'wb') as f:
-                    f.write(decrypted_data)
+            with open(file_path, 'wb') as f:
+                f.write(decrypted_data)
 
-                print_color("File decrypted successfully.", "32")
-                print("\n")
-                return entered_password
-                break
-            else:
-                print_color("Incorrect password. Please try again.", "31")
+            print_color("File decrypted successfully.", "32")
+            print("\n")
+            return entered_password
+        else:
+            print_color("Incorrect password. Please try again.", "31")
     except Exception as e:
         print("An error occurred while decrypting the file:", str(e))
+
 
 def hash_file(env):
     with open(env, 'rb') as f:
