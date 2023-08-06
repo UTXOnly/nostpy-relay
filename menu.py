@@ -17,7 +17,7 @@ def start_nostpy_relay():
         encrypt_env.decrypt_file("./docker_stuff/.env")
         os.chdir("./docker_stuff")
 
-        subprocess.run(["ls", "-l"])
+        subprocess.run(["ls", "-al"])
         subprocess.run(["groups", "relay_service"])
         subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "up", "-d"])
     except subprocess.CalledProcessError as e:

@@ -26,8 +26,10 @@ except subprocess.CalledProcessError as e:
 
 
 try:
-    change_group_command = ["sudo", "chgrp", "relay_service", dotenv_path]
-    subprocess.run(change_group_command, check=True)
+    #change_group_command = ["sudo", "chgrp", "relay_service", dotenv_path]
+    change_group_env = ["sudo", "setfacl", "-m", "g:relay_service:r", dotenv_path]
+    subprocess.run(change_group_env, check=True)
+    add_home_directory_ex = ["sudo", "setfacl", "-m", "g:relay_service:x", "../"]
 except subprocess.CalledProcessError as e:
     print(f"An error occurred while changing the group of the file: {e}")
 
