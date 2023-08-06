@@ -86,7 +86,7 @@ def hash_password(password):
 
 def check_password(entered_password) -> bool:
     # Hash the entered password
-    entered_hashed_password = hashlib.sha256(entered_password.encode()).hexdigest()
+    entered_hashed_password = hash_password(entered_password)
 
     try:
         # Read the contents of the "h_land" file as root
