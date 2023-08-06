@@ -82,7 +82,7 @@ def get_password() -> str:
                     try:
                         # Append the hashed password to a new line in the existing file
                         command = f"echo \"{hashed_password}\" >> {filename}"
-                        subprocess.run(["sudo", "sh", "-c", command])
+                        subprocess.run(["sudo", "sh", "-c", command], check=True, shell=True)
                         return password
                     
                     except IOError as e:
