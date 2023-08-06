@@ -3,9 +3,6 @@ import os
 import subprocess
 import hashlib
 
-
-
-
 def print_color(text, color):
     print(f"\033[1;{color}m{text}\033[0m")
     
@@ -26,11 +23,17 @@ def encrypt_file(file_path, entered_password=None):
     try:
         if entered_password is None:
             entered_password = get_password()
-        
+
         with open(file_path, 'rb') as f:
             data = f.read()
 
         password_bytes = entered_password.encode()
+
+        # Check if the file is already encrypted
+        is_encrypted = all(byte == (byte ^ password_bytes[i % len(password_bytes)]) for i, byte in enumerate(data))
+        if is_encrypted:
+            print("The file is already encrypted. Skipping encryption.")
+            return
 
         encrypted_data = bytearray()
         for i, byte in enumerate(data):
@@ -40,9 +43,8 @@ def encrypt_file(file_path, entered_password=None):
         with open(file_path, 'wb') as f:
             f.write(encrypted_data)
 
-        print("File encrypted successfully.")
-        print("\nEncrypted content is:")
-        subprocess.run(['cat', file_path], check=True)
+        print_color("File encrypted successfully.", "32")
+        print("\n")
     except Exception as e:
         print("An error occurred while encrypting the file:", str(e))
 
@@ -84,12 +86,9 @@ def get_password() -> str:
 def hash_password(password):
     # Hash the password using SHA256 algorithm
     hashed_password = hashlib.sha256(password.encode()).hexdigest()
-    
-    # Triple hash the password
-    for _ in range(2):
-        hashed_password = hashlib.sha256(hashed_password.encode()).hexdigest()
+    double_hashed_password = hashlib.sha256(hashed_password.encode()).hexdigest()
 
-    return hashed_password
+    return double_hashed_password
 
 
 def check_password(entered_password) -> bool:
@@ -130,8 +129,6 @@ def decrypt_file(file_path):
                     f.write(decrypted_data)
 
                 print_color("File decrypted successfully.", "32")
-                print("\nDecrypted content is:")
-                subprocess.run(['cat', file_path], check=True)
                 print("\n")
                 return entered_password
                 break

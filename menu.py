@@ -1,7 +1,6 @@
 import subprocess
 import os
 import encrypt_env
-import getpass
 
 # Function to print colored text to the console
 def print_color(text, color):
@@ -12,8 +11,6 @@ def print_color(text, color):
 def start_nostpy_relay():
     try:
         # Change directory and start Docker containers
-        
-        
         pass_holder = encrypt_env.decrypt_file("./docker_stuff/.env")
         os.chdir("./docker_stuff")
         subprocess.run(["ls", "-al"])
@@ -65,6 +62,24 @@ def execute_setup_script():
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
 
+def decrypt_env():
+    print_color("\nDo you wanbt to decrypt or encrypt your .env file?\n", "33")
+    option = input("\nEnter 1 to decrypt or 2 to encrypt the file: \n")
+    
+    if option == "1":
+        print_color("Decrypting your .env file", "32")
+        pass_holder = encrypt_env.decrypt_file("./docker_stuff/.env")
+    elif option == "2":
+        print_color("Encrypting your .env file", "32")
+        pass_holder = encrypt_env.encrypt_file("./docker_stuff/.env")
+    else:
+        print_color("Invalid option. Please enter either 1 or 2.", "33")
+        return
+
+    encrypt_env.encrypt_file("./docker_stuff/.env", pass_holder)
+
+
+
 while True:
     print_color("\n##########################################################################################", "31")
     print_color(""" \n
@@ -83,7 +98,8 @@ while True:
     print_color("2) Start Nostpy relay", "32")
     print_color("3) Switch branches", "33")
     print_color("4) Destroy all docker containers and images", "31")
-    print_color("5) Exit menu", "31")
+    print_color("5) Decrypt/encrypt .env file to edit", "33")
+    print_color("6) Exit menu", "31")
 
     choice = input("\nEnter an option number (1-5): ")
 
@@ -96,6 +112,8 @@ while True:
     elif choice == "4":
         destroy_containers_and_images()
     elif choice == "5":
+        decrypt_env()
+    elif choice == "6":
         print_color("Exited menu", "31")
         break
     else:
