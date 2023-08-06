@@ -92,10 +92,10 @@ def check_password(entered_password) -> bool:
         # Read the contents of the "h_land" file as root
         command = ["sudo", "cat", "h_land"]
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        _, error_output = process.communicate()
+        output, error_output = process.communicate()
 
         if process.returncode == 0:
-            hashed_passwords = error_output.decode().splitlines()
+            hashed_passwords = output.decode().splitlines()
             if entered_hashed_password in hashed_passwords:
                 return True
     except Exception as e:
