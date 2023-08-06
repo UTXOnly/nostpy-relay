@@ -45,7 +45,7 @@ def encrypt_file(file_path):
         print("An error occurred while encrypting the file:", str(e))
 
 
-def get_password() -> tuple[str, str]:
+def get_password() -> str:
     while True:
         try:
             password = getpass.getpass("Enter password to encrypt your env file: ")
@@ -68,7 +68,7 @@ def get_password() -> tuple[str, str]:
                     # Set file permissions to read and write only for the owner
                     os.chmod(filename, stat.S_IRUSR | stat.S_IWUSR)
                 
-                return password, hashed_password
+                return password
         except Exception as e:
             error_message = "An error occurred while getting the password: " + str(e)
             return error_message, ""
