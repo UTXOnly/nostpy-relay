@@ -64,7 +64,7 @@ def execute_setup_script():
 
 def decrypt_env():
     while True:
-        print_color("\nDo you want to decrypt or encrypt your .env file?\n1) Decrypt file\n2) Encrypt file\n3) Return to main menu", "33")
+        print_color("\nDo you want to decrypt or encrypt your .env file?\n\n1) Decrypt file\n2) Encrypt file\n3) Return to main menu", "33")
         option = input("\nEnter 1 to decrypt, 2 to encrypt the file, or 3 to return to the main menu: \n")
         
         if option == "1":
@@ -73,13 +73,13 @@ def decrypt_env():
             break
         elif option == "2":
             print_color("Encrypting your .env file", "32")
-            encrypt_env.encrypt_file("./docker_stuff/.env", pass_holder)
+            encrypt_env.encrypt_file("./docker_stuff/.env")
             break
         elif option == "3":
-            print_color("Returning to main menu", "32")
+            print_color("Returning to main menu", "31")
             return
         else:
-            print_color("Invalid option. Please enter either 1, 2, or 3.", "33")
+            print_color("Invalid option. Please enter either 1, 2, or 3.", "31")
     
 
 
