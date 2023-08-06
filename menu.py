@@ -57,7 +57,7 @@ def switch_branches():
 # Function to execute setup.py script
 def execute_setup_script():
     try:
-        os.chdir("./docker_stuff")
+        #os.chdir("./docker_stuff")
         subprocess.run(["python3", "build_env.py"])
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
