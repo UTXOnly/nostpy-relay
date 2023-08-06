@@ -101,6 +101,12 @@ def check_password(entered_password) -> bool:
     except Exception as e:
         print(f"Error occurred: {e}")
 
+    # Debug information
+    print("Debug Information:")
+    print(f"Entered Password: {entered_password}")
+    print(f"Entered Hashed Password: {entered_hashed_password}")
+    print(f"Error Output: {error_output}")
+
     return False
 
 def decrypt_file(file_path):
