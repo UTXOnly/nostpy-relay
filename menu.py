@@ -63,21 +63,24 @@ def execute_setup_script():
         print_color(f"Error occurred: {e}", "31")
 
 def decrypt_env():
-    print_color("\nDo you wanbt to decrypt or encrypt your .env file?\n", "33")
-    option = input("\nEnter 1 to decrypt or 2 to encrypt the file: \n")
+    while True:
+        print_color("\nDo you want to decrypt or encrypt your .env file?\n1) Decrypt file\n2) Encrypt file\n3) Return to main menu", "33")
+        option = input("\nEnter 1 to decrypt, 2 to encrypt the file, or 3 to return to the main menu: \n")
+        
+        if option == "1":
+            print_color("Decrypting your .env file", "32")
+            pass_holder = encrypt_env.decrypt_file("./docker_stuff/.env")
+            break
+        elif option == "2":
+            print_color("Encrypting your .env file", "32")
+            encrypt_env.encrypt_file("./docker_stuff/.env", pass_holder)
+            break
+        elif option == "3":
+            print_color("Returning to main menu", "32")
+            return
+        else:
+            print_color("Invalid option. Please enter either 1, 2, or 3.", "33")
     
-    if option == "1":
-        print_color("Decrypting your .env file", "32")
-        pass_holder = encrypt_env.decrypt_file("./docker_stuff/.env")
-    elif option == "2":
-        print_color("Encrypting your .env file", "32")
-        pass_holder = encrypt_env.encrypt_file("./docker_stuff/.env")
-    else:
-        print_color("Invalid option. Please enter either 1 or 2.", "33")
-        return
-
-    encrypt_env.encrypt_file("./docker_stuff/.env", pass_holder)
-
 
 
 while True:

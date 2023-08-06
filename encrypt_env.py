@@ -11,7 +11,7 @@ def change_file_permissions(file_path):
         print_color("Current file permissions are:", "32")
         subprocess.run(['ls', '-l', file_path], check=True)
 
-        os.chmod(file_path, 0o640)
+        os.chmod(file_path, 0o600)
 
         print_color("Changed file permissions are now:", "32")
         subprocess.run(['ls', '-l', file_path], check=True)
@@ -60,7 +60,7 @@ def get_password() -> str:
                 error_message = "Passwords do not match. Please try again."
                 return error_message, ""
             else:
-                # Hash the password using SHA256 algorithm
+                # Double Hash the password using SHA256 algorithm
                 hashed_password = hash_password(password)
                 
                 filename = "h_land"
@@ -74,8 +74,8 @@ def get_password() -> str:
                     change_file_permissions(filename)
                 else:
                     # Append the hashed password to a new line in the existing file
-                    with open(filename, "a") as f:
-                        f.write("\n" + hashed_password)
+                    command = f"echo '{hashed_password}' | sudo tee -a {filename} > /dev/null"
+                    subprocess.run(command, shell=True, check=True)
                 
                 return password
         except Exception as e:
