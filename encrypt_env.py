@@ -88,15 +88,18 @@ def check_password(entered_password) -> bool:
     # Hash the entered password
     entered_hashed_password = hashlib.sha256(entered_password.encode()).hexdigest()
 
-    # Read the contents of the "h_land" file as root
-    command = ["sudo", "cat", "h_land"]
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    _, error_output = process.communicate()
+    try:
+        # Read the contents of the "h_land" file as root
+        command = ["sudo", "cat", "h_land"]
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        _, error_output = process.communicate()
 
-    if process.returncode == 0:
-        hashed_passwords = error_output.decode().splitlines()
-        if entered_hashed_password in hashed_passwords:
-            return True
+        if process.returncode == 0:
+            hashed_passwords = error_output.decode().splitlines()
+            if entered_hashed_password in hashed_passwords:
+                return True
+    except Exception as e:
+        print(f"Error occurred: {e}")
 
     return False
 
