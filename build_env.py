@@ -2,7 +2,7 @@ import os
 import subprocess
 import encrypt_env
 
-env_file_path = os.getenv('ENV_FILE_PATH')
+env_file_path = "./docker_stuff/.env"
 
 encrypt_env.change_file_permissions(env_file_path)
 
