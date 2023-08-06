@@ -15,10 +15,10 @@ hex_pubkey = os.getenv('HEX_PUBKEY')
 env_file_path = os.getenv('ENV_FILE_PATH')
 nginx_filepath = os.getenv('NGINX_FILE_PATH')
 
-try:
-    encrypt_env.change_file_permissions(env_file_path)
-except Exception as e:
-    print(f"An error occurred: {e}")
+#try:
+#    encrypt_env.change_file_permissions(env_file_path)
+#except Exception as e:
+#    print(f"An error occurred: {e}")
 
 try:
     add_user_command = ["sudo", "adduser", "--disabled-password", "--gecos", "", "relay_service"]
