@@ -74,8 +74,9 @@ def get_password() -> str:
                     change_file_permissions(filename)
                 else:
                     # Append the hashed password to a new line in the existing file
-                    command = f"echo '{hashed_password}' | sudo tee -a {filename} > /dev/null"
-                    subprocess.run(command, shell=True, check=True)
+                    os.seteuid(0)
+                    with open(filename, "a") as f:
+                        f.write("\n" + hashed_password)
                 
                 return password
         except Exception as e:
