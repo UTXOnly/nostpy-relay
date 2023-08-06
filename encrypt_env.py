@@ -2,9 +2,9 @@ import getpass
 import os
 import subprocess
 import hashlib
-import stat
 
-env_file = './docker_stuff/.env'
+
+
 
 def print_color(text, color):
     print(f"\033[1;{color}m{text}\033[0m")
@@ -40,7 +40,7 @@ def encrypt_file(file_path):
 
         print("File encrypted successfully.")
         print("\nEncrypted content is:")
-        subprocess.run(['cat', env_file], check=True)
+        subprocess.run(['cat', file_path], check=True)
     except Exception as e:
         print("An error occurred while encrypting the file:", str(e))
 
@@ -101,12 +101,6 @@ def check_password(entered_password) -> bool:
     except Exception as e:
         print(f"Error occurred: {e}")
 
-    # Debug information
-    print("Debug Information:")
-    print(f"Entered Password: {entered_password}")
-    print(f"Entered Hashed Password: {entered_hashed_password}")
-    print(f"Error Output: {error_output}")
-
     return False
 
 def decrypt_file(file_path):
@@ -128,7 +122,7 @@ def decrypt_file(file_path):
 
                 print_color("File decrypted successfully.", "32")
                 print("\nDecrypted content is:")
-                subprocess.run(['cat', env_file], check=True)
+                subprocess.run(['cat', file_path], check=True)
                 print("\n")
                 break
             else:
@@ -144,21 +138,4 @@ def hash_file(env):
         print(file_hash)
 
 if __name__ == "__main__":
-    try:
-        change_file_permissions(env_file)
-
-        #password, hashed_password = get_password()
-
-        hash_file(env_file)
-        print_color("\nFile hash before encryption:", "32")
-        hash_file(env_file)
-        print_color("\nFile hash after encryption:", "32")
-
-        print("\nEncrypting the file...")
-        encrypt_file(env_file, password)
-
-        print("\nDecrypting the file...")
-        decrypt_file(env_file)
-
-    except Exception as e:
-        print("An error occurred:", str(e))
+    print("This file is mean't to be loaded as modules in other scripts")

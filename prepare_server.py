@@ -16,6 +16,11 @@ env_file_path = os.getenv('ENV_FILE_PATH')
 nginx_filepath = os.getenv('NGINX_FILE_PATH')
 
 try:
+    encrypt_env.change_file_permissions(env_file_path)
+except Exception as e:
+    print(f"An error occurred: {e}")
+
+try:
     add_user_command = ["sudo", "adduser", "--disabled-password", "--gecos", "", "relay_service"]
     subprocess.run(add_user_command, input=b'\n\n\n\n\n\n\n', check=True)
 
@@ -26,9 +31,9 @@ except subprocess.CalledProcessError as e:
 
 
 try:
-    change_group_command = ["sudo", "chgrp", "relay_service", dotenv_path]
-    #change_group_env = ["sudo", "setfacl", "-m", "g:relay_service:r", dotenv_path]
-    subprocess.run(change_group_command, check=True)
+    #change_group_command = ["sudo", "chgrp", "relay_service", dotenv_path]
+    change_group_env = ["sudo", "setfacl", "-m", "g:relay_service:r", dotenv_path]
+    subprocess.run(change_group_env, check=True)
     add_home_directory_ex = ["sudo", "setfacl", "-m", "g:relay_service:x", "../"]
     subprocess.run(add_home_directory_ex, check=True)
 except subprocess.CalledProcessError as e:
@@ -99,4 +104,8 @@ try:
 except subprocess.CalledProcessError as e:
     print(f"An error occurred while restarting nginx: {e}")
 
-encrypt_env.encrypt_file(env_file_path)
+try:
+    # Encrypt the .env file
+    encrypt_env.encrypt_file(env_file_path)
+except Exception as e:
+    print("Encryption failed:", str(e))

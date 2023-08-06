@@ -1,14 +1,8 @@
-import os
 import subprocess
-import encrypt_env
-
-env_file_path = "./docker_stuff/.env"
-
-encrypt_env.change_file_permissions(env_file_path)
 
 try:
     subprocess.run(["sudo", "apt-get", "update", "-y"], check=True)
-    subprocess.run(["sudo", "apt-get", "install", "-y", "docker-compose", "nginx", "certbot", "python3.10-venv", "python3-certbot-nginx"], check=True)
+    subprocess.run(["sudo", "apt-get", "install", "-y", "docker-compose", "nginx", "certbot", "python3.10-venv", "python3-certbot-nginx", "acl"], check=True)
     
     subprocess.run(['python3', '-m', 'venv', 'snmpenv'], check=True)
     
