@@ -87,16 +87,18 @@ def hash_password(password):
 def check_password(entered_password) -> bool:
     # Hash the entered password
     entered_hashed_password = hashlib.sha256(entered_password.encode()).hexdigest()
-    
-    # Read the contents of the "h_land" file
-    with open("h_land", "r") as f:
-        hashed_passwords = f.read().splitlines()
 
-    # Compare the entered hashed password with the stored hashed passwords
-    if entered_hashed_password in hashed_passwords:
-        return True
-    else:
-        return False
+    # Read the contents of the "h_land" file as root
+    command = ["sudo", "cat", "h_land"]
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    _, error_output = process.communicate()
+
+    if process.returncode == 0:
+        hashed_passwords = error_output.decode().splitlines()
+        if entered_hashed_password in hashed_passwords:
+            return True
+
+    return False
 
 def decrypt_file(file_path):
     try:
