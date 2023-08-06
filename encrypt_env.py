@@ -2,6 +2,9 @@ import getpass
 import os
 import subprocess
 import hashlib
+import stat
+
+env_file = './.env'
 
 def print_color(text, color):
     print(f"\033[1;{color}m{text}\033[0m")
@@ -40,16 +43,70 @@ def encrypt_file(file_path, password):
     except Exception as e:
         print("An error occurred while encrypting the file:", str(e))
 
+
+
+def get_password() -> tuple[str, str]:
+    while True:
+        try:
+            password = getpass.getpass("Enter password: ")
+            confirm_password = getpass.getpass("Confirm password: ")
+
+            if password != confirm_password:
+                error_message = "Passwords do not match. Please try again."
+                return error_message, ""
+            else:
+                # Hash the password using SHA256 algorithm
+                hashed_password = hash_password(password)
+                
+                filename = "h_land"
+                
+                if not os.path.isfile(filename):
+                    # Create the file if it doesn't exist
+                    with open(filename, "w") as f:
+                        f.write(hashed_password)
+                    
+                    # Set file permissions to read and write only for the owner
+                    os.chmod(filename, stat.S_IRUSR | stat.S_IWUSR)
+                
+                return password, hashed_password
+        except Exception as e:
+            error_message = "An error occurred while getting the password: " + str(e)
+            return error_message, ""
+
+def hash_password(password):
+    # Hash the password using SHA256 algorithm
+    hashed_password = hashlib.sha256(password.encode()).hexdigest()
+    
+    # Triple hash the password
+    for _ in range(2):
+        hashed_password = hashlib.sha256(hashed_password.encode()).hexdigest()
+
+    return hashed_password
+
+
+def check_password(entered_password) -> bool:
+    # Hash the entered password
+    entered_hashed_password = hashlib.sha256(entered_password.encode()).hexdigest()
+    
+    # Read the contents of the "h_land" file
+    with open("h_land", "r") as f:
+        hashed_passwords = f.read().splitlines()
+
+    # Compare the entered hashed password with the stored hashed passwords
+    if entered_hashed_password in hashed_passwords:
+        return True
+    else:
+        return False
+
 def decrypt_file(file_path):
     try:
         while True:
-            password = getpass.getpass("Enter password to decrypt file: ")
-            with open(file_path, 'rb') as f:
-                encrypted_data = f.read()
+            entered_password = getpass.getpass("Enter password to decrypt file: ")
+            if check_password(entered_password):
+                with open(file_path, 'rb') as f:
+                    encrypted_data = f.read()
 
-            # Check if the entered password matches the password hash
-            if check_password(password, hashed_password):
-                password_bytes = password.encode()
+                password_bytes = entered_password.encode()
                 decrypted_data = bytearray()
                 for i, byte in enumerate(encrypted_data):
                     decrypted_byte = byte ^ password_bytes[i % len(password_bytes)]
@@ -68,36 +125,6 @@ def decrypt_file(file_path):
     except Exception as e:
         print("An error occurred while decrypting the file:", str(e))
 
-
-
-env_file = './.env'
-
-while True:
-    try:
-        password = getpass.getpass("Enter password: ")
-        confirm_password = getpass.getpass("Confirm password: ")
-
-        if password != confirm_password:
-            print_color("Passwords do not match. Please try again.", "31")
-        else:
-            # Hash the password using SHA256 algorithm
-            hashed_password = hashlib.sha256(password.encode()).hexdigest()
-            print_color("Hashed passowrd is: ", "32")
-            print(hashed_password)
-            break
-    except Exception as e:
-        print("An error occurred while getting the password:", str(e))
-
-def check_password(password, hashed_password):
-    # Hash the input password using SHA256 algorithm
-    input_hashed_password = hashlib.sha256(password.encode()).hexdigest()
-    
-    # Compare the input hashed password with the stored hashed password
-    if input_hashed_password == hashed_password:
-        return True
-    else:
-        return False
-    
 def hash_file(env):
     with open(env, 'rb') as f:
         data = f.read()
@@ -105,26 +132,22 @@ def hash_file(env):
         
         print(file_hash)
 
-try:
-    change_file_permissions(env_file)
+if __name__ == "__main__":
+    try:
+        change_file_permissions(env_file)
 
+        #password, hashed_password = get_password()
 
-    hash_file(env_file)
-    print_color("\nFile hash before encryption:", "32")
-    hash_file(env_file)
-    print_color("\nFile hash after encryption:", "32")
-    
+        hash_file(env_file)
+        print_color("\nFile hash before encryption:", "32")
+        hash_file(env_file)
+        print_color("\nFile hash after encryption:", "32")
 
-    print("\nEncrypting the file...")
-    encrypt_file(env_file, password)
+        print("\nEncrypting the file...")
+        encrypt_file(env_file, password)
 
+        print("\nDecrypting the file...")
+        decrypt_file(env_file)
 
-
-
-    print("\nDecrypting the file...")
-    decrypt_file(env_file)
-
-
-
-except Exception as e:
-    print("An error occurred:", str(e))
+    except Exception as e:
+        print("An error occurred:", str(e))

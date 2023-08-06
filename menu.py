@@ -1,6 +1,7 @@
 import subprocess
 import os
 import encrypt_env
+import getpass
 
 # Function to print colored text to the console
 def print_color(text, color):
@@ -12,6 +13,7 @@ def start_nostpy_relay():
     try:
         # Change directory and start Docker containers
         os.chdir("./docker_stuff")
+
         encrypt_env.decrypt_file(".env")
 
         subprocess.run(["ls", "-l"])
