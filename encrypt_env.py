@@ -72,6 +72,7 @@ def get_password() -> str:
                         
                         # Set file permissions to read and write only for the owner
                         change_file_permissions(filename)
+                        return password
                     
                     except IOError as e:
                         error_message = "An error occurred while creating the file: " + str(e)
@@ -81,7 +82,7 @@ def get_password() -> str:
                 else:
                     try:
                         # Append the hashed password to a new line in the existing file
-                        command = f"echo \"{hashed_password}\" >> {filename}"
+                        command = f"echo -e '\n{hashed_password}' | sudo tee -a {filename} > /dev/null"
                         subprocess.run(["sudo", "sh", "-c", command], check=True, shell=True)
                         return password
                     
