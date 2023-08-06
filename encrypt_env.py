@@ -49,7 +49,6 @@ def encrypt_file(file_path, entered_password=None):
         print("An error occurred while encrypting the file:", str(e))
 
 
-
 def get_password() -> str:
     while True:
         try:
@@ -76,6 +75,7 @@ def get_password() -> str:
                     
                     except IOError as e:
                         error_message = "An error occurred while creating the file: " + str(e)
+                        print(error_message)
                         return error_message, ""
                 
                 else:
@@ -84,16 +84,18 @@ def get_password() -> str:
                         os.seteuid(0)
                         with open(filename, "a") as f:
                             f.write("\n" + hashed_password)
+                        return password
                     
                     except IOError as e:
                         error_message = "An error occurred while appending to the file: " + str(e)
+                        print(error_message)
                         return error_message, ""
-                
-                return password
-        
+                       
         except Exception as e:
             error_message = "An error occurred while getting the password: " + str(e)
+            print(error_message)
             return error_message, ""
+
 
 
 
