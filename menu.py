@@ -1,5 +1,6 @@
 import subprocess
 import os
+import file_encryption
 
 # Function to print colored text to the console
 def print_color(text, color):
@@ -8,47 +9,91 @@ def print_color(text, color):
 
 # Function to start Nostpy relay
 def start_nostpy_relay():
-    # Change directory and start Docker containers
-    os.chdir("./docker_stuff")
-    #subprocess.run(["echo", $PWD])
-    subprocess.run(["ls", "-l"])
-    subprocess.run(["groups", "relay_service"])
-    subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "up", "-d"])
+    try:
+        # Change directory and start Docker containers
+        success, pass_holder = file_encryption.decrypt_file("./docker_stuff/.env")
+        if not success:
+            print("Decryption failed. Cannot continue.")
+            return
+        
+        os.chdir("./docker_stuff")
+        subprocess.run(["ls", "-al"])
+        subprocess.run(["groups", "relay_service"])
+        subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "up", "-d"])
+        os.chdir("..")
+        
+        # Re-encrypt env file to keep it encrypted when not in use
+        print(f"Passholder variables is: {pass_holder}")
+        file_encryption.encrypt_file(filename="./docker_stuff/.env", key=pass_holder)
+    except subprocess.CalledProcessError as e:
+        print_color(f"Error occurred: {e}", "31")
+    except Exception as e:
+        print(f"Error occurred during decryption: {e}")
+        return
+
 
 # Function to destroy all Docker containers and images
 def destroy_containers_and_images():
-    # Change directory to the Docker stuff folder
-    os.chdir("./docker_stuff")
-    subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "down"])
+    try:
+        # Change directory to the Docker stuff folder
+        os.chdir("./docker_stuff")
+        subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "down"])
 
-    # Delete container images by their name
-    image_names = [
-        "docker_stuff_nostr_query:latest",
-        "docker_stuff_event_handler:latest",
-        "docker_stuff_websocket_handler:latest",
-        "redis:latest",
-        "postgres:latest",
-        "datadog/agent:latest",
-    ]
+        # Delete container images by their name
+        image_names = [
+            "docker_stuff_nostr_query:latest",
+            "docker_stuff_event_handler:latest",
+            "docker_stuff_websocket_handler:latest",
+            "redis:latest",
+            "postgres:latest",
+            "datadog/agent:latest",
+        ]
 
-    for image_name in image_names:
-        subprocess.run(["sudo", "-u", "relay_service", "docker", "image", "rm", "-f", image_name])
-
-
-
+        for image_name in image_names:
+            subprocess.run(["sudo", "-u", "relay_service", "docker", "image", "rm", "-f", image_name])
+    except subprocess.CalledProcessError as e:
+        print_color(f"Error occurred: {e}", "31")
 
 # Function to switch branches
 def switch_branches():
-    
-    branch_name = input("Enter the name of the branch you want to switch to: ")
+    try:
+        branch_name = input("Enter the name of the branch you want to switch to: ")
 
-    # Change branch
-    subprocess.run(["git", "checkout", branch_name])
-
+        # Change branch
+        subprocess.run(["git", "checkout", branch_name], check=True)
+    except subprocess.CalledProcessError as e:
+        print_color(f"Error occurred: {e}", "31")
 
 # Function to execute setup.py script
 def execute_setup_script():
-    subprocess.run(["python3", "build_env.py"])
+    try:
+        #os.chdir("./docker_stuff")
+        subprocess.run(["python3", "build_env.py"])
+    except subprocess.CalledProcessError as e:
+        print_color(f"Error occurred: {e}", "31")
+
+def decrypt_env():
+    while True:
+        print_color("\n1) Decrypt file", "32")
+        print_color("2) Encrypt file", "31")
+        print_color("3) Return to main menu", "33")
+        option = input("\nEnter 1 to decrypt, 2 to encrypt the file, or 3 to return to the main menu: \n")
+        
+        if option == "1":
+            print_color("Decrypting your .env file", "32")
+            file_encryption.decrypt_file(encrypted_filename="./docker_stuff/.env")
+            break
+        elif option == "2":
+            print_color("Encrypting your .env file", "32")
+            file_encryption.encrypt_file(filename="./docker_stuff/.env")
+            break
+        elif option == "3":
+            print_color("Returning to main menu", "31")
+            return
+        else:
+            print_color("Invalid option. Please enter either 1, 2, or 3.", "31")
+    
+
 
 while True:
     print_color("\n##########################################################################################", "31")
@@ -68,9 +113,10 @@ while True:
     print_color("2) Start Nostpy relay", "32")
     print_color("3) Switch branches", "33")
     print_color("4) Destroy all docker containers and images", "31")
-    print_color("5) Exit menu", "31")
+    print_color("5) Decrypt/encrypt .env file to edit", "33")
+    print_color("6) Exit menu", "31")
 
-    choice = input("\nEnter an option number (1-5): ")
+    choice = input("\nEnter an option number (1-6): ")
 
     if choice == "1":
         execute_setup_script()
@@ -81,7 +127,10 @@ while True:
     elif choice == "4":
         destroy_containers_and_images()
     elif choice == "5":
+        decrypt_env()
+    elif choice == "6":
         print_color("Exited menu", "31")
         break
     else:
         print_color("Invalid choice. Please enter a valid option number.", "31")
+
