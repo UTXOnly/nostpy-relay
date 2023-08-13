@@ -22,6 +22,9 @@ def start_nostpy_relay():
         file_encryption.encrypt_file(filename="./docker_stuff/.env", key=pass_holder)
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
+    except Exception as e:
+        print(f"Error occurred during decryption: {e}")
+        return
 
 # Function to destroy all Docker containers and images
 def destroy_containers_and_images():
