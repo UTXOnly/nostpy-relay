@@ -65,7 +65,7 @@ services:
     command: postgres -c 'config_file=/postgresql.conf'
     volumes:
       - ./postgresql.conf:/postgresql.conf
-      - pgdata:/var/lib/postgresql/data  # Mounts a volume for persistent storage
+      - /var/lib/postgresql/data:/var/lib/postgresql/data  # Mounts a volume for persistent storage
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U nostr"] # database username here - nostr, should be changed if other user
       interval: 10s
@@ -88,9 +88,6 @@ services:
             "reported_hostname" : "test-pg-db"
           }
         ]
-  
-  volumes:
-    pgdata:
 
   datadog-agent:
     container_name: datadog-agent
