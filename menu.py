@@ -1,6 +1,6 @@
 import subprocess
 import os
-import encrypt_env
+import file_encryption
 
 # Function to print colored text to the console
 def print_color(text, color):
@@ -11,14 +11,14 @@ def print_color(text, color):
 def start_nostpy_relay():
     try:
         # Change directory and start Docker containers
-        pass_holder = encrypt_env.decrypt_file("./docker_stuff/.env")
+        pass_holder = file_encryption.decrypt_file("./docker_stuff/.env")
         os.chdir("./docker_stuff")
         subprocess.run(["ls", "-al"])
         subprocess.run(["groups", "relay_service"])
         subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "up", "-d"])
         os.chdir("..")
         #re-encrypt env file to keep it encrypted when not in use
-        encrypt_env.encrypt_file("./docker_stuff/.env", pass_holder)
+        file_encryption.encrypt_file("./docker_stuff/.env", pass_holder)
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
 
@@ -69,11 +69,11 @@ def decrypt_env():
         
         if option == "1":
             print_color("Decrypting your .env file", "32")
-            pass_holder = encrypt_env.decrypt_file("./docker_stuff/.env")
+            file_encryption.decrypt_file(encrypted_filename="./docker_stuff/.env")
             break
         elif option == "2":
             print_color("Encrypting your .env file", "32")
-            encrypt_env.encrypt_file("./docker_stuff/.env")
+            file_encryption.encrypt_file(filename="./docker_stuff/.env")
             break
         elif option == "3":
             print_color("Returning to main menu", "31")
