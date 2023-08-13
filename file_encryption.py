@@ -41,9 +41,7 @@ def change_file_permissions(file_path):
 MAGIC_NUMBER = b'0xENCRYPTED'
 
 def encrypt_file(filename, key=None):
-    #password = key
-    print(f"key variable is: {key}")
-    
+ 
     if key is None:
        password = getpass.getpass("Enter password to encrypt file: ")
        
@@ -53,12 +51,10 @@ def encrypt_file(filename, key=None):
            error_message = "Passwords do not match. Please try again."
            return error_message, ""
     
-
     try:
         with open(filename, "rb") as file:
             data = file.read()
 
-        # Check if the file already contains the magic number
         if data.startswith(MAGIC_NUMBER):
             print(f"{filename} is already encrypted.")
             return
@@ -73,7 +69,6 @@ def encrypt_file(filename, key=None):
         
     except Exception as e:
         print(f"Error occurred during file encryption: {e}")
-
 
 
 def decrypt_file(encrypted_filename, key=None):
