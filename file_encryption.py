@@ -100,8 +100,6 @@ def decrypt_file(encrypted_filename, key=None):
         return False, key
 
 
-
-
 def main():
     password = input("Enter your password: ")
 
