@@ -53,8 +53,7 @@ def encrypt_file(filename, key=None):
            error_message = "Passwords do not match. Please try again."
            return error_message, ""
     
-    
-    
+
     try:
         with open(filename, "rb") as file:
             data = file.read()

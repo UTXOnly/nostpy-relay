@@ -66,6 +66,9 @@ def execute_setup_script():
 def decrypt_env():
     while True:
         print_color("\nDo you want to decrypt or encrypt your .env file?\n\n1) Decrypt file\n2) Encrypt file\n3) Return to main menu", "33")
+        file_encryption.print_color("\n1) Decrypt file", "32")
+        file_encryption.print_color("2) Encrypt file", "31")
+        file_encryption.print_color("3) Return to main menu", "33")
         option = input("\nEnter 1 to decrypt, 2 to encrypt the file, or 3 to return to the main menu: \n")
         
         if option == "1":
