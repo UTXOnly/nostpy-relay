@@ -1,6 +1,6 @@
 import os
 import subprocess
-import encrypt_env
+import file_encryption
 from dotenv import load_dotenv
 
 def print_color(text, color):
@@ -16,7 +16,7 @@ env_file_path = os.getenv('ENV_FILE_PATH')
 nginx_filepath = os.getenv('NGINX_FILE_PATH')
 
 try:
-    encrypt_env.change_file_permissions(env_file_path)
+    file_encryption.change_file_permissions(env_file_path)
 except Exception as e:
     print(f"An error occurred: {e}")
 
@@ -106,6 +106,6 @@ except subprocess.CalledProcessError as e:
 
 try:
     # Encrypt the .env file
-    encrypt_env.encrypt_file(env_file_path)
+    file_encryption.encrypt_file(env_file_path)
 except Exception as e:
     print("Encryption failed:", str(e))
