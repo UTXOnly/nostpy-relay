@@ -42,6 +42,7 @@ MAGIC_NUMBER = b'0xENCRYPTED'
 
 def encrypt_file(filename, key=None):
     password = key
+    print(f"key variable is: {key}")
     
     if key is None:
        password = getpass.getpass("Enter password to encrypt file: ")
