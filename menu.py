@@ -11,13 +11,18 @@ def print_color(text, color):
 def start_nostpy_relay():
     try:
         # Change directory and start Docker containers
-        pass_holder = file_encryption.decrypt_file("./docker_stuff/.env")
+        success, pass_holder = file_encryption.decrypt_file("./docker_stuff/.env")
+        if not success:
+            print("Decryption failed. Cannot continue.")
+            return
+        
         os.chdir("./docker_stuff")
         subprocess.run(["ls", "-al"])
         subprocess.run(["groups", "relay_service"])
         subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "up", "-d"])
         os.chdir("..")
-        #re-encrypt env file to keep it encrypted when not in use
+        
+        # Re-encrypt env file to keep it encrypted when not in use
         print(f"Passholder variables is: {pass_holder}")
         file_encryption.encrypt_file(filename="./docker_stuff/.env", key=pass_holder)
     except subprocess.CalledProcessError as e:
@@ -25,6 +30,7 @@ def start_nostpy_relay():
     except Exception as e:
         print(f"Error occurred during decryption: {e}")
         return
+
 
 # Function to destroy all Docker containers and images
 def destroy_containers_and_images():

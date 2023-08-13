@@ -83,7 +83,7 @@ def decrypt_file(encrypted_filename, key=None):
 
         if not encrypted_data.startswith(MAGIC_NUMBER):
             print(f"{encrypted_filename} is not encrypted.")
-            return
+            return False, key
         
         encrypted_data = encrypted_data[len(MAGIC_NUMBER):]  # Strip magic number from data
         
@@ -94,9 +94,12 @@ def decrypt_file(encrypted_filename, key=None):
             file.write(decrypted_data)
 
         print(f"{encrypted_filename} decrypted and saved as {encrypted_filename}")
-        return key
+        return True, key
     except (InvalidToken, Exception) as e:
         print(f"Error occurred during file decryption: {e}")
+        return False, key
+
+
 
 
 def main():
