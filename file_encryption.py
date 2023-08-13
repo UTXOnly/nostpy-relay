@@ -46,6 +46,7 @@ def encrypt_file(filename, key=None):
        password = getpass.getpass("Enter password to encrypt file: ")
        
        confirm_password = getpass.getpass("Confirm password: ")
+       print_color("BE SURE TO SAVE THIS PASSWORD!!!!!!", "31")
        key = derive_key(password)
        if password != confirm_password:
            error_message = "Passwords do not match. Please try again."
