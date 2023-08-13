@@ -68,7 +68,7 @@ def encrypt_file(filename, key=None):
             file.write(encrypted_data)
 
         print(f"{filename} encrypted and saved as {filename}")
-        return key
+        
     except Exception as e:
         print(f"Error occurred during file encryption: {e}")
 
