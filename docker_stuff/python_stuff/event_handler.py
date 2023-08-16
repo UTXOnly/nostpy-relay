@@ -101,6 +101,8 @@ async def handle_new_event(request: Request) -> JSONResponse:
         if kind in {0, 3}:
             delete_message = f"Deleting existing metadata for pubkey {pubkey}"
             session.query(Event).filter_by(pubkey=pubkey, kind=kind).delete()
+            statsd.decrement('nostr.event.added.count', tags=["func:new_event"])
+            statsd.increment('nostr.event.deleted.count', tags=["func:new_event"])
 
         existing_event: Optional[Event] = session.query(Event).filter_by(id=event_id).scalar()
         if existing_event is not None:
@@ -186,7 +188,7 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                                 query = query.filter(conditions[key](value))
 
                         query_result: List[Event] = query.order_by(desc(Event.created_at)).limit(query_limit).all()
-                        statsd.increment('nostr.event.queryied.postgres', tags=["func:event_query"])
+                        statsd.increment('nostr.event.queried.postgres', tags=["func:event_query"])
                         serialized_events = [serialize(event) for event in query_result]
                         redis_set = redis_client.set(redis_get, str(serialized_events))  # Set cache expiry time to 2 min
                         redis_client.expire(redis_get, 300)
@@ -226,7 +228,6 @@ async def handle_subscription(request: Request) -> JSONResponse:
             response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': serialized_events}
 
     except Exception as e:
-        error_message: str = str(e)
         raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
     finally:
         if response is None:
