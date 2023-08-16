@@ -56,7 +56,7 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
                 response: Tuple[str, str] = "NOTICE", f"closing {subscription_id}"
             else:
                 logger.warning(f"Unsupported message format: {message_list}")
-            active_connections -= 1
+    active_connections -= 1
 
 async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: Dict[str, Any]) -> None:
     url: str = 'http://event_handler/new_event'
