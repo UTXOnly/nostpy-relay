@@ -4,7 +4,6 @@ import logging
 import inspect
 import uvicorn
 import secp256k1
-import hashlib
 from ddtrace import tracer
 from datadog import initialize, statsd
 import redis

@@ -5,8 +5,16 @@ import aiohttp
 import websockets
 from logging.handlers import RotatingFileHandler
 from ddtrace import tracer
+from datadog import initialize, statsd
 from aiohttp.client import ClientResponse
 from typing import Dict, Any, List, Tuple, Union, Optional
+
+options: Dict[str, Any] = {
+    'statsd_host': '172.28.0.5',
+    'statsd_port': 8125
+}
+
+initialize(**options)
 
 tracer.configure(hostname='172.28.0.5', port=8126)
 
@@ -19,8 +27,11 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
+active_connections = 0
 
 async def handle_websocket_connection(websocket: websockets.WebSocketServerProtocol, path: str) -> None:
+    global active_connections
+    active_connections += 1
     headers: websockets.Headers = websocket.request_headers
     referer: str = headers.get("referer", "")  # Snort
     origin: str = headers.get("origin", "")
@@ -45,6 +56,7 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
                 response: Tuple[str, str] = "NOTICE", f"closing {subscription_id}"
             else:
                 logger.warning(f"Unsupported message format: {message_list}")
+            active_connections += 1
 
 async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: Dict[str, Any]) -> None:
     url: str = 'http://event_handler/new_event'
@@ -93,5 +105,10 @@ async def send_subscription_to_handler(
 
 if __name__ == "__main__":
     start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
+    async def send_active_connections_metric():
+        while True:
+            await asyncio.sleep(30)
+            statsd.gauge('websocket.active_connections', active_connections)
+    asyncio.get_event_loop().create_task(send_active_connections_metric())
     asyncio.get_event_loop().run_until_complete(start_server)
     asyncio.get_event_loop().run_forever()
