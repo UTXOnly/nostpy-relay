@@ -108,7 +108,7 @@ if __name__ == "__main__":
     async def send_active_connections_metric():
         while True:
             await asyncio.sleep(30)
-            statsd.gauge('websocket.active_connections', active_connections)
+            statsd.gauge('nostr.websocket.active_connections', active_connections)
     asyncio.get_event_loop().create_task(send_active_connections_metric())
     asyncio.get_event_loop().run_until_complete(start_server)
     asyncio.get_event_loop().run_forever()
