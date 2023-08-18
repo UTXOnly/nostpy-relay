@@ -130,20 +130,29 @@ async def send_subscription_to_handler(
 
 async def count_active_connections(websockets_server: websockets.Server) -> int:
     active_connections = len(websockets_server.clients)
+    logger.debug(f"Number of active connections: {active_connections}")
     return active_connections
 
-if __name__ == "__main__":
-    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=10)
 
-    start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
-    
-    async def send_active_connections_metric():
-        while True:
-            await asyncio.sleep(30)
-            active_connections = await count_active_connections(start_server)
-            statsd.gauge('nostr.websocket.active_connections', active_connections)
-            logger.debug(f"Active connections: {active_connections}")
-    
-    asyncio.get_event_loop().create_task(send_active_connections_metric())
-    asyncio.get_event_loop().run_until_complete(start_server)
-    asyncio.get_event_loop().run_forever()
+if __name__ == "__main__":
+    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=100)
+
+    try:
+        start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
+        
+        async def send_active_connections_metric():
+            while True:
+                await asyncio.sleep(30)
+                try:
+                    active_connections = await count_active_connections(start_server)
+                    statsd.gauge('nostr.websocket.active_connections', active_connections)
+                    logger.debug(f"Active connections: {active_connections}")
+                except Exception as e:
+                    logger.error(f"Error occurred while sending active connections metric: {e}")
+
+        asyncio.get_event_loop().create_task(send_active_connections_metric())
+        asyncio.get_event_loop().run_until_complete(start_server)
+        asyncio.get_event_loop().run_forever()
+    except Exception as e:
+        logger.error(f"Error occurred while starting the server: {e}")
+
