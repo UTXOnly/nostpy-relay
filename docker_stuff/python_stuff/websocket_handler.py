@@ -60,6 +60,7 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
     logger.debug(f"New websocket connection established from URL: {referer or origin}")
 
     client_ip = websocket.remote_address[0]
+    logger.debug(f"CLinet IP is {client_ip}")
     if not rate_limiter.check_request(client_ip):
         logger.warning(f"Rate limit exceeded for client: {client_ip}")
         return
@@ -142,6 +143,7 @@ if __name__ == "__main__":
                 await asyncio.sleep(30)
                 active_connections = await count_active_connections(start_server)
                 statsd.gauge('nostr.websocket.active_connections', active_connections)
+                logger.debug(f"Active connections: {active_connections}")
     
     asyncio.get_event_loop().create_task(send_active_connections_metric())
     asyncio.get_event_loop().run_until_complete(start_server)
