@@ -3,6 +3,8 @@ import json
 import logging
 import aiohttp
 import websockets
+from collections import defaultdict
+import time
 from logging.handlers import RotatingFileHandler
 from ddtrace import tracer
 from datadog import initialize, statsd
@@ -27,16 +29,41 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-active_connections = 0
+class TokenBucketRateLimiter:
+    def __init__(self, tokens_per_second: int, max_tokens: int):
+        self.tokens_per_second = tokens_per_second
+        self.max_tokens = max_tokens
+        self.tokens = defaultdict(lambda: self.max_tokens)
+        self.last_request_time = defaultdict(lambda: 0)
+
+    def _get_tokens(self, client_id):
+        current_time = time.time()
+        time_passed = current_time - self.last_request_time[client_id]
+        new_tokens = int(time_passed * self.tokens_per_second)
+        self.tokens[client_id] = min(self.tokens[client_id] + new_tokens, self.max_tokens)
+        self.last_request_time[client_id] = current_time
+
+    def check_request(self, client_id):
+        self._get_tokens(client_id)
+        if self.tokens[client_id] >= 1:
+            self.tokens[client_id] -= 1
+            return True
+        return False
+    
+rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=10)
+
 
 async def handle_websocket_connection(websocket: websockets.WebSocketServerProtocol, path: str) -> None:
-    global active_connections
-    active_connections += 1
     headers: websockets.Headers = websocket.request_headers
-    referer: str = headers.get("referer", "")  # Snort
+    referer: str = headers.get("referer", "")
     origin: str = headers.get("origin", "")
     logger.debug(f"New websocket connection established from URL: {referer or origin}")
 
+    client_ip = websocket.remote_address[0]
+    if not rate_limiter.check_request(client_ip):
+        logger.warning(f"Rate limit exceeded for client: {client_ip}")
+        return
+    
     async with aiohttp.ClientSession() as session:
         async for message in websocket:
             message_list: List[Union[str, Dict[str, Any]]] = json.loads(message)
@@ -56,13 +83,12 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
                 response: Tuple[str, str] = "NOTICE", f"closing {subscription_id}"
             else:
                 logger.warning(f"Unsupported message format: {message_list}")
-    active_connections -= 1
 
 async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: Dict[str, Any]) -> None:
     url: str = 'http://event_handler/new_event'
     async with session.post(url, data=json.dumps(event_dict)) as response:
         response_data: Dict[str, Any] = await response.json()
-        logger.debug(f"Recieved response from Event Handler {response_data}")
+        logger.debug(f"Received response from Event Handler {response_data}")
 
 async def send_subscription_to_handler(
     session: aiohttp.ClientSession,
@@ -77,38 +103,46 @@ async def send_subscription_to_handler(
         'subscription_id': subscription_id,
         'origin': origin
     }
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, data=json.dumps(payload)) as response:
-            response_data: Dict[str, Any] = await response.json()
-            logger.debug(f"Data type of response_data: {type(response_data)}, Response Data: {response_data}")
-            event_type: Optional[str] = response_data.get("event")
-            subscription_id: Optional[str] = response_data.get("subscription_id")
-            results: Optional[List[Dict[str, Any]]] = response_data.get("results_json")
-            logger.debug(f"Response received as: {response_data}")
-            EOSE: Tuple[str, Optional[str]] = "EOSE", subscription_id
+    async with session.post(url, data=json.dumps(payload)) as response:
+        response_data: Dict[str, Any] = await response.json()
+        logger.debug(f"Data type of response_data: {type(response_data)}, Response Data: {response_data}")
+        event_type: Optional[str] = response_data.get("event")
+        subscription_id: Optional[str] = response_data.get("subscription_id")
+        results: Optional[List[Dict[str, Any]]] = response_data.get("results_json")
+        logger.debug(f"Response received as: {response_data}")
+        EOSE: Tuple[str, Optional[str]] = "EOSE", subscription_id
 
-            if response.status == 200:
-                logger.debug(f"Sending response data: {response_data}")
+        if response.status == 200:
+            logger.debug(f"Sending response data: {response_data}")
 
-                if event_type == "EOSE":
-                    client_response: Tuple[str, Optional[str]] = event_type, subscription_id
-                    await websocket.send(json.dumps(client_response))
-                else:
-                    if results:
-                        for event_item in results:
-                            client_response: Tuple[str, Optional[str], Dict[str, Any]] = event_type, subscription_id, event_item
-                            await websocket.send(json.dumps(client_response))
-
-                await websocket.send(json.dumps(EOSE))
+            if event_type == "EOSE":
+                client_response: Tuple[str, Optional[str]] = event_type, subscription_id
+                await websocket.send(json.dumps(client_response))
             else:
-                logger.debug(f"Response data is {response_data} but it failed")
+                if results:
+                    for event_item in results:
+                        client_response: Tuple[str, Optional[str], Dict[str, Any]] = event_type, subscription_id, event_item
+                        await websocket.send(json.dumps(client_response))
+
+            await websocket.send(json.dumps(EOSE))
+        else:
+            logger.debug(f"Response data is {response_data} but it failed")
+
+async def count_active_connections(websockets_server: websockets.Server) -> int:
+    active_connections = len(websockets_server.clients)
+    return active_connections
 
 if __name__ == "__main__":
+    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=10)
+
     start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
+    
     async def send_active_connections_metric():
-        while True:
-            await asyncio.sleep(30)
-            statsd.gauge('nostr.websocket.active_connections', active_connections)
+            while True:
+                await asyncio.sleep(30)
+                active_connections = await count_active_connections(start_server)
+                statsd.gauge('nostr.websocket.active_connections', active_connections)
+    
     asyncio.get_event_loop().create_task(send_active_connections_metric())
     asyncio.get_event_loop().run_until_complete(start_server)
     asyncio.get_event_loop().run_forever()
