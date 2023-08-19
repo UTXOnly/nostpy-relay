@@ -156,9 +156,12 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
             try:
                 cached_result: bytes = redis_client.get(redis_get)
                 logger.debug(f"Cached resuts = {cached_result}")
+                if cached_result == "b'[]'":
+                    cached_result = None
+                    return serialized_events
                 index += 1
                 list_index += 1
-
+                # b'[]' is the problem response
                 if cached_result:
                     query_result: bytes = cached_result
                     query_result_utf8: str = query_result.decode('utf-8')
@@ -195,7 +198,7 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                         statsd.increment('nostr.event.queried.postgres', tags=["func:event_query"])
                         serialized_events = [serialize(event) for event in query_result]
                         logger.debug(f"serialized events are: {serialized_events}")
-                        redis_set = redis_client.set(redis_get, str(serialized_events))  # Set cache expiry time to 2 min
+                        redis_set = redis_client.set(redis_get, str(serialized_events))  
                         redis_client.expire(redis_get, 300)
                         logger.debug(f"Query result stored in cache. Stored as: filters: {redis_get} values: {str(serialized_events)} ({inspect.currentframe().f_lineno})")
 
