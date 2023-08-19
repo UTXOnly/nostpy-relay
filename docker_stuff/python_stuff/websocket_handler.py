@@ -71,7 +71,7 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
 
     if not rate_limiter.check_request(real_ip):
         logger.warning(f"Rate limit exceeded for client: {real_ip}")
-        statsd.increment('nostr.client.rate_limited.count', tags=[f"func:{real_ip}"])
+        statsd.increment('nostr.client.rate_limited.count', tags=[f"client:{real_ip}"])
         return
 
     async with aiohttp.ClientSession() as session:
@@ -144,7 +144,8 @@ async def send_subscription_to_handler(
                 if results:
                     for event_item in results:
                         client_response: Tuple[str, Optional[str], Dict[str, Any]] = event_type, subscription_id, event_item
-                        await websocket.send(json.dumps(client_response))
+                        if len(event_item) > 2:
+                            await websocket.send(json.dumps(client_response))
 
             await websocket.send(json.dumps(EOSE))
         else:
