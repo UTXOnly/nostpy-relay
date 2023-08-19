@@ -155,7 +155,7 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
 
             try:
                 cached_result: bytes = redis_client.get(redis_get)
-                logger.debug(f"Cahed resuts = {cached_result}")
+                logger.debug(f"Cached resuts = {cached_result}")
                 index += 1
                 list_index += 1
 
@@ -166,8 +166,9 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                     query_result_cleaned: str = query_result_utf8.strip("[b\"")
                     logger.debug(f"Query result CLEANED = {query_result_cleaned}")
                     logger.debug(f"Query result found in cache. ({inspect.currentframe().f_lineno})")
-                    statsd.increment('nostr.event.found.redis.count', tags=["func:event_query"])
-                    serialized_events.append(query_result_cleaned)
+                    if len(query_result_cleaned) > 2:
+                        statsd.increment('nostr.event.found.redis.count', tags=["func:event_query"])
+                        serialized_events.append(query_result_cleaned)
 
                 else:
                     try:
@@ -196,7 +197,7 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                         logger.debug(f"serialized events are: {serialized_events}")
                         redis_set = redis_client.set(redis_get, str(serialized_events))  # Set cache expiry time to 2 min
                         redis_client.expire(redis_get, 300)
-                        logger.debug(f"Query result stored in cache. Stored as: {redis_set} ({inspect.currentframe().f_lineno})")
+                        logger.debug(f"Query result stored in cache. Stored as: filters: {redis_get} values: {str(serialized_events)} ({inspect.currentframe().f_lineno})")
 
                     except Exception as e:
                         error_message = str(e)
