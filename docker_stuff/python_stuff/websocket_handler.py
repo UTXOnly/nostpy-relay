@@ -137,6 +137,7 @@ async def count_active_connections(websockets_server: WebSocketServer) -> int:
     #active_connections = len(websockets_server.)
     #logger.debug(f"Number of active connections: {active_connections}")
     #return active_connections
+    
 
 if __name__ == "__main__":
     rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=100)
@@ -151,8 +152,8 @@ if __name__ == "__main__":
                     active_connections = await count_active_connections(start_server.ws_server)
                     sockets = start_server.ws_server.sockets
                     num_of_connections = len(sockets)  # Get the number of connections
-                    statsd.gauge('nostr.websocket.active_connections', active_connections)
-                    logger.debug(f"Active connections: {active_connections}")
+                    statsd.gauge('nostr.websocket.active_connections', num_of_connections)
+                    logger.debug(f"Active connections: {num_of_connections}")
                     logger.debug(f"Number of connections: {num_of_connections}")  # Print the number of connections
                     logger.debug(f"Open sockets are: {sockets}")
                 except Exception as e:
