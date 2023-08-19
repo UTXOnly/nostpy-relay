@@ -52,38 +52,51 @@ class TokenBucketRateLimiter:
             return True
         return False
 
-    
+unique_sessions = []
+
 async def handle_websocket_connection(websocket: websockets.WebSocketServerProtocol, path: str) -> None:
+    global unique_sessions
     headers: websockets.Headers = websocket.request_headers
     referer: str = headers.get("referer", "")
     origin: str = headers.get("origin", "")
-    logger.debug(f"New websocket connection established from URL: {referer or origin}")
+    logger.debug(f"New WebSocket connection established from URL: {referer or origin}")
 
     client_ip = websocket.remote_address[0]
-    logger.debug(f"CLinet IP is {client_ip}")
-    #if not rate_limiter.check_request(client_ip):
-    #    logger.warning(f"Rate limit exceeded for client: {client_ip}")
-    #    return
-    
-    async with aiohttp.ClientSession() as session:
-        async for message in websocket:
-            message_list: List[Union[str, Dict[str, Any]]] = json.loads(message)
-            logger.debug(f"Received message: {message_list}")
-            len_message: int = len(message_list)
-            logger.debug(f"Received message length: {len_message}")
+    logger.debug(f"Client IP is {client_ip}")
+    if not rate_limiter.check_request(client_ip):
+        logger.warning(f"Rate limit exceeded for client: {client_ip}")
+        return
 
-            if message_list[0] == "EVENT":
-                event_dict: Dict[str, Any] = message_list[1]
-                await send_event_to_handler(session, event_dict)
-            elif message_list[0] == "REQ":
-                subscription_id: str = message_list[1]
-                event_dict: List[Dict[str, Any]] = [{index: message_list[index]} for index in range(2, len(message_list))]
-                await send_subscription_to_handler(session, event_dict, subscription_id, origin, websocket)
-            elif message_list[0] == "CLOSE":
-                subscription_id: str = message_list[1]
-                response: Tuple[str, str] = "NOTICE", f"closing {subscription_id}"
-            else:
-                logger.warning(f"Unsupported message format: {message_list}")
+    async with aiohttp.ClientSession() as session:
+        uuid = websocket.id
+        unique_sessions.append(uuid)
+        logger.debug(f"UUID = {uuid}")
+        try:
+            async for message in websocket:
+                message_list: List[Union[str, Dict[str, Any]]] = json.loads(message)
+                logger.debug(f"Received message: {message_list}")
+                len_message: int = len(message_list)
+                logger.debug(f"Received message length: {len_message}")
+
+                if message_list[0] == "EVENT":
+                    event_dict: Dict[str, Any] = message_list[1]
+                    await send_event_to_handler(session, event_dict)
+                elif message_list[0] == "REQ":
+                    subscription_id: str = message_list[1]
+                    event_dict: List[Dict[str, Any]] = [{index: message_list[index]} for index in range(2, len(message_list))]
+                    await send_subscription_to_handler(session, event_dict, subscription_id, origin, websocket)
+                elif message_list[0] == "CLOSE":
+                    subscription_id: str = message_list[1]
+                    response: Tuple[str, str] = "NOTICE", f"closing {subscription_id}"
+                    break  # Exit the loop when CLOSE message is received
+                else:
+                    logger.warning(f"Unsupported message format: {message_list}")
+        except Exception as e:
+            logger.error(f"Error occurred while starting the server: {e}")
+            raise
+        finally:
+            unique_sessions.remove(uuid)
+
 
 async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: Dict[str, Any]) -> None:
     url: str = 'http://event_handler/new_event'
@@ -137,7 +150,7 @@ async def count_active_connections(websockets_server: WebSocketServer) -> int:
     #active_connections = len(websockets_server.)
     #logger.debug(f"Number of active connections: {active_connections}")
     #return active_connections
-    
+
 
 if __name__ == "__main__":
     rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=100)
@@ -145,17 +158,20 @@ if __name__ == "__main__":
     try:
         start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
         
+        
         async def send_active_connections_metric():
+            global unique_sessions
             while True:
-                await asyncio.sleep(30)
+                await asyncio.sleep(1)
                 try:
-                    active_connections = await count_active_connections(start_server.ws_server)
-                    sockets = start_server.ws_server.sockets
-                    num_of_connections = len(sockets)  # Get the number of connections
+                    #active_connections = await count_active_connections(start_server.ws_server)
+                    #sockets = start_server.ws_server.sockets
+                    #sockets = 
+                    num_of_connections = len(unique_sessions)  # Get the number of connections
                     statsd.gauge('nostr.websocket.active_connections', num_of_connections)
                     logger.debug(f"Active connections: {num_of_connections}")
                     logger.debug(f"Number of connections: {num_of_connections}")  # Print the number of connections
-                    logger.debug(f"Open sockets are: {sockets}")
+                    #logger.debug(f"Open sockets are: {sockets}")
                 except Exception as e:
                     logger.error(f"Error occurred while sending active connections metric: {e}")
         
