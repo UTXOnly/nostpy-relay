@@ -150,7 +150,7 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
             logger.debug(f"Extracted Dictionary is: {extracted_dict}")
             if isinstance(request, dict):
                 output_list.append(extracted_dict)
-                logger.debug(f"Redis set = {redis_set}")
+                logger.debug(f"Results variable is: {request}")
             redis_get: str = str(results[list_index][str(index)])
 
             try:
@@ -193,6 +193,7 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                         query_result: List[Event] = query.order_by(desc(Event.created_at)).limit(query_limit).all()
                         statsd.increment('nostr.event.queried.postgres', tags=["func:event_query"])
                         serialized_events = [serialize(event) for event in query_result]
+                        logger.debug(f"serialized events are: {serialized_events}")
                         redis_set = redis_client.set(redis_get, str(serialized_events))  # Set cache expiry time to 2 min
                         redis_client.expire(redis_get, 300)
                         logger.debug(f"Query result stored in cache. Stored as: {redis_set} ({inspect.currentframe().f_lineno})")
