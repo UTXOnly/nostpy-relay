@@ -94,8 +94,8 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
         except Exception as e:
             logger.error(f"Error occurred while starting the server: {e}")
             raise
-        finally:
-            unique_sessions.remove(uuid)
+
+        unique_sessions.remove(uuid)
 
 
 async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: Dict[str, Any]) -> None:
