@@ -69,10 +69,10 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
         logger.warning("Unable to determine client IP.")
     logger.debug(f"New WebSocket connection established from URL: {referer or origin}")
 
-    if not rate_limiter.check_request(real_ip):
-        logger.warning(f"Rate limit exceeded for client: {real_ip}")
-        statsd.increment('nostr.client.rate_limited.count', tags=[f"client:{real_ip}"])
-        return
+    #if not rate_limiter.check_request(real_ip):
+    #    logger.warning(f"Rate limit exceeded for client: {real_ip}")
+    #    statsd.increment('nostr.client.rate_limited.count', tags=[f"client:{real_ip}"])
+    #    return
 
     async with aiohttp.ClientSession() as session:
         uuid = websocket.id
@@ -80,6 +80,10 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
         logger.debug(f"UUID = {uuid}")
         try:
             async for message in websocket:
+                if not rate_limiter.check_request(real_ip):
+                    logger.warning(f"Rate limit exceeded for client: {real_ip}")
+                    statsd.increment('nostr.client.rate_limited.count', tags=[f"client:{real_ip}"])
+                    return
                 message_list: List[Union[str, Dict[str, Any]]] = json.loads(message)
                 logger.debug(f"Received message: {message_list}")
                 len_message: int = len(message_list)
@@ -153,7 +157,7 @@ async def send_subscription_to_handler(
 
 
 if __name__ == "__main__":
-    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=10)
+    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=5)
 
     try:
         start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
