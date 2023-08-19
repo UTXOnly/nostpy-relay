@@ -153,7 +153,7 @@ async def count_active_connections(websockets_server: WebSocketServer) -> int:
 
 
 if __name__ == "__main__":
-    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=100)
+    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=10)
 
     try:
         start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
