@@ -71,6 +71,7 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
 
     if not rate_limiter.check_request(real_ip):
         logger.warning(f"Rate limit exceeded for client: {real_ip}")
+        statsd.increment('nostr.client.rate_limited.count', tags=[f"func:{real_ip}"])
         return
 
     async with aiohttp.ClientSession() as session:
@@ -149,18 +150,10 @@ async def send_subscription_to_handler(
         else:
             logger.debug(f"Response data is {response_data} but it failed")
 
-async def count_active_connections(websockets_server: WebSocketServer) -> int:
-
-    open_sockets = str(WebSocketServer.sockets)
-    logger.debug(f"Open sockets are: {open_sockets}")
-    logger.debug(f"open sockert type is {type(open_sockets)}")
-    #active_connections = len(websockets_server.)
-    #logger.debug(f"Number of active connections: {active_connections}")
-    #return active_connections
 
 
 if __name__ == "__main__":
-    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=2)
+    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=10)
 
     try:
         start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
@@ -169,16 +162,13 @@ if __name__ == "__main__":
             while True:
                 await asyncio.sleep(5)
                 try:
-                    #active_connections = await count_active_connections(start_server.ws_server)
-                    #sockets = start_server.ws_server.sockets
-                    #sockets = 
                     num_of_connections = len(unique_sessions)  # Get the number of connections
                     num_clients = len(client_ips)
                     statsd.gauge('nostr.websocket.active_connections', num_of_connections)
                     statsd.gauge('nostr.clients.connected', num_clients)
                     logger.debug(f"Active connections: {num_of_connections}")
-                    logger.debug(f"Number of connections: {num_of_connections}")  # Print the number of connections
-                    #logger.debug(f"Open sockets are: {sockets}")
+                    logger.debug(f"Clients connected are: {client_ips}")
+
                 except Exception as e:
                     logger.error(f"Error occurred while sending active connections metric: {e}")
         
