@@ -3,6 +3,7 @@ import json
 import logging
 import aiohttp
 import websockets
+from websockets.server import WebSocketServer
 from collections import defaultdict
 import time
 from logging.handlers import RotatingFileHandler
@@ -60,9 +61,9 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
 
     client_ip = websocket.remote_address[0]
     logger.debug(f"CLinet IP is {client_ip}")
-    if not rate_limiter.check_request(client_ip):
-        logger.warning(f"Rate limit exceeded for client: {client_ip}")
-        return
+    #if not rate_limiter.check_request(client_ip):
+    #    logger.warning(f"Rate limit exceeded for client: {client_ip}")
+    #    return
     
     async with aiohttp.ClientSession() as session:
         async for message in websocket:
@@ -128,11 +129,14 @@ async def send_subscription_to_handler(
         else:
             logger.debug(f"Response data is {response_data} but it failed")
 
-async def count_active_connections(websockets_server: websockets.Server) -> int:
-    active_connections = len(websockets_server.clients)
-    logger.debug(f"Number of active connections: {active_connections}")
-    return active_connections
+async def count_active_connections(websockets_server: WebSocketServer) -> int:
 
+    open_sockets = str(WebSocketServer.sockets)
+    logger.debug(f"Open sockets are: {open_sockets}")
+    logger.debug(f"open sockert type is {type(open_sockets)}")
+    #active_connections = len(websockets_server.)
+    #logger.debug(f"Number of active connections: {active_connections}")
+    #return active_connections
 
 if __name__ == "__main__":
     rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=100)
@@ -144,15 +148,18 @@ if __name__ == "__main__":
             while True:
                 await asyncio.sleep(30)
                 try:
-                    active_connections = await count_active_connections(start_server)
+                    active_connections = await count_active_connections(start_server.ws_server)
+                    sockets = start_server.ws_server.sockets
+                    num_of_connections = len(sockets)  # Get the number of connections
                     statsd.gauge('nostr.websocket.active_connections', active_connections)
                     logger.debug(f"Active connections: {active_connections}")
+                    logger.debug(f"Number of connections: {num_of_connections}")  # Print the number of connections
+                    logger.debug(f"Open sockets are: {sockets}")
                 except Exception as e:
                     logger.error(f"Error occurred while sending active connections metric: {e}")
-
+        
         asyncio.get_event_loop().create_task(send_active_connections_metric())
         asyncio.get_event_loop().run_until_complete(start_server)
         asyncio.get_event_loop().run_forever()
     except Exception as e:
         logger.error(f"Error occurred while starting the server: {e}")
-
