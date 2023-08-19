@@ -144,8 +144,7 @@ async def send_subscription_to_handler(
                 if results:
                     for event_item in results:
                         client_response: Tuple[str, Optional[str], Dict[str, Any]] = event_type, subscription_id, event_item
-                        if len(event_item) > 2:
-                            await websocket.send(json.dumps(client_response))
+                        await websocket.send(json.dumps(client_response))
 
             await websocket.send(json.dumps(EOSE))
         else:

@@ -147,18 +147,22 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
 
         for request in results:
             extracted_dict: Dict[str, Any] = results[list_index][str(index)]
+            logger.debug(f"Extracted Dictionary is: {extracted_dict}")
             if isinstance(request, dict):
                 output_list.append(extracted_dict)
+                logger.debug(f"Redis set = {redis_set}")
             redis_get: str = str(results[list_index][str(index)])
 
             try:
                 cached_result: bytes = redis_client.get(redis_get)
+                logger.debug(f"Cahed resuts = {cached_result}")
                 index += 1
                 list_index += 1
 
                 if cached_result:
                     query_result: bytes = cached_result
                     query_result_utf8: str = query_result.decode('utf-8')
+                    logger.debug(f"Query results UTF 8 = {query_result_utf8}")
                     query_result_cleaned: str = query_result_utf8.strip("[b\"")
                     logger.debug(f"Query result CLEANED = {query_result_cleaned}")
                     logger.debug(f"Query result found in cache. ({inspect.currentframe().f_lineno})")
@@ -221,7 +225,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
         serialized_events: List[Dict[str, Any]] = await event_query(json.dumps(filters))
 
-        if len(serialized_events) == 0:
+        if len(serialized_events) < 2:
             response = None
         else:
             response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': serialized_events}
