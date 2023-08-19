@@ -53,9 +53,10 @@ class TokenBucketRateLimiter:
         return False
 
 unique_sessions = []
+client_ips = []
 
 async def handle_websocket_connection(websocket: websockets.WebSocketServerProtocol, path: str) -> None:
-    global unique_sessions
+    global unique_sessions, client_ips
     headers: websockets.Headers = websocket.request_headers
     referer: str = headers.get("referer", "")
     origin: str = headers.get("origin", "")
@@ -63,14 +64,13 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
     
     if real_ip:
         logger.debug(f"Real!!! Client IP: {real_ip}")
+        client_ips.append(real_ip)
     else:
         logger.warning("Unable to determine client IP.")
     logger.debug(f"New WebSocket connection established from URL: {referer or origin}")
 
-    client_ip = websocket.remote_address[0]
-    logger.debug(f"Client IP is {client_ip}")
-    if not rate_limiter.check_request(client_ip):
-        logger.warning(f"Rate limit exceeded for client: {client_ip}")
+    if not rate_limiter.check_request(real_ip):
+        logger.warning(f"Rate limit exceeded for client: {real_ip}")
         return
 
     async with aiohttp.ClientSession() as session:
@@ -102,6 +102,7 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
             raise
 
         unique_sessions.remove(uuid)
+        client_ips.remove(real_ip)
 
 
 async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: Dict[str, Any]) -> None:
@@ -159,12 +160,12 @@ async def count_active_connections(websockets_server: WebSocketServer) -> int:
 
 
 if __name__ == "__main__":
-    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=10)
+    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=2)
 
     try:
         start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
         async def send_active_connections_metric():
-            global unique_sessions
+            global unique_sessions, client_ips
             while True:
                 await asyncio.sleep(5)
                 try:
@@ -172,7 +173,9 @@ if __name__ == "__main__":
                     #sockets = start_server.ws_server.sockets
                     #sockets = 
                     num_of_connections = len(unique_sessions)  # Get the number of connections
+                    num_clients = len(client_ips)
                     statsd.gauge('nostr.websocket.active_connections', num_of_connections)
+                    statsd.gauge('nostr.clients.connected', num_clients)
                     logger.debug(f"Active connections: {num_of_connections}")
                     logger.debug(f"Number of connections: {num_of_connections}")  # Print the number of connections
                     #logger.debug(f"Open sockets are: {sockets}")
