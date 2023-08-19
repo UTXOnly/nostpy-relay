@@ -59,6 +59,12 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
     headers: websockets.Headers = websocket.request_headers
     referer: str = headers.get("referer", "")
     origin: str = headers.get("origin", "")
+    real_ip = headers.get("X-Real-IP") or headers.get("X-Forwarded-For")
+    
+    if real_ip:
+        logger.debug(f"Real!!! Client IP: {real_ip}")
+    else:
+        logger.warning("Unable to determine client IP.")
     logger.debug(f"New WebSocket connection established from URL: {referer or origin}")
 
     client_ip = websocket.remote_address[0]
@@ -157,12 +163,10 @@ if __name__ == "__main__":
 
     try:
         start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
-        
-        
         async def send_active_connections_metric():
             global unique_sessions
             while True:
-                await asyncio.sleep(1)
+                await asyncio.sleep(5)
                 try:
                     #active_connections = await count_active_connections(start_server.ws_server)
                     #sockets = start_server.ws_server.sockets
