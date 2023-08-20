@@ -113,19 +113,38 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
         unique_sessions.remove(uuid)
         client_ips.remove(real_ip)
 
-async def extract_response(response_data: Dict[str, Any]):
-        event_type: Optional[str] = response_data.get("event")
-        subscription_id: Optional[str] = response_data.get("subscription_id")
+class ExtractedResponse:
+    def __init__(self):
+        self.event_type = None
+        self.subscription_id = None
+        self.results = None
+    #def __init__(self, event_type: Optional[str], subscription_id: Optional[str], results: Optional[Union[str, Dict[str, Any]]]):
+    #    self.event_type = event_type
+    #    self.subscription_id = subscription_id
+    #    self.results = results
 
-        #results: Optional[List[Dict[str, Any]]] = response_data.get("results_json")
+    async def extract_response(self, response_data: Dict[str, Any]):
+        self.event_type = response_data.get("event")
+        self.subscription_id = response_data.get("subscription_id")
+        self.results = response_data.get("results_json")
+        comment = ""
+        return self.event_type, self.subscription_id, self.results
+
+    async def format_response(self, event_type, subscription_id, results, comment):
+    
         if event_type == "OK":
-            results: Optional[str] = response_data.get("results_json")
-            place_holder = ""
-            client_response: Tuple[str, str, str, str] = event_type, subscription_id, results, place_holder
+            client_response: Tuple[str, Optional[str], str, Optional[str]] = event_type, subscription_id, results, comment
+        elif event_type == "EVENT":
+            events_to_send = []
+            for event_result in results:
+                client_response: Tuple[str, Optional[str], Dict[str, Any]] = event_type, subscription_id, event_result
+                events_to_send.append(client_response)
+            return events_to_send
         else:
-            results: Optional[Dict[str, Any]] = response_data.get("results_json")
-            client_response: Tuple[str, Optional[str], Dict[str, Any]] = event_type, subscription_id, results
+            client_response: Tuple[str, Optional[str]] = event_type, subscription_id
+    
         return client_response
+
 
 
 
@@ -133,9 +152,11 @@ async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: Dict
     url: str = 'http://event_handler/new_event'
     async with session.post(url, data=json.dumps(event_dict)) as response:
         response_data: Dict[str, Any] = await response.json()
+        response_object = ExtractedResponse()
         if response.status == 200:
             logger.debug(f"Sending response data: {response_data}")
-            client_response = extract_response()
+            client_response = await response_object.extract_response(response_data)
+            client_response = await response_object.format_response(event_type=response_object.event_type, subscription_id=response_object.subscription_id, results=response_object.results)
             await websocket.send(json.dumps(client_response))
         logger.debug(f"Received response from Event Handler {response_data}")
 
@@ -152,28 +173,27 @@ async def send_subscription_to_handler(
         'subscription_id': subscription_id,
         'origin': origin
     }
+    response_object = ExtractedResponse
     async with session.post(url, data=json.dumps(payload)) as response:
         response_data: Dict[str, Any] = await response.json()
-        #client_response = extract_response()
+        client_response = response_object.extract_response(response_data)
         logger.debug(f"Data type of response_data: {type(response_data)}, Response Data: {response_data}")
-        event_type: Optional[str] = response_data.get("event")
-        subscription_id: Optional[str] = response_data.get("subscription_id")
-        results: Optional[List[Dict[str, Any]]] = response_data.get("results_json")
+        
         logger.debug(f"Response received as: {response_data}")
         EOSE: Tuple[str, Optional[str]] = "EOSE", subscription_id
 
         if response.status == 200:
             logger.debug(f"Sending response data: {response_data}")
+            response_list = await response_object.format_response(event_type=response_object.event_type, subscription_id=response_object.subscription_id, results=response_object.results)
 
-            if event_type == "EOSE":
-                client_response: Tuple[str, Optional[str]] = event_type, subscription_id
+            if response_object.event_type == "EOSE":
+                
                 await websocket.send(json.dumps(client_response))
             else:
-                if results:
-                    for event_item in results:
-                        #client_response: Tuple[str, Optional[str], Dict[str, Any]] = event_type, subscription_id, event_item
-                        client_response = await extract_response(response_data)
-                        await websocket.send(json.dumps(client_response))
+                for event_item in response_list:
+                    #client_response: Tuple[str, Optional[str], Dict[str, Any]] = event_type, subscription_id, event_item
+                    #client_response = await extract_response(response_data)
+                    await websocket.send(json.dumps(event_item))
 
             await websocket.send(json.dumps(EOSE))
         else:
@@ -182,7 +202,7 @@ async def send_subscription_to_handler(
 
 
 if __name__ == "__main__":
-    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=100)
+    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=500)
 
     try:
         start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
