@@ -154,6 +154,7 @@ async def send_subscription_to_handler(
     }
     async with session.post(url, data=json.dumps(payload)) as response:
         response_data: Dict[str, Any] = await response.json()
+        #client_response = extract_response()
         logger.debug(f"Data type of response_data: {type(response_data)}, Response Data: {response_data}")
         event_type: Optional[str] = response_data.get("event")
         subscription_id: Optional[str] = response_data.get("subscription_id")
@@ -171,7 +172,7 @@ async def send_subscription_to_handler(
                 if results:
                     for event_item in results:
                         #client_response: Tuple[str, Optional[str], Dict[str, Any]] = event_type, subscription_id, event_item
-                        client_response = extract_response()
+                        client_response = extract_response(response_data)
                         await websocket.send(json.dumps(client_response))
 
             await websocket.send(json.dumps(EOSE))
