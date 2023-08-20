@@ -167,7 +167,7 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                     query_result_utf8: str = query_result.decode('utf-8')
                     logger.debug(f"Query results UTF 8 = {query_result_utf8}")
                     #query_result_cleaned: str = query_result_utf8.strip("[b\"")
-                    query_result_cleaned: str = query_result_utf8[3:-2].strip()
+                    query_result_cleaned: str = query_result_utf8[2:-1].strip()
                     logger.debug(f"Query result CLEANED = {query_result_cleaned}")
                     logger.debug(f"Query result found in cache. ({inspect.currentframe().f_lineno})")
                     if len(query_result_cleaned) > 2:
