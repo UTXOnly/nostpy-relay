@@ -82,6 +82,10 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
             async for message in websocket:
                 if not rate_limiter.check_request(real_ip):
                     logger.warning(f"Rate limit exceeded for client: {real_ip}")
+                    #["OK", "b1a649ebe8...", false, "rate-limited: slow down there chief"]
+                    await websocket.close()
+                    unique_sessions.remove(uuid)
+                    client_ips.remove(real_ip)
                     statsd.increment('nostr.client.rate_limited.count', tags=[f"client:{real_ip}"])
                     return
                 message_list: List[Union[str, Dict[str, Any]]] = json.loads(message)
@@ -91,11 +95,11 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
 
                 if message_list[0] == "EVENT":
                     event_dict: Dict[str, Any] = message_list[1]
-                    await send_event_to_handler(session, event_dict)
+                    await send_event_to_handler(session=session, event_dict=event_dict, websocket=websocket)
                 elif message_list[0] == "REQ":
                     subscription_id: str = message_list[1]
                     event_dict: List[Dict[str, Any]] = [{index: message_list[index]} for index in range(2, len(message_list))]
-                    await send_subscription_to_handler(session, event_dict, subscription_id, origin, websocket)
+                    await send_subscription_to_handler(session=session, event_dict=event_dict, subscription_id=subscription_id, origin=origin, websocket=websocket)
                 elif message_list[0] == "CLOSE":
                     subscription_id: str = message_list[1]
                     response: Tuple[str, str] = "NOTICE", f"closing {subscription_id}"
@@ -109,11 +113,30 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
         unique_sessions.remove(uuid)
         client_ips.remove(real_ip)
 
+async def extract_response(response_data: Dict[str, Any]):
+        event_type: Optional[str] = response_data.get("event")
+        subscription_id: Optional[str] = response_data.get("subscription_id")
 
-async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: Dict[str, Any]) -> None:
+        #results: Optional[List[Dict[str, Any]]] = response_data.get("results_json")
+        if event_type == "OK":
+            results: Optional[str] = response_data.get("results_json")
+            place_holder = ""
+            client_response: Tuple[str, str, str, str] = event_type, subscription_id, results, place_holder
+        else:
+            results: Optional[List[Dict[str, Any]]] = response_data.get("results_json")
+            client_response: Tuple[str, Optional[str], Dict[str, Any]] = event_type, subscription_id, results
+        return client_response
+
+
+
+async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: Dict[str, Any], websocket: websockets.WebSocketServerProtocol) -> None:
     url: str = 'http://event_handler/new_event'
     async with session.post(url, data=json.dumps(event_dict)) as response:
         response_data: Dict[str, Any] = await response.json()
+        if response.status == 200:
+            logger.debug(f"Sending response data: {response_data}")
+            client_response = extract_response()
+            await websocket.send(json.dumps(client_response))
         logger.debug(f"Received response from Event Handler {response_data}")
 
 async def send_subscription_to_handler(
@@ -147,7 +170,8 @@ async def send_subscription_to_handler(
             else:
                 if results:
                     for event_item in results:
-                        client_response: Tuple[str, Optional[str], Dict[str, Any]] = event_type, subscription_id, event_item
+                        #client_response: Tuple[str, Optional[str], Dict[str, Any]] = event_type, subscription_id, event_item
+                        client_response = extract_response()
                         await websocket.send(json.dumps(client_response))
 
             await websocket.send(json.dumps(EOSE))

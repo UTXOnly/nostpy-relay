@@ -105,6 +105,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
         existing_event: Optional[Event] = session.query(Event).filter_by(id=event_id).scalar()
         if existing_event is not None:
+            #["OK", "b1a649ebe8...", true, "duplicate: already have this event"]
             raise HTTPException(status_code=409, detail=f"Event with ID {event_id} already exists")
 
         new_event: Event = Event(
@@ -119,9 +120,11 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
         session.add(new_event)
         session.commit()
+        #["OK", "b1a649ebe8...", true, ""]
+        response = {'event': "OK", 'subscription_id': "n0stafarian419", 'results_json': "true"}
         statsd.increment('nostr.event.added.count', tags=["func:new_event"])
-        message: str = "Event added successfully" if kind == 1 else "Event updated successfully"
-        response: Dict[str, str] = {"message": message}
+        #message: str = "Event added successfully" if kind == 1 else "Event updated successfully"
+        #response: Dict[str, str] = {"message": message}
         return JSONResponse(content=response, status_code=200)
 
     except SQLAlchemyError as e:
