@@ -157,7 +157,7 @@ async def send_subscription_to_handler(
 
 
 if __name__ == "__main__":
-    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=20)
+    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=100)
 
     try:
         start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
