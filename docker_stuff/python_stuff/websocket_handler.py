@@ -156,8 +156,8 @@ async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: Dict
         response_object = ExtractedResponse()
         if response.status == 200:
             logger.debug(f"Sending response data: {response_data}")
-            client_response = await response_object.extract_response(response_data=response_data)
-            client_response = await response_object.format_response(event_type=response_object.event_type, subscription_id=response_object.subscription_id, results=response_object.results)
+            client_response = await response_object.extract_response(self=response_object, response_data=response_data)
+            client_response = await response_object.format_response(self=response_object, event_type=response_object.event_type, subscription_id=response_object.subscription_id, results=response_object.results)
             await websocket.send(json.dumps(client_response))
         logger.debug(f"Received response from Event Handler {response_data}")
 
@@ -177,7 +177,7 @@ async def send_subscription_to_handler(
     response_object = ExtractedResponse
     async with session.post(url, data=json.dumps(payload)) as response:
         response_data: Dict[str, Any] = await response.json()
-        client_response = response_object.extract_response(response_data=response_data)
+        client_response = response_object.extract_response(self=response_object, response_data=response_data)
         logger.debug(f"Data type of response_data: {type(response_data)}, Response Data: {response_data}")
         
         logger.debug(f"Response received as: {response_data}")
@@ -185,7 +185,7 @@ async def send_subscription_to_handler(
 
         if response.status == 200:
             logger.debug(f"Sending response data: {response_data}")
-            response_list = await response_object.format_response(event_type=response_object.event_type, subscription_id=response_object.subscription_id, results=response_object.results)
+            response_list = await response_object.format_response(self=response_object, event_type=response_object.event_type, subscription_id=response_object.subscription_id, results=response_object.results)
 
             if response_object.event_type == "EOSE":
                 
