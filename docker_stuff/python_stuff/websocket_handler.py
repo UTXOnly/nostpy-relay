@@ -123,7 +123,7 @@ async def extract_response(response_data: Dict[str, Any]):
             place_holder = ""
             client_response: Tuple[str, str, str, str] = event_type, subscription_id, results, place_holder
         else:
-            results: Optional[List[Dict[str, Any]]] = response_data.get("results_json")
+            results: Optional[Dict[str, Any]] = response_data.get("results_json")
             client_response: Tuple[str, Optional[str], Dict[str, Any]] = event_type, subscription_id, results
         return client_response
 
