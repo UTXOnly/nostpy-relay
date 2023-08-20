@@ -118,6 +118,7 @@ class ExtractedResponse:
         self.event_type = None
         self.subscription_id = None
         self.results = None
+        self.comment = None
     #def __init__(self, event_type: Optional[str], subscription_id: Optional[str], results: Optional[Union[str, Dict[str, Any]]]):
     #    self.event_type = event_type
     #    self.subscription_id = subscription_id
@@ -127,8 +128,8 @@ class ExtractedResponse:
         self.event_type = response_data.get("event")
         self.subscription_id = response_data.get("subscription_id")
         self.results = response_data.get("results_json")
-        comment = ""
-        return self.event_type, self.subscription_id, self.results
+        self.comment = ""
+        return self.event_type, self.subscription_id, self.results, self.comment
 
     async def format_response(self, event_type, subscription_id, results, comment):
     
@@ -155,7 +156,7 @@ async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: Dict
         response_object = ExtractedResponse()
         if response.status == 200:
             logger.debug(f"Sending response data: {response_data}")
-            client_response = await response_object.extract_response(response_data)
+            client_response = await response_object.extract_response(response_data=response_data)
             client_response = await response_object.format_response(event_type=response_object.event_type, subscription_id=response_object.subscription_id, results=response_object.results)
             await websocket.send(json.dumps(client_response))
         logger.debug(f"Received response from Event Handler {response_data}")
@@ -176,7 +177,7 @@ async def send_subscription_to_handler(
     response_object = ExtractedResponse
     async with session.post(url, data=json.dumps(payload)) as response:
         response_data: Dict[str, Any] = await response.json()
-        client_response = response_object.extract_response(response_data)
+        client_response = response_object.extract_response(response_data=response_data)
         logger.debug(f"Data type of response_data: {type(response_data)}, Response Data: {response_data}")
         
         logger.debug(f"Response received as: {response_data}")
