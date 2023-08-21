@@ -23,7 +23,6 @@ def start_nostpy_relay():
         os.chdir("..")
         
         # Re-encrypt env file to keep it encrypted when not in use
-        print(f"Passholder variables is: {pass_holder}")
         file_encryption.encrypt_file(filename="./docker_stuff/.env", key=pass_holder)
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")

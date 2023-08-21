@@ -5,6 +5,7 @@ uvloop
 asyncpg
 uvicorn
 fastapi
+datadog
 
 
 

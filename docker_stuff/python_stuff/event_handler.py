@@ -4,7 +4,6 @@ import logging
 import inspect
 import uvicorn
 import secp256k1
-import hashlib
 from ddtrace import tracer
 from datadog import initialize, statsd
 import redis
@@ -106,6 +105,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
         existing_event: Optional[Event] = session.query(Event).filter_by(id=event_id).scalar()
         if existing_event is not None:
+            #["OK", "b1a649ebe8...", true, "duplicate: already have this event"]
             raise HTTPException(status_code=409, detail=f"Event with ID {event_id} already exists")
 
         new_event: Event = Event(
@@ -120,9 +120,11 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
         session.add(new_event)
         session.commit()
+        #["OK", "b1a649ebe8...", true, ""]
+        response = {'event': "OK", 'subscription_id': "n0stafarian419", 'results_json': "true"}
         statsd.increment('nostr.event.added.count', tags=["func:new_event"])
-        message: str = "Event added successfully" if kind == 1 else "Event updated successfully"
-        response: Dict[str, str] = {"message": message}
+        #message: str = "Event added successfully" if kind == 1 else "Event updated successfully"
+        #response: Dict[str, str] = {"message": message}
         return JSONResponse(content=response, status_code=200)
 
     except SQLAlchemyError as e:
@@ -142,29 +144,39 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
     serialized_events: List[Dict[str, Any]] = []
     try:
         results: List[Dict[str, Any]] = json.loads(filters)
+        logger.debug(f"Filter variable is: {filters}")
         list_index: int = 0
         index: int = 2
         output_list: List[Dict[str, Any]] = []
 
         for request in results:
             extracted_dict: Dict[str, Any] = results[list_index][str(index)]
+            logger.debug(f"Extracted Dictionary is: {extracted_dict}")
             if isinstance(request, dict):
                 output_list.append(extracted_dict)
+                logger.debug(f"Results variable is: {request}")
             redis_get: str = str(results[list_index][str(index)])
 
             try:
                 cached_result: bytes = redis_client.get(redis_get)
+                logger.debug(f"Cached resuts = {cached_result}")
+                if cached_result == "b'[]'":
+                    cached_result = None
+                    return serialized_events
                 index += 1
                 list_index += 1
-
+                # b'[]' is the problem response
                 if cached_result:
                     query_result: bytes = cached_result
                     query_result_utf8: str = query_result.decode('utf-8')
-                    query_result_cleaned: str = query_result_utf8.strip("[b\"")
+                    logger.debug(f"Query results UTF 8 = {query_result_utf8}")
+                    #query_result_cleaned: str = query_result_utf8.strip("[b\"")
+                    query_result_cleaned: str = query_result_utf8[2:-1].strip()
                     logger.debug(f"Query result CLEANED = {query_result_cleaned}")
                     logger.debug(f"Query result found in cache. ({inspect.currentframe().f_lineno})")
-                    statsd.increment('nostr.event.found.redis.count', tags=["func:event_query"])
-                    serialized_events.append(query_result_cleaned)
+                    if len(query_result_cleaned) > 2:
+                        statsd.increment('nostr.event.found.redis.count', tags=["func:event_query"])
+                        serialized_events.append(query_result_cleaned)
 
                 else:
                     try:
@@ -190,9 +202,10 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                         query_result: List[Event] = query.order_by(desc(Event.created_at)).limit(query_limit).all()
                         statsd.increment('nostr.event.queried.postgres', tags=["func:event_query"])
                         serialized_events = [serialize(event) for event in query_result]
-                        redis_set = redis_client.set(redis_get, str(serialized_events))  # Set cache expiry time to 2 min
+                        logger.debug(f"serialized events are: {serialized_events}")
+                        redis_set = redis_client.set(redis_get, str(serialized_events))  
                         redis_client.expire(redis_get, 300)
-                        logger.debug(f"Query result stored in cache. Stored as: {redis_set} ({inspect.currentframe().f_lineno})")
+                        logger.debug(f"Query result stored in cache. Stored as: filters: {redis_get} values: {str(serialized_events)} ({inspect.currentframe().f_lineno})")
 
                     except Exception as e:
                         error_message = str(e)
@@ -222,7 +235,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
         serialized_events: List[Dict[str, Any]] = await event_query(json.dumps(filters))
 
-        if len(serialized_events) == 0:
+        if len(serialized_events) < 2:
             response = None
         else:
             response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': serialized_events}
