@@ -22,3 +22,4 @@ jobs:
     - name: Analysing the code with pylint
       run: |
         pylint ./*.py
+        pylint ./docker_stuff/python_stuff/*.py
