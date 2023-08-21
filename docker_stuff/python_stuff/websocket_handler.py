@@ -105,14 +105,15 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
                 message_list: List[Union[str, Dict[str, Any]]] = json.loads(message)
                 ws_message = WebsocketMessages(message=message_list, websocket=websocket)
                 unique_sessions.append(ws_message.uuid)
+                client_ips.append(ws_message.client_ip)
                 logger.debug(f"UUID = {ws_message.uuid}")
                 
                 if not rate_limiter.check_request(ws_message.client_ip):
                     logger.warning(f"Rate limit exceeded for client: {ws_message.client_ip}")
                     if ws_message.event_type == "REQ":
                         rate_limit_response: Tuple[str, Optional[str], str, Optional[str]] = "OK", ws_message.subscription_id, "false", "rate-limited: slow down there chief"
-                        #unique_sessions.remove(ws_message.uuid)
-                        #client_ips.remove(ws_message.client_ip)
+                        unique_sessions.remove(ws_message.uuid)
+                        client_ips.remove(ws_message.client_ip)
                         statsd.increment('nostr.client.rate_limited.count', tags=[f"client:{ws_message.client_ip}"])
                         await websocket.send(json.dumps(rate_limit_response))
                         await websocket.close()
