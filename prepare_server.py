@@ -1,7 +1,7 @@
 import os
 import subprocess
-import file_encryption
 from dotenv import load_dotenv
+import file_encryption
 
 def print_color(text, color):
     print(f"\033[1;{color}m{text}\033[0m")
@@ -29,7 +29,6 @@ try:
 except subprocess.CalledProcessError as e:
     print(f"An error occurred while adding the user: {e}")
 
-
 try:
     change_group_env = ["sudo", "setfacl", "-m", "g:relay_service:r", dotenv_path]
     subprocess.run(change_group_env, check=True)
@@ -37,7 +36,6 @@ try:
     subprocess.run(add_home_directory_ex, check=True)
 except subprocess.CalledProcessError as e:
     print(f"An error occurred while changing the group of the file: {e}")
-
 
 if os.path.exists(nginx_filepath):
     try:
@@ -80,7 +78,6 @@ else:
         print_color("The default configuration file has been written successfully.", "32")
     except Exception as e:
         print_color(f"An error occurred while writing the default configuration file: {e}", "31")
-
 
 try:
     subprocess.run(["sudo", "service", "nginx", "restart"], check=True)

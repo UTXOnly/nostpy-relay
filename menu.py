@@ -6,7 +6,6 @@ import file_encryption
 def print_color(text, color):
     print(f"\033[1;{color}m{text}\033[0m")
 
-
 # Function to start Nostpy relay
 def start_nostpy_relay():
     try:
@@ -29,7 +28,6 @@ def start_nostpy_relay():
     except Exception as e:
         print(f"Error occurred during decryption: {e}")
         return
-
 
 # Function to destroy all Docker containers and images
 def destroy_containers_and_images():
@@ -91,13 +89,10 @@ def decrypt_env():
             return
         else:
             print_color("Invalid option. Please enter either 1, 2, or 3.", "31")
-    
-
 
 while True:
     print_color("\n##########################################################################################", "31")
     print_color(""" \n
-    
     ███╗   ██╗ ██████╗ ███████╗████████╗██████╗ ██╗   ██╗
     ████╗  ██║██╔═══██╗██╔════╝╚══██╔══╝██╔══██╗╚██╗ ██╔╝
     ██╔██╗ ██║██║   ██║███████╗   ██║   ██████╔╝ ╚████╔╝ 
@@ -105,7 +100,6 @@ while True:
     ██║ ╚████║╚██████╔╝███████║   ██║   ██║        ██║   
     ╚═╝  ╚═══╝ ╚═════╝ ╚══════╝   ╚═╝   ╚═╝        ╚═╝   
                                                      
-    
     """ , "34")
     print("\nPlease select an option:\n")
     print_color("1) Execute server setup script", "33")
@@ -132,4 +126,3 @@ while True:
         break
     else:
         print_color("Invalid choice. Please enter a valid option number.", "31")
-
