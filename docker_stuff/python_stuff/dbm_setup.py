@@ -1,6 +1,6 @@
 import os
 import time
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
 from dotenv import load_dotenv
 import psycopg2
 

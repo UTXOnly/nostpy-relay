@@ -3,13 +3,11 @@ import json
 import logging
 import aiohttp
 import websockets
-from websockets.server import WebSocketServer
 from collections import defaultdict
 import time
 from logging.handlers import RotatingFileHandler
 from ddtrace import tracer
 from datadog import initialize, statsd
-from aiohttp.client import ClientResponse
 from typing import Dict, Any, List, Tuple, Union, Optional
 
 options: Dict[str, Any] = {
