@@ -19,9 +19,11 @@ def derive_key(password):
             length=32,
             backend=default_backend()
         )
-        return base64.urlsafe_b64encode(kdf.derive(password.encode()))
+        secret = base64.urlsafe_b64encode(kdf.derive(password.encode()))
+        return secret
     except Exception as e:
         print(f"Error occurred during key derivation: {e}")
+        return e
 
 def print_color(text, color):
     print(f"\033[1;{color}m{text}\033[0m")
@@ -54,7 +56,8 @@ def encrypt_file(filename, key=None):
 
         if data.startswith(MAGIC_NUMBER):
             print(f"{filename} is already encrypted.")
-            return
+            failure = "failed"
+            return failure
 
         fernet = Fernet(key)
         encrypted_data = bytearray(MAGIC_NUMBER) + fernet.encrypt(data)
@@ -66,6 +69,7 @@ def encrypt_file(filename, key=None):
 
     except Exception as e:
         print(f"Error occurred during file encryption: {e}")
+        return e
 
 def decrypt_file(encrypted_filename, key=None):
     if key is None:

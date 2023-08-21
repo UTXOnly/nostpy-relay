@@ -73,7 +73,7 @@ if os.path.exists(nginx_filepath):
     print_color("The default configuration file already exists.", "31")
 else:
     try:
-        with open(nginx_filepath, "w") as f:
+        with open(nginx_filepath, "w", encoding="utf-8") as f:
             f.write(nginx_config)
         print_color("The default configuration file has been written successfully.", "32")
     except Exception as e:
