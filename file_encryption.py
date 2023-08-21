@@ -48,7 +48,7 @@ def encrypt_file(filename, key=None):
         key = derive_key(password)
         if password != confirm_password:
             error_message = "Passwords do not match. Please try again."
-            return error_message, ""
+            return error_message
 
     try:
         with open(filename, "rb") as file:
@@ -56,8 +56,8 @@ def encrypt_file(filename, key=None):
 
         if data.startswith(MAGIC_NUMBER):
             print(f"{filename} is already encrypted.")
-            failure = "failed"
-            return failure, ""
+            failure = "File is already encrypted."
+            return failure
 
         fernet = Fernet(key)
         encrypted_data = bytearray(MAGIC_NUMBER) + fernet.encrypt(data)
@@ -66,10 +66,12 @@ def encrypt_file(filename, key=None):
             file.write(encrypted_data)
 
         print(f"{filename} encrypted and saved as {filename}")
+        return None
 
     except Exception as e:
         print(f"Error occurred during file encryption: {e}")
-        return e, ""
+        return str(e)
+
 
 def decrypt_file(encrypted_filename, key=None):
     if key is None:
