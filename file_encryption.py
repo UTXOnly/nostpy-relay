@@ -57,7 +57,7 @@ def encrypt_file(filename, key=None):
         if data.startswith(MAGIC_NUMBER):
             print(f"{filename} is already encrypted.")
             failure = "failed"
-            return failure
+            return failure, ""
 
         fernet = Fernet(key)
         encrypted_data = bytearray(MAGIC_NUMBER) + fernet.encrypt(data)
@@ -69,7 +69,7 @@ def encrypt_file(filename, key=None):
 
     except Exception as e:
         print(f"Error occurred during file encryption: {e}")
-        return e
+        return e, ""
 
 def decrypt_file(encrypted_filename, key=None):
     if key is None:
