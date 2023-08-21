@@ -59,7 +59,6 @@ class ExtractedResponse:
         self.results = response_data.get("results_json")
         self.comment = ""
 
-
     async def format_response(self):
     
         if self.event_type == "OK":
@@ -75,59 +74,32 @@ class ExtractedResponse:
             client_response: Tuple[str, Optional[str]] = self.event_type, self.subscription_id
     
         return client_response
-    
-    async def rate_limit_message(self):
-        self.event_type = "OK"
+
 
 class WebsocketMessages:
     def __init__(self, message: List[Union[str, Dict[str, Any]]], websocket):
-        logger.debug("Initializing WebsocketMessages")
         self.event_type = message[0]
-        logger.debug(f"Message lis is: {message}")
-        logger.debug(f"Event type is {self.event_type}")
         if self.event_type == "REQ" or self.event_type == "CLOSE":
             self.subscription_id: str = message[1]
-            logger.debug(f"Subscription ID is {self.subscription_id}")
             self.event_payload: List[Dict[str, Any]] = [{index: message[index]} for index in range(2, len(message))]
-            logger.debug(f"Event payload is {self.event_payload}")
         else:
             self.event_payload: Dict[str, Any] = message[1]
-            logger.debug(f"Event payload is {self.event_payload}")
         headers: websockets.Headers = websocket.request_headers
-        logger.debug("Getting request headers")
         #self.referer: str = headers.get("referer", "")
         #self.origin: str = headers.get("origin", "")
         self.client_ip: str = headers.get("X-Real-IP") or headers.get("X-Forwarded-For")
         logger.debug(f"Client IP is {self.client_ip}")
         self.uuid: str = websocket.id
-        logger.debug(f"UUID is {self.uuid}")
-
-
-
-
 
 unique_sessions = []
 client_ips = []
 
 async def handle_websocket_connection(websocket: websockets.WebSocketServerProtocol, path: str) -> None:
     global unique_sessions, client_ips
-    #headers: websockets.Headers = websocket.request_headers
-    #referer: str = headers.get("referer", "")
-    #origin: str = headers.get("origin", "")
-    #real_ip = headers.get("X-Real-IP") or headers.get("X-Forwarded-For")
-    
-    #try: 
-    #    logger.debug(f"Client IP: {real_ip}")
-    #    client_ips.append(real_ip)
-    #except:
-    #    logger.warning("Unable to determine client IP.")
-    #logger.debug(f"New WebSocket connection established from URL: {referer or origin}")
 
     async with aiohttp.ClientSession() as session:
-        #uuid = websocket.id
         place_holder = 0
-        
-        
+                
         try:
             async for message in websocket:
                 message_list: List[Union[str, Dict[str, Any]]] = json.loads(message)
@@ -139,23 +111,19 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
                     logger.warning(f"Rate limit exceeded for client: {ws_message.client_ip}")
                     if ws_message.event_type == "REQ":
                         rate_limit_response: Tuple[str, Optional[str], str, Optional[str]] = "OK", ws_message.subscription_id, "false", "rate-limited: slow down there chief"
-                    await websocket.send(json.dumps(rate_limit_response))
-                    await websocket.close()
-                    unique_sessions.remove(ws_message.uuid)
-                    client_ips.remove(ws_message.client_ip)
-                    statsd.increment('nostr.client.rate_limited.count', tags=[f"client:{ws_message.client_ip}"])
-                    return
+                        unique_sessions.remove(ws_message.uuid)
+                        client_ips.remove(ws_message.client_ip)
+                        statsd.increment('nostr.client.rate_limited.count', tags=[f"client:{ws_message.client_ip}"])
+                        await websocket.send(json.dumps(rate_limit_response))
+                        await websocket.close()
+                        return
 
                 if ws_message.event_type == "EVENT":
-                    #event_dict: Dict[str, Any] = message_list[1]
                     logger.debug(f"Event to be sent payload is: {ws_message.event_payload} of type {type(ws_message.event_payload)}")
                     await send_event_to_handler(session=session, event_dict=dict(ws_message.event_payload), websocket=websocket)
                 elif ws_message.event_type == "REQ":
-                    #subscription_id: str = message_list[1]
-                    #event_dict: List[Dict[str, Any]] = [{index: message_list[index]} for index in range(2, len(message_list))]
                     await send_subscription_to_handler(session=session, event_dict=ws_message.event_payload, subscription_id=ws_message.subscription_id, websocket=websocket)
                 elif ws_message.event_type == "CLOSE":
-                    #subscription_id: str = message_list[1]
                     response: Tuple[str, str] = "NOTICE", f"closing {ws_message.subscription_id}"
                     await websocket.send(json.dumps(response))
                     
@@ -184,7 +152,6 @@ async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: Dict
         logger.error(f"An error occurred while sending the event to the handler: {e}")
 
         
-
 async def send_subscription_to_handler(
     session: aiohttp.ClientSession,
     event_dict: List[Dict[str, Any]],
@@ -216,7 +183,6 @@ async def send_subscription_to_handler(
         else:
             await websocket.send(json.dumps(EOSE))
             logger.debug(f"Response data is {response_data} but it failed")
-
 
 
 if __name__ == "__main__":
