@@ -16,9 +16,9 @@ def start_nostpy_relay():
             return
         
         os.chdir("./docker_stuff")
-        subprocess.run(["ls", "-al"])
-        subprocess.run(["groups", "relay_service"])
-        subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "up", "-d"])
+        subprocess.run(["ls", "-al"], check=True)
+        subprocess.run(["groups", "relay_service"], check=True)
+        subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "up", "-d"], check=True)
         os.chdir("..")
         
         # Re-encrypt env file to keep it encrypted when not in use
@@ -34,7 +34,7 @@ def destroy_containers_and_images():
     try:
         # Change directory to the Docker stuff folder
         os.chdir("./docker_stuff")
-        subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "down"])
+        subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "down"], check=True)
 
         # Delete container images by their name
         image_names = [
@@ -47,7 +47,7 @@ def destroy_containers_and_images():
         ]
 
         for image_name in image_names:
-            subprocess.run(["sudo", "-u", "relay_service", "docker", "image", "rm", "-f", image_name])
+            subprocess.run(["sudo", "-u", "relay_service", "docker", "image", "rm", "-f", image_name], check=True)
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
 
@@ -65,7 +65,7 @@ def switch_branches():
 def execute_setup_script():
     try:
         #os.chdir("./docker_stuff")
-        subprocess.run(["python3", "build_env.py"])
+        subprocess.run(["python3", "build_env.py"], check=True)
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
 
