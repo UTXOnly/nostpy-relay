@@ -97,11 +97,10 @@ class WebsocketMessages:
 unique_sessions = []
 client_ips = []
 
-async def handle_websocket_connection(websocket: websockets.WebSocketServerProtocol, path: str) -> None:
+async def handle_websocket_connection(websocket: websockets.WebSocketServerProtocol) -> None:
     global unique_sessions, client_ips
 
     async with aiohttp.ClientSession() as session:
-        place_holder = 0
                 
         try:
             async for message in websocket:
