@@ -6,7 +6,6 @@ import file_encryption
 def print_color(text, color):
     print(f"\033[1;{color}m{text}\033[0m")
 
-
 # Function to start Nostpy relay
 def start_nostpy_relay():
     try:
@@ -17,9 +16,9 @@ def start_nostpy_relay():
             return
         
         os.chdir("./docker_stuff")
-        subprocess.run(["ls", "-al"])
-        subprocess.run(["groups", "relay_service"])
-        subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "up", "-d"])
+        subprocess.run(["ls", "-al"], check=True)
+        subprocess.run(["groups", "relay_service"], check=True)
+        subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "up", "-d"], check=True)
         os.chdir("..")
         
         # Re-encrypt env file to keep it encrypted when not in use
@@ -30,13 +29,12 @@ def start_nostpy_relay():
         print(f"Error occurred during decryption: {e}")
         return
 
-
 # Function to destroy all Docker containers and images
 def destroy_containers_and_images():
     try:
         # Change directory to the Docker stuff folder
         os.chdir("./docker_stuff")
-        subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "down"])
+        subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "down"], check=True)
 
         # Delete container images by their name
         image_names = [
@@ -49,7 +47,7 @@ def destroy_containers_and_images():
         ]
 
         for image_name in image_names:
-            subprocess.run(["sudo", "-u", "relay_service", "docker", "image", "rm", "-f", image_name])
+            subprocess.run(["sudo", "-u", "relay_service", "docker", "image", "rm", "-f", image_name], check=True)
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
 
@@ -67,7 +65,7 @@ def switch_branches():
 def execute_setup_script():
     try:
         #os.chdir("./docker_stuff")
-        subprocess.run(["python3", "build_env.py"])
+        subprocess.run(["python3", "build_env.py"], check=True)
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
 
@@ -81,23 +79,17 @@ def decrypt_env():
         if option == "1":
             print_color("Decrypting your .env file", "32")
             file_encryption.decrypt_file(encrypted_filename="./docker_stuff/.env")
-            break
         elif option == "2":
             print_color("Encrypting your .env file", "32")
             file_encryption.encrypt_file(filename="./docker_stuff/.env")
-            break
         elif option == "3":
             print_color("Returning to main menu", "31")
-            return
         else:
             print_color("Invalid option. Please enter either 1, 2, or 3.", "31")
-    
-
 
 while True:
     print_color("\n##########################################################################################", "31")
     print_color(""" \n
-    
     ███╗   ██╗ ██████╗ ███████╗████████╗██████╗ ██╗   ██╗
     ████╗  ██║██╔═══██╗██╔════╝╚══██╔══╝██╔══██╗╚██╗ ██╔╝
     ██╔██╗ ██║██║   ██║███████╗   ██║   ██████╔╝ ╚████╔╝ 
@@ -105,7 +97,6 @@ while True:
     ██║ ╚████║╚██████╔╝███████║   ██║   ██║        ██║   
     ╚═╝  ╚═══╝ ╚═════╝ ╚══════╝   ╚═╝   ╚═╝        ╚═╝   
                                                      
-    
     """ , "34")
     print("\nPlease select an option:\n")
     print_color("1) Execute server setup script", "33")
@@ -132,4 +123,3 @@ while True:
         break
     else:
         print_color("Invalid choice. Please enter a valid option number.", "31")
-

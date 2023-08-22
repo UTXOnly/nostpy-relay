@@ -1,20 +1,22 @@
 import os
 import json
 import logging
+from logging.handlers import RotatingFileHandler
 import inspect
+from typing import List, Dict, Any, Optional
+
 import uvicorn
 import secp256k1
 from ddtrace import tracer
 from datadog import initialize, statsd
 import redis
-from logging.handlers import RotatingFileHandler
 from sqlalchemy import create_engine, Column, String, Integer, JSON, desc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, class_mapper
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
-from typing import List, Dict, Any, Optional
+
 
 
 options: Dict[str, Any] = {
@@ -203,7 +205,7 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                         statsd.increment('nostr.event.queried.postgres', tags=["func:event_query"])
                         serialized_events = [serialize(event) for event in query_result]
                         logger.debug(f"serialized events are: {serialized_events}")
-                        redis_set = redis_client.set(redis_get, str(serialized_events))  
+                        redis_client.set(redis_get, str(serialized_events))  
                         redis_client.expire(redis_get, 300)
                         logger.debug(f"Query result stored in cache. Stored as: filters: {redis_get} values: {str(serialized_events)} ({inspect.currentframe().f_lineno})")
 
@@ -240,12 +242,16 @@ async def handle_subscription(request: Request) -> JSONResponse:
         else:
             response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': serialized_events}
 
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
     finally:
-        if response is None:
-            response = {'event': "EOSE", 'subscription_id': subscription_id, 'results_json': "None"}
-        return JSONResponse(content=response, status_code=200)
+        try:
+            if response is None:
+                response = {'event': "EOSE", 'subscription_id': subscription_id, 'results_json': "None"}
+            return JSONResponse(content=response, status_code=200)
+        except Exception as e:
+            return JSONResponse(content={'error': str(e)}, status_code=500)
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=80)
