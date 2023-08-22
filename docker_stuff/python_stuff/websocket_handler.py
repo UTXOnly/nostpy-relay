@@ -6,13 +6,13 @@ import asyncio
 import json
 import logging
 
+import time
 import aiohttp
 import websockets
 
 from ddtrace import tracer
 from datadog import initialize, statsd
 
-import time
 
 
 options: Dict[str, Any] = {
