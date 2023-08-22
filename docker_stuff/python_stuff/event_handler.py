@@ -1,20 +1,22 @@
 import os
 import json
 import logging
+from logging.handlers import RotatingFileHandler
 import inspect
+from typing import List, Dict, Any, Optional
+
 import uvicorn
 import secp256k1
 from ddtrace import tracer
 from datadog import initialize, statsd
 import redis
-from logging.handlers import RotatingFileHandler
 from sqlalchemy import create_engine, Column, String, Integer, JSON, desc
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, class_mapper
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
-from typing import List, Dict, Any, Optional
+
 
 
 options: Dict[str, Any] = {

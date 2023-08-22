@@ -1,14 +1,19 @@
+from collections import defaultdict
+from logging.handlers import RotatingFileHandler
+from typing import Dict, Any, List, Tuple, Union, Optional
+
 import asyncio
 import json
 import logging
+
 import aiohttp
 import websockets
-from collections import defaultdict
-import time
-from logging.handlers import RotatingFileHandler
+
 from ddtrace import tracer
 from datadog import initialize, statsd
-from typing import Dict, Any, List, Tuple, Union, Optional
+
+import time
+
 
 options: Dict[str, Any] = {
     'statsd_host': '172.28.0.5',
@@ -77,7 +82,7 @@ class ExtractedResponse:
 class WebsocketMessages:
     def __init__(self, message: List[Union[str, Dict[str, Any]]], websocket):
         self.event_type = message[0]
-        if self.event_type == "REQ" or self.event_type == "CLOSE":
+        if self.event_type in ('REQ', 'CLOSE'):
             self.subscription_id: str = message[1]
             self.event_payload: List[Dict[str, Any]] = [{index: message[index]} for index in range(2, len(message))]
         else:
