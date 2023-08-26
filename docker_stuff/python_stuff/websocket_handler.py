@@ -110,9 +110,9 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
                 unique_sessions.append(ws_message.uuid)
                 client_ips.append(ws_message.client_ip)
                 logger.debug(f"UUID = {ws_message.uuid}")
-                token_count = rate_limiter._get_tokens(ws_message.client_ip)
-                statsd.gauge('nostr.websocket_tokens_avail.gauge', token_count, tags=[f"client_ip:{ws_message.client_ip}"] )
-                logger.debug(f"Rate limiter tokens varaible is: {token_count}, client IP is {ws_message.client_ip}")
+                #token_count = rate_limiter._get_tokens(ws_message.client_ip)
+                #statsd.gauge('nostr.websocket_tokens_avail.gauge', token_count, tags=[f"client_ip:{ws_message.client_ip}"] )
+                #logger.debug(f"Rate limiter tokens varaible is: {token_count}, client IP is {ws_message.client_ip}")
                 
                 if not rate_limiter.check_request(ws_message.client_ip):
                     logger.warning(f"Rate limit exceeded for client: {ws_message.client_ip}")
@@ -206,6 +206,7 @@ if __name__ == "__main__":
                     num_clients = len(client_ips)
                     statsd.gauge('nostr.websocket.active_connections', num_of_connections)
                     statsd.gauge('nostr.clients.connected', num_clients)
+                    statsd.gauge('nostr.websocket_tokens_avail.gauge', rate_limiter.tokens, tags=[f"client_ip:null"] )
                     
                     logger.debug(f"Active connections: {num_of_connections}")
                     logger.debug(f"Clients connected are: {client_ips}")
