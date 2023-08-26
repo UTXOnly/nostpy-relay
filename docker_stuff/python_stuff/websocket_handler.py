@@ -34,6 +34,8 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
+from collections import defaultdict
+
 class TokenBucketRateLimiter:
     def __init__(self, tokens_per_second: int, max_tokens: int):
         self.tokens_per_second = tokens_per_second
@@ -49,12 +51,28 @@ class TokenBucketRateLimiter:
         self.last_request_time[client_id] = current_time
         return self.tokens
 
+    def _parse_token_count(self, token_count: str) -> dict:
+        start_index = token_count.find("{") + 1
+        end_index = token_count.find("}")
+        dictionary_str = token_count[start_index:end_index]
+        dictionary_splitter = dictionary_str.split(",")
+        dictionary = {}
+        for item in dictionary_splitter:
+            key, value = item.split(":")
+            dictionary[key.strip()] = int(value.strip())
+        return dictionary
+
+    def __str__(self):
+        return str(dict(self.tokens))
+
     def check_request(self, client_id: str) -> bool:
         self._get_tokens(client_id)
         if self.tokens[client_id] >= 1:
             self.tokens[client_id] -= 1
             return True
         return False
+
+
     
 class ExtractedResponse:
     def __init__(self, response_data):
@@ -110,9 +128,14 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
                 unique_sessions.append(ws_message.uuid)
                 client_ips.append(ws_message.client_ip)
                 logger.debug(f"UUID = {ws_message.uuid}")
-                #token_count = rate_limiter._get_tokens(ws_message.client_ip)
-                #statsd.gauge('nostr.websocket_tokens_avail.gauge', token_count, tags=[f"client_ip:{ws_message.client_ip}"] )
-                #logger.debug(f"Rate limiter tokens varaible is: {token_count}, client IP is {ws_message.client_ip}")
+                token_count = str(rate_limiter._get_tokens(ws_message.client_ip))
+                dictionary = rate_limiter._parse_token_count(token_count=token_count)
+                for key, value in dictionary.items():
+
+                    logger.debug(f"Rate limiter tokens variable is: {value}, client IP is {key}")
+                    statsd.gauge('nostr.websocket_tokens_avail.gauge', value, tags=[f"client_ip:{key}"])
+
+                
                 
                 if not rate_limiter.check_request(ws_message.client_ip):
                     logger.warning(f"Rate limit exceeded for client: {ws_message.client_ip}")
