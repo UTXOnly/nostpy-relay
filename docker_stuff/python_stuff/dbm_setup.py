@@ -42,14 +42,17 @@ class PostgresSetup:
             cur.execute("SELECT EXISTS(SELECT 1 FROM pg_namespace WHERE nspname = 'datadog')")
             schema_exists = cur.fetchone()[0]
 
-        if schema_exists:
-            print(f"{RED}datadog schema already exists in {self.connection_params['dbname']} database{RESET}")
-
-        else:
+        try:
             with self.conn.cursor() as cur:
                 cur.execute("CREATE SCHEMA datadog; GRANT USAGE ON SCHEMA datadog TO datadog; GRANT USAGE ON SCHEMA public TO datadog; GRANT pg_monitor TO datadog; CREATE EXTENSION IF NOT EXISTS pg_stat_statements;")
                 print(f"{GREEN}datadog schema created and permissions granted in {self.connection_params['dbname']} database{RESET}")
                 self.conn.commit()
+        except Exception as e:
+            if schema_exists:
+                print(f"{RED}datadog schema already exists in {self.connection_params['dbname']} database{RESET}")
+            else:
+                print(f"An error occurred: {e}")
+
 
     def explain_statement(self) -> None:
         with self.conn.cursor() as cur:

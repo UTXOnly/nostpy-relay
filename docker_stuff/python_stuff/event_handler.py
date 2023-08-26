@@ -122,11 +122,8 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
         session.add(new_event)
         session.commit()
-        #["OK", "b1a649ebe8...", true, ""]
         response = {'event': "OK", 'subscription_id': "n0stafarian419", 'results_json': "true"}
         statsd.increment('nostr.event.added.count', tags=["func:new_event"])
-        #message: str = "Event added successfully" if kind == 1 else "Event updated successfully"
-        #response: Dict[str, str] = {"message": message}
         return JSONResponse(content=response, status_code=200)
 
     except SQLAlchemyError as e:
@@ -172,7 +169,6 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                     query_result: bytes = cached_result
                     query_result_utf8: str = query_result.decode('utf-8')
                     logger.debug(f"Query results UTF 8 = {query_result_utf8}")
-                    #query_result_cleaned: str = query_result_utf8.strip("[b\"")
                     query_result_cleaned: str = query_result_utf8[2:-1].strip()
                     logger.debug(f"Query result CLEANED = {query_result_cleaned}")
                     logger.debug(f"Query result found in cache. ({inspect.currentframe().f_lineno})")
@@ -206,7 +202,7 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                         serialized_events = [serialize(event) for event in query_result]
                         logger.debug(f"serialized events are: {serialized_events}")
                         redis_client.set(redis_get, str(serialized_events))  
-                        redis_client.expire(redis_get, 300)
+                        redis_client.expire(redis_get, 1800)
                         logger.debug(f"Query result stored in cache. Stored as: filters: {redis_get} values: {str(serialized_events)} ({inspect.currentframe().f_lineno})")
 
                     except Exception as e:
