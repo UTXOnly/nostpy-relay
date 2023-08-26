@@ -230,7 +230,13 @@ if __name__ == "__main__":
                     statsd.gauge('nostr.websocket.active_connections', num_of_connections)
                     statsd.gauge('nostr.clients.connected', num_clients)
                     #token_count = rate_limiter._get_tokens
-                    #statsd.gauge('nostr.websocket_tokens_avail.gauge', token_count, tags=[f"client_ip:null"] )
+                    #statsd.gauge('nostr.websocket_tokens_avail.gauge', token_count, tags=[f"client_ip:null"] 
+                    token_count = str(rate_limiter._get_tokens("1.1.1.1"))
+                    dictionary = rate_limiter._parse_token_count(token_count=token_count)
+                    for key, value in dictionary.items():
+
+                        logger.debug(f"Rate limiter tokens variable is: {value}, client IP is {key}")
+                        statsd.gauge('nostr.websocket_tokens_avail.gauge', value, tags=[f"client_ip:{key}"])
                     
                     logger.debug(f"Active connections: {num_of_connections}")
                     logger.debug(f"Clients connected are: {client_ips}")
