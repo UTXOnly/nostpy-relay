@@ -47,6 +47,7 @@ class TokenBucketRateLimiter:
         new_tokens = int(time_passed * self.tokens_per_second)
         self.tokens[client_id] = min(self.tokens[client_id] + new_tokens, self.max_tokens)
         self.last_request_time[client_id] = current_time
+        return self.tokens
 
     def check_request(self, client_id: str) -> bool:
         self._get_tokens(client_id)
@@ -109,7 +110,9 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
                 unique_sessions.append(ws_message.uuid)
                 client_ips.append(ws_message.client_ip)
                 logger.debug(f"UUID = {ws_message.uuid}")
-                statsd.gauge('nostr.websocket_tokens_avail.gauge', rate_limiter.tokens, tags=[f"client_ip:{ws_message.client_ip}"] )
+                token_count = rate_limiter._get_tokens(ws_message.client_ip)
+                statsd.gauge('nostr.websocket_tokens_avail.gauge', token_count, tags=[f"client_ip:{ws_message.client_ip}"] )
+                logger.debug(f"Rate limiter tokens varaible is: {token_count}, client IP is {ws_message.client_ip}")
                 
                 if not rate_limiter.check_request(ws_message.client_ip):
                     logger.warning(f"Rate limit exceeded for client: {ws_message.client_ip}")
@@ -195,7 +198,7 @@ if __name__ == "__main__":
     try:
         start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
         async def send_active_connections_metric():
-            global unique_sessions, client_ips
+            global unique_sessions, client_ips, 
             while True:
                 await asyncio.sleep(5)
                 try:

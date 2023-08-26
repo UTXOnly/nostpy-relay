@@ -65,7 +65,7 @@ services:
     command: postgres -c 'config_file=/postgresql.conf'
     volumes:
       - ./postgresql.conf:/postgresql.conf
-      - ./postgresql/data:/var/lib/postgresql/data
+      - /var/lib/postgresql/data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"] # database username here - nostr, should be changed if other user
       interval: 10s
