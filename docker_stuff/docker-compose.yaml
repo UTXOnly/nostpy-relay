@@ -65,7 +65,7 @@ services:
     command: postgres -c 'config_file=/postgresql.conf'
     volumes:
       - ./postgresql.conf:/postgresql.conf
-      #- ./postgresql/data:/var/lib/postgresql/data
+      - ./postgresql/data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"] # database username here - nostr, should be changed if other user
       interval: 10s
@@ -95,8 +95,7 @@ services:
     environment:
       - DD_API_KEY=${DD_API_KEY}
       - DD_SITE=datadoghq.com
-      #- DD_HOSTNAME=nostpy-local-test-actual
-      - DD_HOSTNAME=AHHHHHHHH
+      - DD_HOSTNAME=nostpy-local-test-actual
       - DD_ENV=${DD_ENV}
       - DD_TAGS=owner:brian
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true

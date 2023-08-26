@@ -29,29 +29,38 @@ class PostgresSetup:
         if self.conn:
             self.conn.close()
 
-    def create_datadog_user_and_schema(self) -> None:
-        with self.conn.cursor() as cur:
-            cur.execute("SELECT 1 FROM pg_roles WHERE rolname='datadog'")
-            exists = cur.fetchone()
-            if not exists:
+def create_datadog_user_and_schema(self) -> None:
+    with self.conn.cursor() as cur:
+        cur.execute("SELECT 1 FROM pg_roles WHERE rolname='datadog'")
+        exists = cur.fetchone()
+        if not exists:
+            try:
                 cur.execute("CREATE USER datadog WITH password 'datadog'")
                 print(f"{GREEN}datadog user created in {self.connection_params['dbname']} database{RESET}")
                 self.conn.commit()
+            except Exception as e:
+                print(f"An error occurred while creating datadog user: {e}")
+
+    with self.conn.cursor() as cur:
+        cur.execute("SELECT EXISTS(SELECT 1 FROM pg_namespace WHERE nspname = 'datadog')")
+        schema_exists = cur.fetchone()[0]
+
+    try:
+        with self.conn.cursor() as cur:
+            cur.execute("CREATE SCHEMA datadog; GRANT USAGE ON SCHEMA datadog TO datadog; GRANT USAGE ON SCHEMA public TO datadog; GRANT pg_monitor TO datadog;")
+            print(f"{GREEN}datadog schema created and permissions granted in {self.connection_params['dbname']} database{RESET}")
+            self.conn.commit()
 
         with self.conn.cursor() as cur:
-            cur.execute("SELECT EXISTS(SELECT 1 FROM pg_namespace WHERE nspname = 'datadog')")
-            schema_exists = cur.fetchone()[0]
+            cur.execute("CREATE EXTENSION IF NOT EXISTS pg_stat_statements")
+            print(f"{GREEN}pg_stat_statements extension created in {self.connection_params['dbname']} database{RESET}")
+            self.conn.commit()
+    except Exception as e:
+        if schema_exists:
+            print(f"{RED}datadog schema already exists in {self.connection_params['dbname']} database{RESET}")
+        else:
+            print(f"An error occurred while creating datadog schema or extension: {e}")
 
-        try:
-            with self.conn.cursor() as cur:
-                cur.execute("CREATE SCHEMA datadog; GRANT USAGE ON SCHEMA datadog TO datadog; GRANT USAGE ON SCHEMA public TO datadog; GRANT pg_monitor TO datadog; CREATE EXTENSION IF NOT EXISTS pg_stat_statements;")
-                print(f"{GREEN}datadog schema created and permissions granted in {self.connection_params['dbname']} database{RESET}")
-                self.conn.commit()
-        except Exception as e:
-            if schema_exists:
-                print(f"{RED}datadog schema already exists in {self.connection_params['dbname']} database{RESET}")
-            else:
-                print(f"An error occurred: {e}")
 
 
     def explain_statement(self) -> None:
