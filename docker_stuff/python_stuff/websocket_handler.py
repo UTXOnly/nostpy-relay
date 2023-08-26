@@ -198,7 +198,7 @@ if __name__ == "__main__":
     try:
         start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
         async def send_active_connections_metric():
-            global unique_sessions, client_ips, 
+            global unique_sessions, client_ips
             while True:
                 await asyncio.sleep(5)
                 try:
@@ -206,7 +206,8 @@ if __name__ == "__main__":
                     num_clients = len(client_ips)
                     statsd.gauge('nostr.websocket.active_connections', num_of_connections)
                     statsd.gauge('nostr.clients.connected', num_clients)
-                    statsd.gauge('nostr.websocket_tokens_avail.gauge', rate_limiter.tokens, tags=[f"client_ip:null"] )
+                    #token_count = rate_limiter._get_tokens
+                    #statsd.gauge('nostr.websocket_tokens_avail.gauge', token_count, tags=[f"client_ip:null"] )
                     
                     logger.debug(f"Active connections: {num_of_connections}")
                     logger.debug(f"Clients connected are: {client_ips}")
