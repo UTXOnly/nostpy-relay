@@ -15,7 +15,13 @@ def start_nostpy_relay():
             return
         
         os.chdir("./docker_stuff")
-        subprocess.run(["sudo", "setfacl", "-R", "-m", "u:relay_service:rwx", "./postgresql" ], check=True)
+        file_path = "./postgresql/"
+        
+        if os.path.exists(file_path):
+            subprocess.run(["sudo", "setfacl", "-R", "-m", "u:relay_service:rwx", file_path], check=True)
+        else:
+            print("File does not exist. Skipping the command.")
+
         subprocess.run(["ls", "-al"], check=True)
         subprocess.run(["groups", "relay_service"], check=True)
         subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "up", "-d"], check=True)

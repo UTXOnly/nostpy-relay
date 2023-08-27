@@ -99,8 +99,13 @@ def list_databases(conn_obj):
     return databases
 
 
-conn = psycopg2.connect(**connection_params)
-databases_list = list_databases(conn)
+
+try:
+    conn = psycopg2.connect(**connection_params)
+    databases_list = list_databases(conn)
+except psycopg2.Error as e:
+    print("An error occurred while connecting to the database:", e)
+
 
 # Iterate through the list of database names, run checks, and create schemas
 for db_name in databases_list:
