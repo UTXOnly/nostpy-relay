@@ -11,7 +11,7 @@ RED = "\033[0;31m"
 RESET = "\033[0m"
 
 connection_params = {
-    'host': "nostr",
+    'host': "localhost",
     'port': '5432',
     'dbname': 'nostr',
     'user': 'nostr',
