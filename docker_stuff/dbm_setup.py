@@ -4,7 +4,7 @@ import time
 from dotenv import load_dotenv
 import psycopg2
 
-load_dotenv("./env")
+load_dotenv("./.env")
 
 GREEN = "\033[0;32m"
 RED = "\033[0;31m"
