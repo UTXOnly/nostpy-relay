@@ -16,7 +16,7 @@ class PostgresSetup:
         self.connection_params = {
             'host': os.getenv('POSTGRES_HOST'),
             'port': os.getenv('POSTGRES_PORT'),
-            'dbname': os.getenv('POSTGRES_DB'),
+            'dbname': 'postgres',#os.getenv('POSTGRES_DB'),
             'user': 'postgres',#os.getenv('POSTGRES_USER'),
             'password': 'postgres',#os.getenv('POSTGRES_PASSWORD')
         }
