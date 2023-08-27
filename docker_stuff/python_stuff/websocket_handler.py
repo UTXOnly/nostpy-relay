@@ -131,8 +131,6 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
                 if not rate_limiter.check_request(ws_message.client_ip):
                     logger.warning(f"Rate limit exceeded for client: {ws_message.client_ip}")
                     rate_limit_response: Tuple[str, Optional[str], str, Optional[str]] = "OK", "nostafarian419", "false", "rate-limited: slow your roll nostrich"
-                    unique_sessions.remove(ws_message.uuid)
-                    client_ips.remove(ws_message.client_ip)
                     statsd.increment('nostr.client.rate_limited.count', tags=[f"client_ip:{ws_message.client_ip}", f"nostr_client:{ws_message.origin}"])
                     await websocket.send(json.dumps(rate_limit_response))
                     await websocket.close()
