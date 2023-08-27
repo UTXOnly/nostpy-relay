@@ -101,7 +101,11 @@ def list_databases(conn_obj):
 
 
 try:
-    print(**connection_params)
+    print(connection_params["host"])
+    print(connection_params["dbname"])
+    print(connection_params["port"])
+    print(connection_params["user"])
+    print(connection_params["password"])
     conn = psycopg2.connect(**connection_params)
     databases_list = list_databases(conn)
 except psycopg2.Error as e:
