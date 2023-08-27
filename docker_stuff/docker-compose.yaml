@@ -87,6 +87,7 @@ services:
             "service" : "STAGING-pg-db",
             "reported_hostname" : "STAGING-pg-db"
           }
+        ]
         
 
 

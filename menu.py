@@ -125,7 +125,7 @@ while True:
     print_color("6) Stop all containers", "33")
     print_color("7) Exit menu", "31")
 
-    choice = input("\nEnter an option number (1-6): ")
+    choice = input("\nEnter an option number (1-7): ")
 
     if choice == "1":
         execute_setup_script()
