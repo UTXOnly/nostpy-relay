@@ -101,6 +101,7 @@ def list_databases(conn_obj):
 
 
 try:
+    print(**connection_params)
     conn = psycopg2.connect(**connection_params)
     databases_list = list_databases(conn)
 except psycopg2.Error as e:
@@ -110,6 +111,7 @@ except psycopg2.Error as e:
 # Iterate through the list of database names, run checks, and create schemas
 for db_name in databases_list:
     print(f"{GREEN}Discovered database: {RESET}{db_name} \nCreating schema and checking permissions + stats")
+    print(connection_params)
     connection_params['dbname'] = db_name
     conn = psycopg2.connect(**connection_params)
     create_datadog_user_and_schema(conn_obj=conn, db=connection_params['dbname'])
