@@ -11,10 +11,11 @@ def start_nostpy_relay():
     try:
         success, pass_holder = file_encryption.decrypt_file("./docker_stuff/.env")
         if not success:
-            print("Decryption failed. Cannot continue.")
+            print("Decryption failed, file is not encrypted please encrypt file and rerun command")
             return
         
         os.chdir("./docker_stuff")
+        subprocess.run(["sudo", "setfacl", "-R", "u:relay_service:rwx", "./postgresql" ], check=True)
         subprocess.run(["ls", "-al"], check=True)
         subprocess.run(["groups", "relay_service"], check=True)
         subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "up", "-d"], check=True)

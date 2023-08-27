@@ -107,8 +107,7 @@ class WebsocketMessages:
         else:
             self.event_payload: Dict[str, Any] = message[1]
         headers: websockets.Headers = websocket.request_headers
-        self.referer: str = headers.get("referer", "")
-        self.origin: str = headers.get("origin", "")
+        self.origin: str = headers.get("origin", "") or headers.get("referer", "")
         self.client_ip: str = headers.get("X-Real-IP") or headers.get("X-Forwarded-For")
         logger.debug(f"Client IP is {self.client_ip}")
         self.uuid: str = websocket.id
@@ -126,6 +125,7 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
                 message_list = json.loads(message)
                 ws_message = WebsocketMessages(message=message_list, websocket=websocket)
                 logger.debug(f"UUID = {ws_message.uuid}")
+                statsd.increment('nostr.new_connection.count', tags=[f"client_ip:{ws_message.client_ip}", f"nostr_client:{ws_message.origin}"])
 
 
                 if not rate_limiter.check_request(ws_message.client_ip):
@@ -133,7 +133,7 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
                     rate_limit_response: Tuple[str, Optional[str], str, Optional[str]] = "OK", "nostafarian419", "false", "rate-limited: slow your roll nostrich"
                     unique_sessions.remove(ws_message.uuid)
                     client_ips.remove(ws_message.client_ip)
-                    statsd.increment('nostr.client.rate_limited.count', tags=[f"client:{ws_message.client_ip}"])
+                    statsd.increment('nostr.client.rate_limited.count', tags=[f"client_ip:{ws_message.client_ip}", f"nostr_client:{ws_message.origin}"])
                     await websocket.send(json.dumps(rate_limit_response))
                     await websocket.close()
                     return
