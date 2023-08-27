@@ -48,6 +48,7 @@ def destroy_containers_and_images():
 
         for image_name in image_names:
             subprocess.run(["sudo", "-u", "relay_service", "docker", "image", "rm", "-f", image_name], check=True)
+        os.chdir("..")
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
 
