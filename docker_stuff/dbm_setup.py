@@ -18,7 +18,7 @@ class PostgresSetup:
             'port': os.getenv('POSTGRES_PORT'),
             'dbname': 'postgres',#os.getenv('POSTGRES_DB'),
             'user': 'postgres',#os.getenv('POSTGRES_USER'),
-            'password': 'postgres',#os.getenv('POSTGRES_PASSWORD')
+            'password': 'nostpy',#os.getenv('POSTGRES_PASSWORD')
         }
         self.conn: Optional[psycopg2.extensions.connection] = None
 
