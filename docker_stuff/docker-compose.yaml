@@ -87,7 +87,8 @@ services:
             "service" : "STAGING-pg-db",
             "reported_hostname" : "STAGING-pg-db"
           }
-        ]
+        
+
 
   datadog-agent:
     container_name: datadog-agent
@@ -144,7 +145,8 @@ services:
       my_network:
         ipv4_address: 172.28.0.6
 
-
+volumes:
+  postgres_data:
 
 networks:
   my_network:
