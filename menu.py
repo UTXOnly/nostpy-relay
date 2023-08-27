@@ -15,7 +15,7 @@ def start_nostpy_relay():
             return
         
         os.chdir("./docker_stuff")
-        #subprocess.run(["sudo", "setfacl", "-R", "u:relay_service:rwx", "./postgresql" ], check=True)
+        subprocess.run(["sudo", "setfacl", "-R", "-m", "u:relay_service:rwx", "./postgresql" ], check=True)
         subprocess.run(["ls", "-al"], check=True)
         subprocess.run(["groups", "relay_service"], check=True)
         subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "up", "-d"], check=True)
