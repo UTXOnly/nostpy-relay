@@ -9,19 +9,10 @@ def print_color(text, color):
 # Function to start Nostpy relay
 def start_nostpy_relay():
     try:
-        env_filename = "./docker_stuff/.env"
-
-        with open(env_filename, "rb") as file:
-            encrypted_data = file.read()
-
-        if not encrypted_data.startswith(file_encryption.MAGIC_NUMBER):
-            print(f"{env_filename} is not encrypted.")
-        else:
-        # Change directory and start Docker containers
-            success, pass_holder = file_encryption.decrypt_file("./docker_stuff/.env")
-            if not success:
-                print("Decryption failed. Cannot continue.")
-                return
+        success, pass_holder = file_encryption.decrypt_file("./docker_stuff/.env")
+        if not success:
+            print("Decryption failed. Cannot continue.")
+            return
         
         os.chdir("./docker_stuff")
         subprocess.run(["ls", "-al"], check=True)
