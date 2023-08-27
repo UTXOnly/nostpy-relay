@@ -71,7 +71,7 @@ def explain_statement(conn_obj):
     print(f"{GREEN}Explain plans statement completed{RESET}")
 
 
-def check_postgres_stats(connection_params, db):
+def check_postgres_stats(conn_obj, db):
     try:
         conn_obj = psycopg2.connect(**connection_params)
         with conn_obj.cursor() as cur:
@@ -107,7 +107,8 @@ for db_name in databases_list:
     print(f"{GREEN}Discovered database: {RESET}{db_name} \nCreating schema and checking permissions + stats")
     connection_params['dbname'] = db_name
     conn = psycopg2.connect(**connection_params)
-    create_datadog_user_and_schema(conn, connection_params['dbname'])
-    check_postgres_stats(connection_params, db_name)
+    create_datadog_user_and_schema(conn_obj=conn, db=connection_params['dbname'])
+    explain_statement(conn_obj=conn)
+    check_postgres_stats(conn_obj=conn, db=db_name)
 
 print("Setup complete!")
