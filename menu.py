@@ -58,6 +58,15 @@ def destroy_containers_and_images():
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
 
+def stop_containers():
+    try:
+        # Change directory to the Docker stuff folder
+        os.chdir("./docker_stuff")
+        subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "down"], check=True)
+        os.chdir("..")
+    except subprocess.CalledProcessError as e:
+        print_color(f"Error occurred: {e}", "31")
+
 # Function to switch branches
 def switch_branches():
     try:
@@ -113,7 +122,8 @@ while True:
     print_color("3) Switch branches", "33")
     print_color("4) Destroy all docker containers and images", "31")
     print_color("5) Decrypt/encrypt .env file to edit", "33")
-    print_color("6) Exit menu", "31")
+    print_color("6) Stop all containers", "33")
+    print_color("7) Exit menu", "31")
 
     choice = input("\nEnter an option number (1-6): ")
 
@@ -128,6 +138,8 @@ while True:
     elif choice == "5":
         decrypt_env()
     elif choice == "6":
+        stop_containers()
+    elif choice == "7":
         print_color("Exited menu", "31")
         break
     else:
