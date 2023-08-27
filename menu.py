@@ -84,8 +84,10 @@ def decrypt_env():
             file_encryption.encrypt_file(filename="./docker_stuff/.env")
         elif option == "3":
             print_color("Returning to main menu", "31")
+            break
         else:
             print_color("Invalid option. Please enter either 1, 2, or 3.", "31")
+            
 
 while True:
     print_color("\n##########################################################################################", "31")
