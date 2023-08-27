@@ -35,12 +35,19 @@ def create_datadog_user_and_schema(conn_obj, db):
     if schema_exists:
         print(f"{RED}datadog schema already exists in db{RESET}")
 
-    else:
-
+    try:
         with conn_obj.cursor() as cur:
-            cur.execute("CREATE SCHEMA datadog; GRANT USAGE ON SCHEMA datadog TO datadog; GRANT USAGE ON SCHEMA public TO datadog; GRANT pg_monitor TO datadog; CREATE EXTENSION IF NOT EXISTS pg_stat_statements;")
+            cur.execute("CREATE EXTENSION IF NOT EXISTS pg_stat_statements;")
+    except Exception as e:
+        print(f"An error occurred while executing CREATE EXTENSION: {e}")
+    
+    try:
+        with conn_obj.cursor() as cur:
+            cur.execute("CREATE SCHEMA datadog; GRANT USAGE ON SCHEMA datadog TO datadog; GRANT USAGE ON SCHEMA public TO datadog; GRANT pg_monitor TO datadog;")
             print(f"{GREEN}datadog schema created and permissions granted in {db} database{RESET}")
             conn.commit()
+    except Exception as e:
+        print(f"An error occurred while creating datadog schema and granting permissions: {e}")
 
 
 def explain_statement(conn_obj):
