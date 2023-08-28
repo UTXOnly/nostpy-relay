@@ -1,6 +1,7 @@
 import subprocess
 import os
 import file_encryption
+import pkg_resources
 
 # Function to print colored text to the console
 def print_color(text, color):
@@ -80,7 +81,6 @@ def switch_branches():
 # Function to execute setup.py script
 def execute_setup_script():
     try:
-        #os.chdir("./docker_stuff")
         subprocess.run(["python3", "build_env.py"], check=True)
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
@@ -103,6 +103,26 @@ def decrypt_env():
             break
         else:
             print_color("Invalid option. Please enter either 1, 2, or 3.", "31")
+
+def setup_dbm():
+    
+    try:
+        pkg_resources.get_distribution('psycopg2-binary')
+        print("psycopg2-binary is already installed")
+    except pkg_resources.DistributionNotFound:
+        try:
+            subprocess.run(["pip", "install", "psycopg2-binary"], check=True)
+            print("psycopg2-binary successfully installed")
+        except subprocess.CalledProcessError as e:
+            print(f"Error occurred while installing psycopg2-binary: {e}")
+    
+    try:
+        subprocess.run(["python3", "dbm_setup.py"], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error occurred while running dbm_setup.py: {e}")
+
+
+
             
 
 while True:
@@ -123,24 +143,28 @@ while True:
     print_color("4) Destroy all docker containers and images", "31")
     print_color("5) Decrypt/encrypt .env file to edit", "33")
     print_color("6) Stop all containers", "33")
-    print_color("7) Exit menu", "31")
+    print_color("7) Setup database monitoring", "32")
+    print_color("8) Exit menu", "31")
 
-    choice = input("\nEnter an option number (1-7): ")
 
-    if choice == "1":
-        execute_setup_script()
-    elif choice == "2":
-        start_nostpy_relay()      
-    elif choice == "3":
-        switch_branches()
-    elif choice == "4":
-        destroy_containers_and_images()
-    elif choice == "5":
-        decrypt_env()
-    elif choice == "6":
-        stop_containers()
-    elif choice == "7":
-        print_color("Exited menu", "31")
-        break
-    else:
-        print_color("Invalid choice. Please enter a valid option number.", "31")
+    options = {
+        "1": execute_setup_script,
+        "2": start_nostpy_relay,
+        "3": switch_branches,
+        "4": destroy_containers_and_images,
+        "5": decrypt_env,
+        "6": stop_containers,
+        "7": setup_dbm,
+        "8": lambda: print_color("Exited menu", "31")
+    }
+    
+    try:
+        choice = input("\nEnter an option number (1-8): ")
+        if choice in options:
+            options[choice]()
+            if choice == "8":
+                print()
+                break
+    except:
+            print_color("Invalid choice. Please enter a valid option number.", "31")
+

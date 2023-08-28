@@ -215,6 +215,7 @@ if __name__ == "__main__":
 
                     token_count = str(rate_limiter._get_tokens("0.0.0.0"))
                     dictionary = rate_limiter._parse_token_count(token_count=token_count)
+                    logger.debug(f"Dictionary variable length is {len(dictionary)} and the value is: {dictionary} ")
                     for key, value in dictionary.items():
 
                         logger.debug(f"Rate limiter tokens variable is: {value}, client IP is {key}")
