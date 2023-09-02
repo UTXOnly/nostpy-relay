@@ -4,21 +4,21 @@ pipeline {
     stages {
         stage('Preparation') {
             steps {
-                sh 'docker system prune -af' // Remove ALL unused Docker data
+                sh 'docker system prune -af' // Remove all unused Docker data
             }
         }
 
         stage('Run') {
             steps {
-                sh 'cd docker_stuff && docker-compose up -d' //detached mode
+                sh 'cd docker_stuff && docker-compose up -d'
             }
         }
     }
 
     post {
         always {
-            stage('Cleanup') {
-                steps {
+            script {
+                stage('Cleanup') {
                     sh 'docker system prune -af' // Remove all unused Docker data again
                 }
             }
