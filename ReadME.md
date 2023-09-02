@@ -2,8 +2,7 @@
 
 [![Pylint](https://github.com/UTXOnly/nost-py/actions/workflows/pylint.yml/badge.svg?branch=main&event=push)](https://github.com/UTXOnly/nost-py/actions/workflows/pylint.yml)
 
-
-<svg xmlns="http://www.w3.org/2000/svg" width="85" height="20"><linearGradient id="a" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient><rect rx="3" width="85" height="20" fill="#555"/><rect rx="3" x="50" width="35" height="20" fill="#4c1"/><path fill="#4c1" d="M50 0h4v20h-4z"/><rect rx="3" width="85" height="20" fill="url(#a)"/><g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11"><text x="25" y="15" fill="#010101" fill-opacity=".3">pylint</text><text x="25" y="14">pylint</text><text x="67" y="15" fill="#010101" fill-opacity=".3">9.12</text><text x="67" y="14">9.12</text></g></svg>
+[![Pylint_score](https://github.com/UTXOnly/nost-py/blob/dbm/pybadge.html)](https://github.com/UTXOnly/nost-py/blob/dbm/pybadge.html)
 
 A simple and easy to deploy nostr relay using `asyncio` & `websockets` to server Nostr clients
 
