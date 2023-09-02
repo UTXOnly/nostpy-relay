@@ -13,10 +13,14 @@ pipeline {
                 sh 'cd docker_stuff && docker-compose up -d'
             }
         }
-        
-        stage('Cleanup') {
-            steps {
-                sh 'docker system prune -af' // Remove all unused Docker data again
+    }
+
+    post {
+        always {
+            stage('Cleanup') {
+                steps {
+                    sh 'docker system prune -af' // Remove all unused Docker data again
+                }
             }
         }
     }
