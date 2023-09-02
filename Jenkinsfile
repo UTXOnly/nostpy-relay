@@ -1,13 +1,22 @@
 pipeline {
     agent any
-    
+
     stages {
-        stage('Test') {
+        stage('Preparation') {
             steps {
-                script {
-                    // Run docker-compose up
-                    sh "cd docker_stuff && docker-compose up"
-                }
+                sh 'docker system prune -af' // Remove all unused Docker data
+            }
+        }
+
+        stage('Run') {
+            steps {
+                sh 'cd docker_stuff && docker-compose up'
+            }
+        }
+        
+        stage('Cleanup') {
+            steps {
+                sh 'docker system prune -af' // Remove all unused Docker data again
             }
         }
     }
