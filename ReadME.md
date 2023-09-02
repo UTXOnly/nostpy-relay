@@ -1,8 +1,8 @@
 # Nostpy
 
-[![Pylint](https://github.com/UTXOnly/nost-py/actions/workflows/pylint.yml/badge.svg?branch=main&event=push)](https://github.com/UTXOnly/nost-py/actions/workflows/pylint.yml)
+![pylint](./pylint.svg) [![Pylint](https://github.com/UTXOnly/nost-py/actions/workflows/pylint.yml/badge.svg?branch=main&event=push)](https://github.com/UTXOnly/nost-py/actions/workflows/pylint.yml)
 
-![pylint](./pylint.svg)
+
 
 
 A simple and easy to deploy nostr relay using `asyncio` & `websockets` to server Nostr clients
