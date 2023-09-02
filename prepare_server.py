@@ -21,7 +21,7 @@ except Exception as e:
     print(f"An error occurred: {e}")
 
 try:
-    subprocess.check_call(['sudo', 'apt', 'install', 'python3-pip'])
+    subprocess.check_call(['sudo', 'apt', 'install', 'python3-pip', '-y'])
     print("Pip installed successfully!")
 except subprocess.CalledProcessError as e:
     print(f"An error occurred while installing pip: {e}")
