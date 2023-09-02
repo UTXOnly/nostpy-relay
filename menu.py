@@ -117,7 +117,7 @@ def setup_dbm():
             print(f"Error occurred while installing psycopg2-binary: {e}")
     
     try:
-        subprocess.run(["python3", "dbm_setup.py"], check=True)
+        subprocess.run(["python3", "./docker_stuff/dbm_setup.py"], check=True)
     except subprocess.CalledProcessError as e:
         print(f"Error occurred while running dbm_setup.py: {e}")
 
