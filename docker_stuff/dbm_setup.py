@@ -1,10 +1,5 @@
-# pylint: disable=W0621
-import os
 import time
-from dotenv import load_dotenv
 import psycopg2
-
-load_dotenv("./.env")
 
 GREEN = "\033[0;32m"
 RED = "\033[0;31m"
@@ -49,33 +44,35 @@ def create_datadog_user_and_schema(conn_obj, db):
     except Exception as e:
         print(f"An error occurred while creating datadog schema and granting permissions: {e}")
 
-
 def explain_statement(conn_obj):
-    with conn_obj.cursor() as cur:
-        cur.execute("""
-        CREATE OR REPLACE FUNCTION datadog.explain_statement(
-            l_query TEXT,
-            OUT explain JSON
-        )
-        RETURNS SETOF JSON AS
-        $$
-        DECLARE
-            curs REFCURSOR;
-            plan JSON;
-        BEGIN
-            OPEN curs FOR EXECUTE pg_catalog.concat('EXPLAIN (FORMAT JSON) ', l_query);
-            FETCH curs INTO plan;
-            CLOSE curs;
-            RETURN QUERY SELECT plan;
-        END;
-        $$
-        LANGUAGE 'plpgsql'
-        RETURNS NULL ON NULL INPUT
-        SECURITY DEFINER;
-        """)
-        conn_obj.commit()
-        time.sleep(2)
-    print(f"{GREEN}Explain plans statement completed{RESET}")
+    try:
+        with conn_obj.cursor() as cur:
+            cur.execute("""
+            CREATE OR REPLACE FUNCTION datadog.explain_statement(
+                l_query TEXT,
+                OUT explain JSON
+            )
+            RETURNS SETOF JSON AS
+            $$
+            DECLARE
+                curs REFCURSOR;
+                plan JSON;
+            BEGIN
+                OPEN curs FOR EXECUTE pg_catalog.concat('EXPLAIN (FORMAT JSON) ', l_query);
+                FETCH curs INTO plan;
+                CLOSE curs;
+                RETURN QUERY SELECT plan;
+            END;
+            $$
+            LANGUAGE 'plpgsql'
+            RETURNS NULL ON NULL INPUT
+            SECURITY DEFINER;
+            """)
+            conn_obj.commit()
+            time.sleep(2)
+        print(f"{GREEN}Explain plans statement completed{RESET}")
+    except Exception as e:
+        print(f"An error occurred while creating explain statement: {e}")
 
 
 def check_postgres_stats(conn_obj, db):
@@ -105,14 +102,7 @@ def list_databases(conn_obj):
         databases = [row[0] for row in cur.fetchall() if not row[0].startswith('template')]
     return databases
 
-
-
 try:
-    print(connection_params["host"])
-    print(connection_params["dbname"])
-    print(connection_params["port"])
-    print(connection_params["user"])
-    print(connection_params["password"])
     conn = psycopg2.connect(**connection_params)
     databases_list = list_databases(conn)
 except psycopg2.Error as e:
@@ -122,7 +112,6 @@ except psycopg2.Error as e:
 # Iterate through the list of database names, run checks, and create schemas
 for db_name in databases_list:
     print(f"{GREEN}Discovered database: {RESET}{db_name} \nCreating schema and checking permissions + stats")
-    print(connection_params)
     connection_params['dbname'] = db_name
     conn = psycopg2.connect(**connection_params)
     create_datadog_user_and_schema(conn_obj=conn, db=connection_params['dbname'])
