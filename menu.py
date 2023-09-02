@@ -168,4 +168,3 @@ while True:
                 break
     except ValueError:
         print_color("Invalid choice. Please enter a valid option number.", "31")
-
