@@ -10,7 +10,7 @@ pipeline {
 
         stage('Run') {
             steps {
-                sh 'cd docker_stuff && docker-compose up -d'
+                sh 'cd docker_stuff && docker-compose up -d' //detached mode
             }
         }
     }
