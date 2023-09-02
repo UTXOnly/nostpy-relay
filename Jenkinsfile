@@ -4,7 +4,7 @@ pipeline {
     stages {
         stage('Preparation') {
             steps {
-                sh 'docker system prune -af' // Remove all unused Docker data
+                sh 'docker system prune -af' // Remove ALL unused Docker data
             }
         }
 
