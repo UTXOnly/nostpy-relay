@@ -52,7 +52,7 @@ services:
       com.datadoghq.ad.logs: '[{"type":"file", "source": "event_handler", "service": "event_handler", "path": "/logs/event_handler.log"}]'
 
   postgres:
-    image: postgres:latest
+    image: postgres:14
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
@@ -65,9 +65,9 @@ services:
     command: postgres -c 'config_file=/postgresql.conf'
     volumes:
       - ./postgresql.conf:/postgresql.conf
-      - /var/lib/postgresql/data:/var/lib/postgresql/data  # Mounts a volume for persistent storage
+      - ./postgresql/data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nostr"] # database username here - nostr, should be changed if other user
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"] # database username here - nostr, should be changed if other user
       interval: 10s
       timeout: 5s
       retries: 5
@@ -83,11 +83,13 @@ services:
             "host": "172.28.0.4",
             "port" : "5432",
             "disable_generic_tags": true,
-            "tags" : "db:local_test",
-            "service" : "test-pg-db",
-            "reported_hostname" : "test-pg-db"
+            "tags" : "db:stg_test",
+            "service" : "STAGING-pg-db",
+            "reported_hostname" : "STAGING-pg-db"
           }
         ]
+        
+
 
   datadog-agent:
     container_name: datadog-agent
@@ -95,7 +97,7 @@ services:
     environment:
       - DD_API_KEY=${DD_API_KEY}
       - DD_SITE=datadoghq.com
-      - DD_HOSTNAME=nostpy-local-test
+      - DD_HOSTNAME=staging-nostpy
       - DD_ENV=${DD_ENV}
       - DD_TAGS=owner:brian
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
@@ -143,6 +145,9 @@ services:
     networks:
       my_network:
         ipv4_address: 172.28.0.6
+
+volumes:
+  postgres_data:
 
 networks:
   my_network:

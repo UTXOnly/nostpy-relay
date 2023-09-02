@@ -34,6 +34,8 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
+from collections import defaultdict
+
 class TokenBucketRateLimiter:
     def __init__(self, tokens_per_second: int, max_tokens: int):
         self.tokens_per_second = tokens_per_second
@@ -47,6 +49,21 @@ class TokenBucketRateLimiter:
         new_tokens = int(time_passed * self.tokens_per_second)
         self.tokens[client_id] = min(self.tokens[client_id] + new_tokens, self.max_tokens)
         self.last_request_time[client_id] = current_time
+        return self.tokens
+
+    def _parse_token_count(self, token_count: str) -> dict:
+        start_index = token_count.find("{") + 1
+        end_index = token_count.find("}")
+        dictionary_str = token_count[start_index:end_index]
+        dictionary_splitter = dictionary_str.split(",")
+        dictionary = {}
+        for item in dictionary_splitter:
+            key, value = item.split(":")
+            dictionary[key.strip()] = int(value.strip())
+        return dictionary
+
+    def __str__(self):
+        return str(dict(self.tokens))
 
     def check_request(self, client_id: str) -> bool:
         self._get_tokens(client_id)
@@ -54,12 +71,14 @@ class TokenBucketRateLimiter:
             self.tokens[client_id] -= 1
             return True
         return False
+
+
     
 class ExtractedResponse:
     def __init__(self, response_data):
-        self.event_type = response_data.get("event")
-        self.subscription_id = response_data.get("subscription_id")
-        self.results = response_data.get("results_json")
+        self.event_type = response_data["event"]
+        self.subscription_id = response_data["subscription_id"]
+        self.results = response_data["results_json"]
         self.comment = ""
 
     async def format_response(self):
@@ -88,8 +107,7 @@ class WebsocketMessages:
         else:
             self.event_payload: Dict[str, Any] = message[1]
         headers: websockets.Headers = websocket.request_headers
-        #self.referer: str = headers.get("referer", "")
-        #self.origin: str = headers.get("origin", "")
+        self.origin: str = headers.get("origin", "") or headers.get("referer", "")
         self.client_ip: str = headers.get("X-Real-IP") or headers.get("X-Forwarded-For")
         logger.debug(f"Client IP is {self.client_ip}")
         self.uuid: str = websocket.id
@@ -104,22 +122,20 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
                 
         try:
             async for message in websocket:
-                message_list: List[Union[str, Dict[str, Any]]] = json.loads(message)
+                message_list = json.loads(message)
                 ws_message = WebsocketMessages(message=message_list, websocket=websocket)
-                unique_sessions.append(ws_message.uuid)
-                client_ips.append(ws_message.client_ip)
                 logger.debug(f"UUID = {ws_message.uuid}")
-                
+                statsd.increment('nostr.new_connection.count', tags=[f"client_ip:{ws_message.client_ip}", f"nostr_client:{ws_message.origin}"])
+
+
                 if not rate_limiter.check_request(ws_message.client_ip):
                     logger.warning(f"Rate limit exceeded for client: {ws_message.client_ip}")
-                    if ws_message.event_type == "REQ":
-                        rate_limit_response: Tuple[str, Optional[str], str, Optional[str]] = "OK", ws_message.subscription_id, "false", "rate-limited: slow down there chief"
-                        unique_sessions.remove(ws_message.uuid)
-                        client_ips.remove(ws_message.client_ip)
-                        statsd.increment('nostr.client.rate_limited.count', tags=[f"client:{ws_message.client_ip}"])
-                        await websocket.send(json.dumps(rate_limit_response))
-                        await websocket.close()
-                        return
+                    rate_limit_response: Tuple[str, Optional[str], str, Optional[str]] = "OK", "nostafarian419", "false", "rate-limited: slow your roll nostrich"
+                    statsd.increment('nostr.client.rate_limited.count', tags=[f"client_ip:{ws_message.client_ip}", f"nostr_client:{ws_message.origin}"])
+                    await websocket.send(json.dumps(rate_limit_response))
+                    await websocket.close()
+                    return
+
 
                 if ws_message.event_type == "EVENT":
                     logger.debug(f"Event to be sent payload is: {ws_message.event_payload} of type {type(ws_message.event_payload)}")
@@ -136,8 +152,6 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
             logger.error(f"Error occurred while starting the server: {e}")
             raise
 
-        unique_sessions.remove(ws_message.uuid)
-        client_ips.remove(ws_message.client_ip)
 
 async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: Dict[str, Any], websocket: websockets.WebSocketServerProtocol) -> None:
     url: str = 'http://event_handler/new_event'
@@ -189,7 +203,7 @@ async def send_subscription_to_handler(
 
 
 if __name__ == "__main__":
-    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=2000)
+    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=300)
 
     try:
         start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
@@ -198,12 +212,14 @@ if __name__ == "__main__":
             while True:
                 await asyncio.sleep(5)
                 try:
-                    num_of_connections = len(unique_sessions)  # Get the number of connections
-                    num_clients = len(client_ips)
-                    statsd.gauge('nostr.websocket.active_connections', num_of_connections)
-                    statsd.gauge('nostr.clients.connected', num_clients)
-                    logger.debug(f"Active connections: {num_of_connections}")
-                    logger.debug(f"Clients connected are: {client_ips}")
+
+                    token_count = str(rate_limiter._get_tokens("0.0.0.0"))
+                    dictionary = rate_limiter._parse_token_count(token_count=token_count)
+                    logger.debug(f"Dictionary variable length is {len(dictionary)} and the value is: {dictionary} ")
+                    for key, value in dictionary.items():
+
+                        logger.debug(f"Rate limiter tokens variable is: {value}, client IP is {key}")
+                        statsd.gauge('nostr.websocket_tokens_avail.gauge', value, tags=[f"client_ip:{key}"])
 
                 except Exception as e:
                     logger.error(f"Error occurred while sending active connections metric: {e}")

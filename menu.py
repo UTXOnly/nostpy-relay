@@ -1,6 +1,8 @@
 import subprocess
 import os
+import pkg_resources
 import file_encryption
+
 
 # Function to print colored text to the console
 def print_color(text, color):
@@ -9,13 +11,19 @@ def print_color(text, color):
 # Function to start Nostpy relay
 def start_nostpy_relay():
     try:
-        # Change directory and start Docker containers
         success, pass_holder = file_encryption.decrypt_file("./docker_stuff/.env")
         if not success:
-            print("Decryption failed. Cannot continue.")
+            print("Decryption failed, file is not encrypted please encrypt file and rerun command")
             return
         
         os.chdir("./docker_stuff")
+        file_path = "./postgresql/"
+        
+        if os.path.exists(file_path):
+            subprocess.run(["sudo", "setfacl", "-R", "-m", "u:relay_service:rwx", file_path], check=True)
+        else:
+            print("File does not exist. Skipping the command.")
+
         subprocess.run(["ls", "-al"], check=True)
         subprocess.run(["groups", "relay_service"], check=True)
         subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "up", "-d"], check=True)
@@ -48,6 +56,16 @@ def destroy_containers_and_images():
 
         for image_name in image_names:
             subprocess.run(["sudo", "-u", "relay_service", "docker", "image", "rm", "-f", image_name], check=True)
+        os.chdir("..")
+    except subprocess.CalledProcessError as e:
+        print_color(f"Error occurred: {e}", "31")
+
+def stop_containers():
+    try:
+        # Change directory to the Docker stuff folder
+        os.chdir("./docker_stuff")
+        subprocess.run(["sudo", "-u", "relay_service", "docker-compose", "down"], check=True)
+        os.chdir("..")
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
 
@@ -64,7 +82,6 @@ def switch_branches():
 # Function to execute setup.py script
 def execute_setup_script():
     try:
-        #os.chdir("./docker_stuff")
         subprocess.run(["python3", "build_env.py"], check=True)
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
@@ -84,8 +101,30 @@ def decrypt_env():
             file_encryption.encrypt_file(filename="./docker_stuff/.env")
         elif option == "3":
             print_color("Returning to main menu", "31")
+            break
         else:
             print_color("Invalid option. Please enter either 1, 2, or 3.", "31")
+
+def setup_dbm():
+    
+    try:
+        pkg_resources.get_distribution('psycopg2-binary')
+        print("psycopg2-binary is already installed")
+    except pkg_resources.DistributionNotFound:
+        try:
+            subprocess.run(["pip3", "install", "psycopg2-binary==2.9.1"], check=True)
+            print("psycopg2-binary successfully installed")
+        except subprocess.CalledProcessError as e:
+            print(f"Error occurred while installing psycopg2-binary: {e}")
+    
+    try:
+        subprocess.run(["python3", "./docker_stuff/dbm_setup.py"], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error occurred while running dbm_setup.py: {e}")
+
+
+
+            
 
 while True:
     print_color("\n##########################################################################################", "31")
@@ -104,22 +143,28 @@ while True:
     print_color("3) Switch branches", "33")
     print_color("4) Destroy all docker containers and images", "31")
     print_color("5) Decrypt/encrypt .env file to edit", "33")
-    print_color("6) Exit menu", "31")
+    print_color("6) Stop all containers", "33")
+    print_color("7) Setup database monitoring", "32")
+    print_color("8) Exit menu", "31")
 
-    choice = input("\nEnter an option number (1-6): ")
 
-    if choice == "1":
-        execute_setup_script()
-    elif choice == "2":
-        start_nostpy_relay()      
-    elif choice == "3":
-        switch_branches()
-    elif choice == "4":
-        destroy_containers_and_images()
-    elif choice == "5":
-        decrypt_env()
-    elif choice == "6":
-        print_color("Exited menu", "31")
-        break
-    else:
+    options = {
+        "1": execute_setup_script,
+        "2": start_nostpy_relay,
+        "3": switch_branches,
+        "4": destroy_containers_and_images,
+        "5": decrypt_env,
+        "6": stop_containers,
+        "7": setup_dbm,
+        "8": lambda: print_color("Exited menu", "31")
+    }
+    
+    try:
+        choice = input("\nEnter an option number (1-8): ")
+        if choice in options:
+            options[choice]()
+            if choice == "8":
+                print()
+                break
+    except ValueError:
         print_color("Invalid choice. Please enter a valid option number.", "31")
