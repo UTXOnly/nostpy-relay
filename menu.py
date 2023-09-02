@@ -1,7 +1,8 @@
 import subprocess
 import os
-import file_encryption
 import pkg_resources
+import file_encryption
+
 
 # Function to print colored text to the console
 def print_color(text, color):
@@ -165,6 +166,6 @@ while True:
             if choice == "8":
                 print()
                 break
-    except:
-            print_color("Invalid choice. Please enter a valid option number.", "31")
+    except ValueError:
+        print_color("Invalid choice. Please enter a valid option number.", "31")
 
