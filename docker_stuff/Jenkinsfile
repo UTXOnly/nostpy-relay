@@ -2,13 +2,10 @@ pipeline {
     agent any
 
     stages {
-
-        
         stage('Preparation') {
             steps {
                 sh 'docker image ls'
                 sh 'docker system prune -a --volumes -f' 
-                
             }
         }
 
@@ -17,7 +14,6 @@ pipeline {
                 sh 'cd docker_stuff && docker-compose up -d'
             }
         }
-    }
 
         stage('Execute menu') {
             steps {
@@ -27,6 +23,7 @@ pipeline {
                 }
             }
         }
+    }
 
     post {
         always {
@@ -41,4 +38,3 @@ pipeline {
         }
     }
 }
-
