@@ -12,7 +12,7 @@ pipeline {
 
         stage('Run') {
             steps {
-                sh 'docker-compose up -d'
+                sh 'cd docker_stuff && docker-compose up -d'
             }
         }
     }
@@ -21,7 +21,7 @@ pipeline {
         always {
             script {
                 stage('Cleanup') {
-                    sh 'docker-compose down'
+                    sh 'cd docker_stuff && docker-compose down'
                     sh 'docker system prune -a --volumes -f' // Remove all unused Docker data again
                     sh 'sudo rm -r /var/lib/jenkins/workspace/nostpy-build-containers-docker-compose-up/*'
                     sh 'docker image ls'
