@@ -8,6 +8,7 @@ pipeline {
                     sh 'cd ..'
                     sh 'echo "1" | python3 menu.py'
                 }
+            }
         stage('Preparation') {
             steps {
                 sh 'docker image ls'
@@ -35,4 +36,5 @@ pipeline {
             }
         }
     }
+}
 }
