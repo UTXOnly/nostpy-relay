@@ -23,7 +23,7 @@ pipeline {
                 stage('Cleanup') {
                     sh 'cd docker_stuff && docker-compose down'
                     sh 'docker system prune -a --volumes -f' // Remove all unused Docker data again
-                    sh 'sudo rm -r /var/lib/jenkins/workspace/nostpy-build-containers-docker-compose-up/*'
+                    sh 'sudo rm -r /var/lib/jenkins/workspace/*'
                     sh 'docker image ls'
                 }
             }
