@@ -9,16 +9,16 @@ pipeline {
             }
         }
 
-        stage('Run') {
+        stage('Run Containers') {
             steps {
                 sh 'cd docker_stuff && docker-compose up -d'
             }
         }
 
-        stage('Execute menu') {
+        stage('Execute dbm setup') {
             steps {
                 script {
-                    sh 'cd ..'
+                    sh 'cd docker_stuff'
                     sh 'python3 dbm_setup.py'
                 }
             }
