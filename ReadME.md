@@ -2,6 +2,8 @@
 
 ![Pylint_score](./pylint.svg) 
 
+[![Ubuntu Build](http://54.144.142.244:8080/buildStatus/icon?job=nostpy-build-containers-docker-compose-up&subject=Ubuntu%20Build)](http://54.144.142.244:8080/job/nostpy-build-containers-docker-compose-up/)
+
 
 A simple and easy to deploy nostr relay using `asyncio` & `websockets` to server Nostr clients
 
