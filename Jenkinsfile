@@ -6,7 +6,7 @@ pipeline {
             steps {
                 sh 'docker image ls'
                 sh 'docker system prune -a --volumes -f' 
-                sh 'sudo rm -r /var/lib/jenkins/workspace/nostpy/*'
+                sh 'sudo rm -r /var/lib/jenkins/workspace/nostpy build containers, docker compose up/*'
             }
         }
 
