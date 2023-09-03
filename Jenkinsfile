@@ -20,7 +20,7 @@ pipeline {
         always {
             script {
                 stage('Cleanup') {
-                    sh 'docker-compose down'
+                    sh 'cd docker_stuff && docker-compose down'
                     sh 'docker system prune -a --volumes -f' // Remove all unused Docker data again
                     sh 'docker image ls'
                 }
