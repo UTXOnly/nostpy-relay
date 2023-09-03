@@ -5,7 +5,8 @@ pipeline {
         stage('Preparation') {
             steps {
                 sh 'docker image ls'
-                sh 'docker system prune -a --volumes -f' // Remove all unused Docker data
+                sh 'docker system prune -a --volumes -f' 
+                sh 'sudo rm -r /var/lib/jenkins/workspace/nostpy/*'
             }
         }
 
