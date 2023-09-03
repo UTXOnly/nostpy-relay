@@ -18,8 +18,7 @@ pipeline {
         stage('Execute dbm setup') {
             steps {
                 script {
-                    sh 'cd docker_stuff'
-                    sh 'python3 dbm_setup.py'
+                    sh 'cd docker_stuff && python3 dbm_setup.py'
                 }
             }
         }
