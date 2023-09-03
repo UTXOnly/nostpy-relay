@@ -19,7 +19,7 @@ pipeline {
             steps {
                 script {
                     sh 'cd ..'
-                    sh 'echo 7 | python3 menu.py'
+                    sh 'python3 dbm_setup.py'
                 }
             }
         }
