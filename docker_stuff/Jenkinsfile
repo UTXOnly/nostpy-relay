@@ -2,14 +2,7 @@ pipeline {
     agent any
 
     stages {
-        stage('Execute menu') {
-            steps {
-                script {
-                    sh 'cd ..'
-                    sh 'echo 1 | python3 menu.py'
-                }
-            }
-        }
+
         
         stage('Preparation') {
             steps {
@@ -25,6 +18,15 @@ pipeline {
             }
         }
     }
+
+        stage('Execute menu') {
+            steps {
+                script {
+                    sh 'cd ..'
+                    sh 'echo 7 | python3 menu.py'
+                }
+            }
+        }
 
     post {
         always {
