@@ -4,7 +4,8 @@ pipeline {
     stages {
         stage('Preparation') {
             steps {
-                sh 'docker system prune -af' // Remove all unused Docker data
+                sh 'docker image ls'
+                sh 'docker system prune -a --volumes -f' // Remove all unused Docker data
             }
         }
 
@@ -19,7 +20,9 @@ pipeline {
         always {
             script {
                 stage('Cleanup') {
-                    sh 'docker system prune -af' // Remove all unused Docker data again
+                    sh 'docker compose down --remove-orphans -v'
+                    sh 'docker system prune -a --volumes -f' // Remove all unused Docker data again
+                    sh 'docker image ls'
                 }
             }
         }
