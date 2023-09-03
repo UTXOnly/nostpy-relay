@@ -20,7 +20,7 @@ pipeline {
         always {
             script {
                 stage('Cleanup') {
-                    sh 'docker compose down --remove-orphans -v'
+                    sh 'docker compose down --remove-orphans'
                     sh 'docker system prune -a --volumes -f' // Remove all unused Docker data again
                     sh 'docker image ls'
                 }
