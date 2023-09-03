@@ -2,6 +2,12 @@ pipeline {
     agent any
 
     stages {
+        stage('Execute menu') {
+            steps {
+                script {
+                    sh 'cd ..'
+                    sh 'echo "1" | python3 menu.py'
+                }
         stage('Preparation') {
             steps {
                 sh 'docker image ls'
@@ -23,7 +29,7 @@ pipeline {
                 stage('Cleanup') {
                     sh 'cd docker_stuff && docker-compose down'
                     sh 'docker system prune -a --volumes -f' // Remove all unused Docker data again
-                    sh 'sudo rm -r /var/lib/jenkins/workspace/nostpy-build-containers-docker-compose-up/*'
+                    sh 'sudo rm -r /var/lib/jenkins/workspace/nostpy-build-containers-docker-compose-up/postgres*'
                     sh 'docker image ls'
                 }
             }
