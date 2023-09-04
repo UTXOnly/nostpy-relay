@@ -123,7 +123,7 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
         try:
             async for message in websocket:
                 message_list = json.loads(message)
-                ws_message = WebsocketMessages(message=message_list, websocket=websocket)
+                ws_message = WebsocketMessages(message=json.loads(message), websocket=websocket)
                 logger.debug(f"UUID = {ws_message.uuid}")
                 statsd.increment('nostr.new_connection.count', tags=[f"client_ip:{ws_message.client_ip}", f"nostr_client:{ws_message.origin}"])
 
