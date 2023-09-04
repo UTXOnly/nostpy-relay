@@ -154,7 +154,6 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
             logger.error(f"Error occurred while starting the server: {e}")
             raise
 
-
 async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: Dict[str, Any], websocket: websockets.WebSocketServerProtocol) -> None:
     url: str = 'http://event_handler/new_event'
     try:
