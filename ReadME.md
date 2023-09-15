@@ -9,7 +9,8 @@ A simple and easy to deploy nostr relay using `asyncio` & `websockets` to server
 
 ## Description
 
-![nostpy_auto_x2_colored_toned_light_ai](https://user-images.githubusercontent.com/49233513/236724405-bea4f3da-8728-4b0f-b583-1944faf52d09.jpg)
+![Image 2023-09-15 at 9 53 46 AM](https://github.com/UTXOnly/nost-py/assets/49233513/724cfbeb-03a0-4d10-b0d1-6b638ac153c4)
+
 
 
 A containerized Python relay paried with a Postgres databse, reachable via a NGINX reverse proxy. This has been tested on [Coracle](https://coracle.social), [Iris.to](https://Iris.to) and [Snort.social](https://Snort.social) clients and works for the NIPS listed below.
