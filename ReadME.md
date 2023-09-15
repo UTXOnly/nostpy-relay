@@ -57,7 +57,7 @@ This will bring up the menu below and you can control the program from there!
 
 
 
-![Screenshot from 2023-07-29 18-33-34](https://github.com/UTXOnly/nost-py/assets/49233513/b2a22cfc-2c4a-43c7-855e-427ba02efe9a)
+![Image 2023-09-15 at 8 44 45 AM](https://github.com/UTXOnly/nost-py/assets/49233513/ee40d91c-2e6a-48a8-a0a8-c14e25e8ff07)
 
 
 ![image](https://github.com/UTXOnly/nost-py/assets/49233513/c970f4a8-8af3-4b23-a6fe-3fc9bac49ec0)
