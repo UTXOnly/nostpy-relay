@@ -126,7 +126,7 @@ def setup_dbm():
             'python ./docker_stuff/dbm_setup.py'
         ]
         for cmd in commands:
-            subprocess.run(['sudo', 'bash', '-c', activate_cmd + cmd], check=True)
+            subprocess.run(['bash', '-c', activate_cmd + cmd], check=True)
     except subprocess.CalledProcessError as e:
         print(f"Error occurred while running dbm_setup.py: {e}")
 
