@@ -121,6 +121,9 @@ def setup_dbm():
         #subprocess.run(["python3", "./docker_stuff/dbm_setup.py"], check=True)
         print(f"Current Directory: {os.getcwd()}")
         subprocess.run(["source ./snmpenv/bin/activate", "&&", "python docker_stuff/dbm_setup.py"], check=True)
+        current_dir = os.getcwd()
+        activate_script = os.path.join(current_dir, "snmpenv/bin/activate")
+        subprocess.run(["python", "docker_stuff/dbm_setup.py"], check=True, env={"VIRTUAL_ENV": current_dir})
     except subprocess.CalledProcessError as e:
         print(f"Error occurred while running dbm_setup.py: {e}")
 
