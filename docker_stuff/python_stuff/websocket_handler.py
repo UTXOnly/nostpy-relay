@@ -80,6 +80,8 @@ class ExtractedResponse:
         self.subscription_id = response_data["subscription_id"]
         self.results = response_data["results_json"]
         self.comment = ""
+        self.rate_limit_response: Tuple[str, Optional[str], str, Optional[str]] = "OK", "nostafarian419", "false", "rate-limited: slow your roll nostrich"
+        self.duplicate_response: Tuple[str, Optional[str], str, Optional[str]] = "OK", "nostafarian419", "false", "duplicate: already have this event"
 
     async def format_response(self):
     
@@ -123,7 +125,7 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
         try:
             async for message in websocket:
                 message_list = json.loads(message)
-                ws_message = WebsocketMessages(message=message_list, websocket=websocket)
+                ws_message = WebsocketMessages(message=json.loads(message), websocket=websocket)
                 logger.debug(f"UUID = {ws_message.uuid}")
                 statsd.increment('nostr.new_connection.count', tags=[f"client_ip:{ws_message.client_ip}", f"nostr_client:{ws_message.origin}"])
 
@@ -152,7 +154,6 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
             logger.error(f"Error occurred while starting the server: {e}")
             raise
 
-
 async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: Dict[str, Any], websocket: websockets.WebSocketServerProtocol) -> None:
     url: str = 'http://event_handler/new_event'
     try:
@@ -165,8 +166,11 @@ async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: Dict
                 formatted_response = await response_object.format_response()
                 logger.debug(f"Formatted response data from send_event_to_handler function: {formatted_response}")
                 await websocket.send(json.dumps(formatted_response))
+            elif response.status == 409:
+                return response_object.duplicate_response
     except Exception as e:
         logger.error(f"An error occurred while sending the event to the handler: {e}")
+
 
         
 async def send_subscription_to_handler(
