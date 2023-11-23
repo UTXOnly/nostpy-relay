@@ -107,18 +107,19 @@ def decrypt_env():
 
 def setup_dbm():
     
-    try:
-        pkg_resources.get_distribution('psycopg2-binary')
-        print("psycopg2-binary is already installed")
-    except pkg_resources.DistributionNotFound:
-        try:
-            subprocess.run(["pip3", "install", "psycopg2-binary==2.9.1"], check=True)
-            print("psycopg2-binary successfully installed")
-        except subprocess.CalledProcessError as e:
-            print(f"Error occurred while installing psycopg2-binary: {e}")
+    #try:
+    #    pkg_resources.get_distribution('psycopg2-binary')
+    #    print("psycopg2-binary is already installed")
+    #except pkg_resources.DistributionNotFound:
+    #    try:
+    #        subprocess.run(["pip3", "install", "psycopg2-binary==2.9.1"], check=True)
+    #        print("psycopg2-binary successfully installed")
+    #    except subprocess.CalledProcessError as e:
+    #        print(f"Error occurred while installing psycopg2-binary: {e}")
     
     try:
-        subprocess.run(["python3", "./docker_stuff/dbm_setup.py"], check=True)
+        #subprocess.run(["python3", "./docker_stuff/dbm_setup.py"], check=True)
+        subprocess.run([". snmpenv/bin/activate", "&&", "python docker_stuff/dbm_setup.py"], check=True)
     except subprocess.CalledProcessError as e:
         print(f"Error occurred while running dbm_setup.py: {e}")
 
