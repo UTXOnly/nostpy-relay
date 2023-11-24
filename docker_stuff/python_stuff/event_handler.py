@@ -182,9 +182,9 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                         conditions: Dict[str, Any] = {
                             "authors": lambda x: Event.pubkey.in_(x),
                             "kinds": lambda x: Event.kind.in_(x),
-                            "#e": lambda x: Event.tags.any(lambda tag: tag[0] == 'e' and tag[1] in x),
-                            "#p": lambda x: Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in x),
-                            "#d": lambda x: Event.tags.any(lambda tag: tag[0] == 'd' and tag[1] in x),
+                            "#e": lambda x: Event.tags.in_(lambda tag: tag[0] == 'e' and tag[1] in x),
+                            "#p": lambda x: Event.tags.in_(lambda tag: tag[0] == 'p' and tag[1] in x),
+                            "#d": lambda x: Event.tags.in_(lambda tag: tag[0] == 'd' and tag[1] in x),
                             "since": lambda x: Event.created_at > x,
                             "until": lambda x: Event.created_at < x
                         }
@@ -195,6 +195,8 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                                 del dict_item['limit']
                             for key, value in dict_item.items():
                                 logger.debug(f"Key value is: {key}, {value}")
+                                if key in ["#e", "#p", "#d"]:
+                                    logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
                                 query = query.filter(conditions[key](value))
 
                         query_result: List[Event] = query.order_by(desc(Event.created_at)).limit(query_limit).all()

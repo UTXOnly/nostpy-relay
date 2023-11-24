@@ -201,7 +201,6 @@ class WebsocketMessages:
         subscription_id (str): The subscription ID associated with the event.
         event_payload (Union[List[Dict[str, Any]], Dict[str, Any]]): The payload of the event.
         origin (str): The origin or referer of the WebSocket request.
-        client_ip (str): The IP address of the client.
         obfuscate_ip (function): A lambda function to obfuscate the client IP address.
         obfuscated_client_ip (str): The obfuscated client IP address.
         uuid (str): The unique identifier of the WebSocket connection.
@@ -228,9 +227,8 @@ class WebsocketMessages:
             self.event_payload: Dict[str, Any] = message[1]
         headers: websockets.Headers = websocket.request_headers
         self.origin: str = headers.get("origin", "") or headers.get("referer", "")
-        self.client_ip: str = headers.get("X-Real-IP") or headers.get("X-Forwarded-For")
         self.obfuscate_ip = lambda ip: hashlib.sha256(ip.encode('utf-8')).hexdigest()
-        self.obfuscated_client_ip = self.obfuscate_ip(self.client_ip)
+        self.obfuscated_client_ip = self.obfuscate_ip("X-Real-IP") or headers.get("X-Forwarded-For")
         logger.debug(f"Client obfuscated IP is {self.obfuscated_client_ip}")
         self.uuid: str = websocket.id
 
