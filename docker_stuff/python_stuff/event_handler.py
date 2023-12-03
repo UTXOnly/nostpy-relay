@@ -63,7 +63,7 @@ class Event(Base):
         self.content = content
         self.sig = sig
 
-logger.debug("Creating database metadata")
+logger.info("Creating database metadata")
 Base.metadata.create_all(bind=engine)
 app: FastAPI = FastAPI()
 
