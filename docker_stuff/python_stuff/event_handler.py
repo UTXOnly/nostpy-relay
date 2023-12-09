@@ -195,7 +195,7 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                                 logger.debug(f"Key value is: {key}, {value}")
                                 if key in ["#e", "#p", "#d"]:
                                     logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
-                                    logger.debug(f"COnditions/values are: {conditions[key](value)}")
+                                    logger.debug(f"COnditions/values are: {(conditions[key](value))}")
                                 query = query.filter(conditions[key](value))
 
                         query_result: List[Event] = query.order_by(desc(Event.created_at)).limit(query_limit).all()
