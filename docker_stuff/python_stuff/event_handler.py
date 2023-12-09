@@ -198,25 +198,14 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                                     #logger.debug(f"COnditions/values are: {(conditions[key](value))}")
                                     tag_values = []
                                     for tags in value:
-                                        tagged = [key[1],str(value)]
+                                        tagged = [key[1],str(tags)]
                                         logger.debug(f"Tagged value is {tagged}")
+                                    logger.debug(f"value list is : {tag_values}")
                                     value = tag_values
                                     query = query.filter(conditions[key](value))
-                                    pass
+                                    break
 
                                 query = query.filter(conditions[key](value))
-
-                        #for key, value in output_list:
-                        #    query_limit: int = int(min(value.get('limit', 100), 100))
-                        #    if 'limit' in value:
-                        #        del value['limit']
-                        #        logger.debug(f"Key value is: {key}, {value}")
-                        #        if key in ["#e", "#p", "#d"]:
-                        #            logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
-                        #            logger.debug(f"COnditions/values are: {(conditions[key](value))}")
-                        #            value = value[1]
-                        #        #Value var from output list is passed as an argument to the lambda functions that are the values in the dictionary
-                        #        query = query.filter(conditions[key](value))
 
 
                         query_result: List[Event] = query.order_by(desc(Event.created_at)).limit(query_limit).all()
