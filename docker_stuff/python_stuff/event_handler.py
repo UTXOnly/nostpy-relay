@@ -193,18 +193,18 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                                 del dict_item['limit']
                             for key, value in dict_item.items():
                                 logger.debug(f"Key value is: {key}, {value}")
-                                if key in ["#e", "#p", "#d"]:
-                                    logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
-                                    #logger.debug(f"COnditions/values are: {(conditions[key](value))}")
-                                    tag_values = []
-                                    for tags in value:
-                                        tagged = [key[1],str(tags)]
-                                        tag_values.append(tagged)
-                                        logger.debug(f"Tagged value is {tagged}")
-                                    logger.debug(f"value list is : {tag_values}")
-                                    value = tag_values
-                                    query = query.filter(conditions[key](value))
-                                    break
+                                #if key in ["#e", "#p", "#d"]:
+                                #    logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
+                                #    #logger.debug(f"COnditions/values are: {(conditions[key](value))}")
+                                #    tag_values = []
+                                #    for tags in value:
+                                #        tagged = [key[1],str(tags)]
+                                #        tag_values.append(tagged)
+                                #        logger.debug(f"Tagged value is {tagged}")
+                                #    logger.debug(f"value list is : {tag_values}")
+                                #    value = tag_values
+                                #    query = query.filter(conditions[key](value))
+                                #    break
 
                                 query = query.filter(conditions[key](value))
 
