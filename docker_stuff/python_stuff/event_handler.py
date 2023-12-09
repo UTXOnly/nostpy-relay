@@ -198,7 +198,7 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                                     #logger.debug(f"COnditions/values are: {(conditions[key](value))}")
                                     tag_values = []
                                     for tags in value:
-                                        tagged = [key[1],value]
+                                        tagged = [key[1],str(value)]
                                         logger.debug(f"Tagged value is {tagged}")
                                     value = tag_values
                                 query = query.filter(conditions[key](value))
