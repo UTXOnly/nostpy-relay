@@ -17,8 +17,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 
-
-
 options: Dict[str, Any] = {
     'statsd_host': '172.28.0.5',
     'statsd_port': 8125
@@ -177,39 +175,18 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                         serialized_events.append(query_result_cleaned)
 
                 else:
-                    #try:
-                    #    query = session.query(Event)
-                    #    conditions: Dict[str, Any] = {
-                    #        "authors": lambda x: Event.pubkey.in_(x),
-                    #        "kinds": lambda x: Event.kind.in_(x),
-                    #        "#e": lambda x: Event.tags.in_(lambda tag: tag[0] == 'e' and tag[1] in x),
-                    #        "#p": lambda x: Event.tags.in_(lambda tag: tag[0] == 'p' and tag[1] in x),
-                    #        "#d": lambda x: Event.tags.in_(lambda tag: tag[0] == 'd' and tag[1] in x),
-                    #        "since": lambda x: Event.created_at > x,
-                    #        "until": lambda x: Event.created_at < x
-                    #    }
-#
-                    #    for index, dict_item in enumerate(output_list):
-                    #        query_limit: int = int(min(dict_item.get('limit', 100), 100))
-                    #        if 'limit' in dict_item:
-                    #            del dict_item['limit']
-                    #        for key, value in dict_item.items():
-                    #            logger.debug(f"Key value is: {key}, {value}")
-                    #            if key in ["#e", "#p", "#d"]:
-                    #                logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
-                    #            query = query.filter(conditions[key](value))
                     try:
                         query = session.query(Event)
                         conditions: Dict[str, Any] = {
-                            "authors": lambda x: logger.debug(f"authors condition returns: {Event.pubkey.in_(x)}") or Event.pubkey.in_(x),
-                            "kinds": lambda x: logger.debug(f"kinds condition returns: {Event.kind.in_(x)}") or Event.kind.in_(x),
-                            "#e": lambda x: logger.debug(f"#e condition returns: {Event.tags.in_([tag for tag in x if tag[0] == 'e'])}") or Event.tags.in_([tag for tag in x if tag[0] == 'e']),
-                            "#p": lambda x: logger.debug(f"#p condition returns: {Event.tags.in_([tag for tag in x if tag[0] == 'p'])}") or Event.tags.in_([tag for tag in x if tag[0] == 'p']),
-                            "#d": lambda x: logger.debug(f"#d condition returns: {Event.tags.in_([tag for tag in x if tag[0] == 'd'])}") or Event.tags.in_([tag for tag in x if tag[0] == 'd']),
-                            "since": lambda x: logger.debug(f"since condition returns: {Event.created_at > x}") or Event.created_at > x,
-                            "until": lambda x: logger.debug(f"until condition returns: {Event.created_at < x}") or Event.created_at < x
+                            "authors": lambda x: Event.pubkey.in_(x),
+                            "kinds": lambda x: Event.kind.in_(x),
+                            "#e": lambda x: Event.tags.in_(lambda tag: tag[0] == 'e' and tag[1] in x),
+                            "#p": lambda x: Event.tags.in_(lambda tag: tag[0] == 'p' and tag[1] in x),
+                            "#d": lambda x: Event.tags.in_(lambda tag: tag[0] == 'd' and tag[1] in x),
+                            "since": lambda x: Event.created_at > x,
+                            "until": lambda x: Event.created_at < x
                         }
-                    
+
                         for index, dict_item in enumerate(output_list):
                             query_limit: int = int(min(dict_item.get('limit', 100), 100))
                             if 'limit' in dict_item:
@@ -218,10 +195,8 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                                 logger.debug(f"Key value is: {key}, {value}")
                                 if key in ["#e", "#p", "#d"]:
                                     logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
-                                # Apply the filter with the lambda condition and log the result
-                                condition_result = conditions[key](value)
-                                logger.debug(f"Condition result for {key}: {condition_result}")
-                                query = query.filter(condition_result)
+                                    logger.debug(f"COnditions/values are: {conditions[key](value)}")
+                                query = query.filter(conditions[key](value))
 
                         query_result: List[Event] = query.order_by(desc(Event.created_at)).limit(query_limit).all()
                         statsd.increment('nostr.event.queried.postgres', tags=["func:event_query"])
