@@ -180,9 +180,9 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                         conditions: Dict[str, Any] = {
                             "authors": lambda x: Event.pubkey.in_(x),
                             "kinds": lambda x: Event.kind.in_(x),
-                            "#e": lambda x: Event.tags.in_(lambda tag: tag[0] == 'e' and tag[1] in x),
-                            "#p": lambda x: Event.tags.in_(lambda tag: tag[0] == 'p' and tag[1] in x),
-                            "#d": lambda x: Event.tags.in_(lambda tag: tag[0] == 'd' and tag[1] in x),
+                            "e": lambda x: Event.tags.in_([tag[1] for tag in Event.tags if tag[0] == 'e' and tag[1] in x]),
+                            "p": lambda x: Event.tags.in_([tag[1] for tag in Event.tags if tag[0] == 'p' and tag[1] in x]),
+                            "d": lambda x: Event.tags.in_([tag[1] for tag in Event.tags if tag[0] == 'd' and tag[1] in x]),
                             "since": lambda x: Event.created_at > x,
                             "until": lambda x: Event.created_at < x
                         }
