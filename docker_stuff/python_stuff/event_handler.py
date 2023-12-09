@@ -187,16 +187,29 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                             "until": lambda x: Event.created_at < x
                         }
 
-                        for index, dict_item in enumerate(output_list):
-                            query_limit: int = int(min(dict_item.get('limit', 100), 100))
-                            if 'limit' in dict_item:
-                                del dict_item['limit']
-                            for key, value in dict_item.items():
+                        #for index, dict_item in enumerate(output_list):
+                        #    query_limit: int = int(min(dict_item.get('limit', 100), 100))
+                        #    if 'limit' in dict_item:
+                        #        del dict_item['limit']
+                        #    for key, value in dict_item.items():
+                        #        logger.debug(f"Key value is: {key}, {value}")
+                        #        if key in ["#e", "#p", "#d"]:
+                        #            logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
+                        #            logger.debug(f"COnditions/values are: {(conditions[key](value))}")
+                        #        query = query.filter(conditions[key](value))
+
+                        for key, value in output_list:
+                            query_limit: int = int(min(value.get('limit', 100), 100))
+                            if 'limit' in value:
+                                del value['limit']
                                 logger.debug(f"Key value is: {key}, {value}")
                                 if key in ["#e", "#p", "#d"]:
                                     logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
                                     logger.debug(f"COnditions/values are: {(conditions[key](value))}")
-                                query = query.filter(conditions[key])
+                                    value = value[1]
+                                #Value var from output list is passed as an argument to the lambda functions that are the values in the dictionary
+                                query = query.filter(conditions[key](value))
+
 
                         query_result: List[Event] = query.order_by(desc(Event.created_at)).limit(query_limit).all()
                         statsd.increment('nostr.event.queried.postgres', tags=["func:event_query"])
