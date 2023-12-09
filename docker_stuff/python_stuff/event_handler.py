@@ -201,6 +201,9 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                                         tagged = [key[1],str(value)]
                                         logger.debug(f"Tagged value is {tagged}")
                                     value = tag_values
+                                    query = query.filter(conditions[key](value))
+                                    pass
+
                                 query = query.filter(conditions[key](value))
 
                         #for key, value in output_list:
