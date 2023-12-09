@@ -199,6 +199,7 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                                     tag_values = []
                                     for tags in value:
                                         tagged = [key[1],str(tags)]
+                                        tag_values.append(tagged)
                                         logger.debug(f"Tagged value is {tagged}")
                                     logger.debug(f"value list is : {tag_values}")
                                     value = tag_values
