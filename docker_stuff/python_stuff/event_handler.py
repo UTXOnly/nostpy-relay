@@ -87,7 +87,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
     pubkey: str = event_dict.get("pubkey", "")
     kind: int = event_dict.get("kind", 0)
     created_at: int = event_dict.get("created_at", 0)
-    tags: List = event_dict.get("tags", [])
+    tags: dict = event_dict.get("tags", {})
     content: str = event_dict.get("content", "")
     event_id: str = event_dict.get("id", "")
     sig: str = event_dict.get("sig", "")
@@ -180,9 +180,9 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                         conditions: Dict[str, Any] = {
                             "authors": lambda x: Event.pubkey.in_(x),
                             "kinds": lambda x: Event.kind.in_(x),
-                            "#e": lambda x: Event.tags.in_(x),
-                            "#p": lambda x: Event.tags.in_(x),
-                            "#d": lambda x: Event.tags.in_(x),
+                            "#e": lambda x: Event.tags.op('@>')([x]),
+                            "#p": lambda x: Event.tags.op('@>')([x]),
+                            "#d": lambda x: Event.tags.op('@>')([x]),
                             "since": lambda x: Event.created_at > x,
                             "until": lambda x: Event.created_at < x
                         }
@@ -196,11 +196,10 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                                 if key in ["#e", "#p", "#d"]:
                                     logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
                                     #logger.debug(f"COnditions/values are: {(conditions[key](value))}")
-                                    tag_values = []
+                                    tag_values = {}
                                     for tags in value:
-                                        tagged = [key[1],str(tags)]
-                                        tag_values.append(tagged)
-                                        logger.debug(f"Tagged value is {tagged}")
+                                        logger.debug(f"Tags is {tags}")
+                                        tag_values[key[1]](tags)
                                     logger.debug(f"value list is : {tag_values}")
                                     value = tag_values
                                     query = query.filter(conditions[key](value))
