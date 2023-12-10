@@ -199,7 +199,9 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                                     tag_values = []
                                     for tags in value:
                                         logger.debug(f"Tags is {tags}")
-                                        tag_values[key[1]](tags)
+                                        #tag_values[key[1]](tags)
+                                        cleaned = [key[1], tags]
+                                        tag_values.append()
                                     logger.debug(f"value list is : {tag_values}")
                                     value = tag_values
                                     query = query.filter(conditions[key](value))
@@ -219,6 +221,7 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                     except SQLAlchemyError as exc:
                         
                         logger.error(f"Error occurred: {str(exc)} ({inspect.currentframe().f_lineno})")
+                        
                         session.rollback()
 
                     finally:
@@ -226,6 +229,7 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
 
             except Exception as e:
                 logger.error(f"Error retrieving cached result: {e}")
+                logger.exception(f"What is the excepion {e}")
 
         logger.debug(f"Output list is: {output_list} and length is: {len(output_list)}")
 
