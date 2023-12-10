@@ -196,7 +196,7 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                                 if key in ["#e", "#p", "#d"]:
                                     logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
                                     #logger.debug(f"COnditions/values are: {(conditions[key](value))}")
-                                    tag_values = {}
+                                    tag_values = []
                                     for tags in value:
                                         logger.debug(f"Tags is {tags}")
                                         tag_values[key[1]](tags)
@@ -216,9 +216,9 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                         redis_client.expire(redis_get, 1800)
                         logger.debug(f"Query result stored in cache. Stored as: filters: {redis_get} values: {str(serialized_events)} ({inspect.currentframe().f_lineno})")
 
-                    except Exception as e:
-                        error_message = str(e)
-                        logger.error(f"Error occurred: {error_message} ({inspect.currentframe().f_lineno})")
+                    except SQLAlchemyError as exc:
+                        
+                        logger.error(f"Error occurred: {str(exc)} ({inspect.currentframe().f_lineno})")
                         session.rollback()
 
                     finally:
