@@ -50,7 +50,7 @@ CONTACT=<YOUR_EMAIL_OR_NPUB>
 
 Aside from adding the environmental variables, all you need to do is run the `menu.py` script to load the menu. Once you select the `Execute server setup script` option, the script will install all dependencies, setup your NGINX reverse proxy server and request an TLS certificate, load environmental variables, build and launch the application and database containers. From there you are ready to start relaying notes!
 
-To get started run the command below from the main repo direcotory to bring up the NostPy menu
+To get started run the command below from the main repo direcotory to bring up the NostPy menu:
 
 ```
 python3 menu.py
