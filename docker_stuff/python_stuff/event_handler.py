@@ -6,7 +6,6 @@ import inspect
 from typing import List, Dict, Any, Optional
 
 import uvicorn
-import secp256k1
 from ddtrace import tracer
 from datadog import initialize, statsd
 import redis
@@ -16,8 +15,6 @@ from sqlalchemy.orm import sessionmaker, class_mapper
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
-
-
 
 options: Dict[str, Any] = {
     'statsd_host': '172.28.0.5',
@@ -46,10 +43,10 @@ Base: declarative_base = declarative_base()
 class Event(Base):
     __tablename__: str = 'event'
 
-    id: Column = Column(String, primary_key=True, index=True)
+    id: Column = Column(String, primary_key=True)
     pubkey: Column = Column(String, index=True)
     kind: Column = Column(Integer, index=True)
-    created_at: Column = Column(Integer, index=True)
+    created_at: Column = Column(Integer)
     tags: Column = Column(JSON)
     content: Column = Column(String)
     sig: Column = Column(String)
@@ -63,25 +60,13 @@ class Event(Base):
         self.content = content
         self.sig = sig
 
-logger.debug("Creating database metadata")
+logger.info("Creating database metadata")
 Base.metadata.create_all(bind=engine)
 app: FastAPI = FastAPI()
 
 Session: sessionmaker = sessionmaker(bind=engine)
 session: Session = Session()
 
-async def verify_signature(event_id: str, pubkey: str, sig: str) -> bool:
-    try:
-        pub_key: secp256k1.PublicKey = secp256k1.PublicKey(bytes.fromhex("02" + pubkey), True)
-        result: bool = pub_key.schnorr_verify(bytes.fromhex(event_id), bytes.fromhex(sig), None, raw=True)
-        if result:
-            logger.info(f"Verification successful for event: {event_id}")
-        else:
-            logger.error(f"Verification failed for event: {event_id}")
-        return result
-    except (ValueError, TypeError, secp256k1.Error) as e:
-        logger.error(f"Error verifying signature for event {event_id}: {e}")
-        return False
 
 @app.post("/new_event")
 async def handle_new_event(request: Request) -> JSONResponse:
@@ -89,13 +74,11 @@ async def handle_new_event(request: Request) -> JSONResponse:
     pubkey: str = event_dict.get("pubkey", "")
     kind: int = event_dict.get("kind", 0)
     created_at: int = event_dict.get("created_at", 0)
-    tags: List = event_dict.get("tags", [])
+    tags: dict = event_dict.get("tags", {})
     content: str = event_dict.get("content", "")
     event_id: str = event_dict.get("id", "")
     sig: str = event_dict.get("sig", "")
 
-    if not await verify_signature(event_id, pubkey, sig):
-        raise HTTPException(status_code=401, detail="Signature verification failed")
 
     try:
         delete_message: Optional[str] = None
@@ -184,7 +167,7 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                             "kinds": lambda x: Event.kind.in_(x),
                             "#e": lambda x: Event.tags.any(lambda tag: tag[0] == 'e' and tag[1] in x),
                             "#p": lambda x: Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in x),
-                            "#d": lambda x: Event.tags.any(lambda tag: tag[0] == 'd' and tag[1] in x),
+                            "#d": lambda x: Event.tags.any(lambda tag: tag[0] == 'd' and tag[1] in x), 
                             "since": lambda x: Event.created_at > x,
                             "until": lambda x: Event.created_at < x
                         }
@@ -195,7 +178,19 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                                 del dict_item['limit']
                             for key, value in dict_item.items():
                                 logger.debug(f"Key value is: {key}, {value}")
+                                if key in ["#e", "#p", "#d"]:
+                                    logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
+                                    tag_values = []
+                                    for tags in value:
+                                        logger.debug(f"Tags is {tags}")
+                                        value = [key[1], tags]
+                                        logger.debug(f"Valuevar is {value} of type: {type(value)}")
+                                        query = query.filter(conditions[key](value))
+                                        break
+
+
                                 query = query.filter(conditions[key](value))
+
 
                         query_result: List[Event] = query.order_by(desc(Event.created_at)).limit(query_limit).all()
                         statsd.increment('nostr.event.queried.postgres', tags=["func:event_query"])
@@ -205,15 +200,18 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                         redis_client.expire(redis_get, 1800)
                         logger.debug(f"Query result stored in cache. Stored as: filters: {redis_get} values: {str(serialized_events)} ({inspect.currentframe().f_lineno})")
 
-                    except Exception as e:
-                        error_message = str(e)
-                        logger.error(f"Error occurred: {error_message} ({inspect.currentframe().f_lineno})")
+                    except SQLAlchemyError as exc:
+                        
+                        logger.error(f"Error occurred: {str(exc)} ({inspect.currentframe().f_lineno})")
+                        
+                        session.rollback()
 
                     finally:
                         logger.debug("FINISH PG BLOCK")
 
             except Exception as e:
                 logger.error(f"Error retrieving cached result: {e}")
+                logger.exception(f"What is the excepion {e}")
 
         logger.debug(f"Output list is: {output_list} and length is: {len(output_list)}")
 
