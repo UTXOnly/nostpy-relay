@@ -6,7 +6,6 @@ import inspect
 from typing import List, Dict, Any, Optional
 
 import uvicorn
-import secp256k1
 from ddtrace import tracer
 from datadog import initialize, statsd
 import redis
@@ -44,10 +43,10 @@ Base: declarative_base = declarative_base()
 class Event(Base):
     __tablename__: str = 'event'
 
-    id: Column = Column(String, primary_key=True, index=True)
+    id: Column = Column(String, primary_key=True)
     pubkey: Column = Column(String, index=True)
     kind: Column = Column(Integer, index=True)
-    created_at: Column = Column(Integer, index=True)
+    created_at: Column = Column(Integer)
     tags: Column = Column(JSON)
     content: Column = Column(String)
     sig: Column = Column(String)
@@ -68,18 +67,6 @@ app: FastAPI = FastAPI()
 Session: sessionmaker = sessionmaker(bind=engine)
 session: Session = Session()
 
-async def verify_signature(event_id: str, pubkey: str, sig: str) -> bool:
-    try:
-        pub_key: secp256k1.PublicKey = secp256k1.PublicKey(bytes.fromhex("02" + pubkey), True)
-        result: bool = pub_key.schnorr_verify(bytes.fromhex(event_id), bytes.fromhex(sig), None, raw=True)
-        if result:
-            logger.info(f"Verification successful for event: {event_id}")
-        else:
-            logger.error(f"Verification failed for event: {event_id}")
-        return result
-    except (ValueError, TypeError, secp256k1.Error) as e:
-        logger.error(f"Error verifying signature for event {event_id}: {e}")
-        return False
 
 @app.post("/new_event")
 async def handle_new_event(request: Request) -> JSONResponse:
@@ -92,8 +79,6 @@ async def handle_new_event(request: Request) -> JSONResponse:
     event_id: str = event_dict.get("id", "")
     sig: str = event_dict.get("sig", "")
 
-    if not await verify_signature(event_id, pubkey, sig):
-        raise HTTPException(status_code=401, detail="Signature verification failed")
 
     try:
         delete_message: Optional[str] = None
@@ -180,9 +165,9 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                         conditions: Dict[str, Any] = {
                             "authors": lambda x: Event.pubkey.in_(x),
                             "kinds": lambda x: Event.kind.in_(x),
-                            "#e": lambda x: Event.tags.op('@>')([x]),
-                            "#p": lambda x: Event.tags.op('@>')([x]),
-                            "#d": lambda x: Event.tags.op('@>')([x]),
+                            "#e": lambda x: Event.tags.any(lambda tag: tag[0] == 'e' and tag[1] in x),
+                            "#p": lambda x: Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in x),
+                            "#d": lambda x: Event.tags.any(lambda tag: tag[0] == 'd' and tag[1] in x), 
                             "since": lambda x: Event.created_at > x,
                             "until": lambda x: Event.created_at < x
                         }
@@ -195,20 +180,14 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                                 logger.debug(f"Key value is: {key}, {value}")
                                 if key in ["#e", "#p", "#d"]:
                                     logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
-                                    #logger.debug(f"COnditions/values are: {(conditions[key](value))}")
                                     tag_values = []
                                     for tags in value:
                                         logger.debug(f"Tags is {tags}")
-                                        #tag_values[key[1]](tags)
                                         value = [key[1], tags]
-                                        #tag_values.append(cleaned)
                                         logger.debug(f"Valuevar is {value} of type: {type(value)}")
                                         query = query.filter(conditions[key](value))
                                         break
-                                    #logger.debug(f"value list is : {tag_values}")
-                                    #value = tag_values
-                                    #query = query.filter(conditions[key](value))
-                                    #break
+
 
                                 query = query.filter(conditions[key](value))
 
