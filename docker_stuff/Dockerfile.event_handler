@@ -7,6 +7,6 @@ COPY .env .
 
 RUN pip install --no-cache-dir -r eh_requirements.txt
 COPY ./python_stuff/event_handler.py .
-COPY ./python_stuff/db_util.py .
+
 
 CMD ["ddtrace-run", "python", "event_handler.py"]
