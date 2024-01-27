@@ -54,15 +54,7 @@ class Event():
         self.sig = sig
 
     def __str__(self) -> str:
-        return f"""
-    {self.event_id},
-    {self.pubkey},
-    {self.kind},
-    {self.created_at},
-    {self.tags},
-    {self.content},
-    {self.sig}
-    """
+        return f"{self.event_id}, {self.pubkey}, {self.kind}, {self.created_at}, {self.tags}, {self.content}, {self.sig} "
 
 
 
