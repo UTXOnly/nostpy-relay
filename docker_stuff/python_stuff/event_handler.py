@@ -292,6 +292,9 @@ async def handle_subscription(request: Request) -> JSONResponse:
         
         # Your final SQL query string
         sql_query = f"SELECT * FROM events WHERE {where_clause} LIMIT %s"
+        logger.debug(f"SQL query constructed: {sql_query}")
+        logger.debug(f"Tag values are: {tag_values}")
+        logger.debug(f"Limit is {query_limit}")
         
         # Execute the query with psycopg
         # You would typically do this inside a 'with' block or ensure you close the cursor/connection
