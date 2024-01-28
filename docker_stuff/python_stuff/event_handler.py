@@ -264,16 +264,16 @@ async def handle_subscription(request: Request) -> JSONResponse:
         async with app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
                 logger.debug(f"Inside 2nd async context manager")
-                list_all = await cur.execute("SELECT * FROM events;")
+                list_all = await cur.execute("SELECT * FROM events;").fetchall()
                 listed = str(await cur.fetchall())
                 query_results = await cur.execute(completed)
                 qr_result = str(await cur.fetchall())
-                logger.debug(f"Full table results are {listed}")
+                logger.debug(f"Full table results are {list_all}")
                 logger.debug(f"query results are: {qr_result}")
 
         #return query_results
     
-        serialized_events: List[Dict[str, Any]] = tag_values #await event_query(json.dumps(filters), request)
+                serialized_events: List[Dict[str, Any]] = await cur.execute(completed).fetchall() #await event_query(json.dumps(filters), request)
 
         if len(serialized_events) < 2:
             response = None
