@@ -89,8 +89,8 @@ def initialize_db():
                 CREATE TABLE IF NOT EXISTS events (
                     event_id VARCHAR(255) PRIMARY KEY,
                     pubkey VARCHAR(255),
-                    kind VARCHAR(255),
-                    created_at VARCHAR(255),
+                    kind INTEGER,
+                    created_at INTEGER,
                     tags JSONB,
                     content TEXT,
                     sig VARCHAR(255)
@@ -252,8 +252,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
        
        # Define your conditions as SQL where clause snippets
         conditions: Dict[str, str] = {
-           "authors": "pubkey = ANY(%s)",
-           "kinds": "kind = ANY(%s)",
+           "authors": "pubkey = IN %s",
+           "kinds": "kind = IN %s",
            "#e": "tags @> ARRAY[('e', %s)]",
            "#p": "tags @> ARRAY[('p', %s)]",
            "#d": "tags @> ARRAY[('d', %s)]",
@@ -289,7 +289,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         where_clause = ' OR '.join(query_parts)
         
         # Your final SQL query string
-        sql_query = f"SELECT * FROM events WHERE {where_clause};" #LIMIT %s;"
+        sql_query = f"SELECT * FROM events WHERE {where_clause};"
         logger.debug(f"SQL query constructed: {sql_query}")
         logger.debug(f"Tag values are: {tag_values}")
         logger.debug(f"Limit is {query_limit}")
