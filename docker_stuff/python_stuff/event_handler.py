@@ -243,9 +243,11 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
         async with request.app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
                 list_all = await cur.execute("SELECT * FROM events;")
+                listed = await cur.fetchall()
                 query_results = await cur.execute(completed)
-                logger.debug(f"Full table results are {list_all}")
-                logger.debug(f"query results are: {query_results}")
+                qr_result = await cur.fetchall()
+                logger.debug(f"Full table results are {listed}")
+                logger.debug(f"query results are: {qr_result}")
 
         return query_results
                 
