@@ -195,7 +195,7 @@ WHERE EXISTS (
 
 
 @app.post("/subscription")
-async def handle_subscription(request: Request) -> JSONResponse:
+async def handle_subscription(request: Request, app: FastAPI = app) -> JSONResponse:
     try:
         response: Optional[Dict[str, Any]] = None
         payload: Dict[str, Any] = await request.json()
@@ -261,7 +261,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 
         completed = generate_query(tag_values)
         logger.debug(f"Completed var is : {completed}")
-        async with request.app.async_pool.connection() as conn:
+        async with app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
                 list_all = await cur.execute("SELECT * FROM events;")
                 listed = await cur.fetchall()
@@ -272,16 +272,14 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
         #return query_results
     
-        serialized_events: List[Dict[str, Any]] = query_results #await event_query(json.dumps(filters), request)
+        serialized_events: List[Dict[str, Any]] = qr_result #await event_query(json.dumps(filters), request)
 
         if len(serialized_events) < 2:
             response = None
         else:
             response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': serialized_events}
                 
-        
 
-    
     except psycopg.Error as exc:
         
         logger.error(f"Error occurred: {str(exc)} ({inspect.currentframe().f_lineno})")
@@ -298,11 +296,6 @@ async def handle_subscription(request: Request) -> JSONResponse:
         except Exception as e:
             return JSONResponse(content={'error': str(e)}, status_code=500)
         #logger.debug("FINISH PG BLOCK")
-
-
-
-
-
 
 if __name__ == "__main__":
     initialize_db()
