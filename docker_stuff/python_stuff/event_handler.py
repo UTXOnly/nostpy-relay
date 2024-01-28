@@ -275,7 +275,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         subscription_dict: Dict[str, Any] = payload.get('event_dict', {})
         subscription_id: str = payload.get('subscription_id', "")
         filters: str = subscription_dict
-        serialized_events: List[Dict[str, Any]] = await event_query(json.dumps(filters))
+        serialized_events: List[Dict[str, Any]] = await event_query(json.dumps(filters), request)
 
         if len(serialized_events) < 2:
             response = None
