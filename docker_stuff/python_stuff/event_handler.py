@@ -171,6 +171,93 @@ async def handle_new_event(request: Request) -> JSONResponse:
             logger.debug(delete_message.format(pubkey=event_obj.pubkey))
 
 
+async def generate_query(tags):
+    base_query = """
+SELECT * 
+FROM events 
+WHERE EXISTS (
+    SELECT 1 
+    FROM jsonb_array_elements(tags) as elem
+    WHERE {}
+);
+"""
+    conditions = []
+    for tag in tags:
+
+        condition = f"elem @> '{tag}'"
+        conditions.append(condition)
+
+    or_conditions = ' OR '.join(conditions)
+    complete_query = base_query.format(or_conditions)
+    return complete_query
+
+
+
+async def event_query(filters: str) -> List[Dict[str, Any]]:
+    try:
+
+        results: List[Dict[str, Any]] = json.loads(filters)
+        logger.debug(f"Filter variable is: {filters}")
+        list_index: int = 0
+        index: int = 2
+        output_list: List[Dict[str, Any]] = []
+
+        for request in results:
+            extracted_dict: Dict[str, Any] = results[list_index][str(index)]
+            logger.debug(f"Extracted Dictionary is: {extracted_dict}")
+            if isinstance(request, dict):
+                output_list.append(extracted_dict)
+                logger.debug(f"Results variable is: {request}")
+            #redis_get: str = str(results[list_index][str(index)])
+        
+        #conditions: Dict[str, Any] = {
+        #    "authors": lambda x: Event.pubkey.in_(x),
+        #    "kinds": lambda x: Event.kind.in_(x),
+        #    "#e": lambda x: Event.tags.any(lambda tag: tag[0] == 'e' and tag[1] in x),
+        #    "#p": lambda x: Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in x),
+        #    "#d": lambda x: Event.tags.any(lambda tag: tag[0] == 'd' and tag[1] in x), 
+        #    "since": lambda x: Event.created_at > x,
+        #    "until": lambda x: Event.created_at < x
+        #}
+        for index, dict_item in enumerate(output_list):
+            query_limit: int = int(min(dict_item.get('limit', 100), 100))
+            if 'limit' in dict_item:
+                del dict_item['limit']
+            for key, value in dict_item.items():
+                logger.debug(f"Key value is: {key}, {value}")
+                if key in ["#e", "#p", "#d"]:
+                    logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
+                    tag_values = []
+                    for tags in value:
+                        logger.debug(f"Tags is {tags}")
+                        value = [key[1], tags]
+                        logger.debug(f"Valuevar is {value} of type: {type(value)}")
+                        tag_list = ["key"]
+                        tag_values.append()
+        logger.debug(f"Tag values are: {tag_values}")
+                    
+                
+        completed = generate_query(tag_values)
+        async with request.app.async_pool.connection() as conn:
+            async with conn.cursor() as cur:
+                query_results = await cur.execute(completed)
+                logger.debug(f"query results are: {query_results}")
+
+        return query_results
+                
+        
+
+    
+    except psycopg.Error as exc:
+        
+        logger.error(f"Error occurred: {str(exc)} ({inspect.currentframe().f_lineno})")
+        
+        
+    finally:
+        logger.debug("FINISH PG BLOCK")
+
+
+
 @app.post("/subscription")
 async def handle_subscription(request: Request) -> JSONResponse:
     try:
@@ -179,6 +266,13 @@ async def handle_subscription(request: Request) -> JSONResponse:
         subscription_dict: Dict[str, Any] = payload.get('event_dict', {})
         subscription_id: str = payload.get('subscription_id', "")
         filters: str = subscription_dict
+        serialized_events: List[Dict[str, Any]] = await event_query(json.dumps(filters))
+
+        if len(serialized_events) < 2:
+            response = None
+        else:
+            response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': serialized_events}
+
 
     except Exception:
         raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
