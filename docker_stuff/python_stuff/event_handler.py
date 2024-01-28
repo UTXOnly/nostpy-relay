@@ -284,8 +284,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         break
                 if key in ["kind","authors"]:
                     logger.debug(f"Raw value is {value}")
-                    value = tuple(value)
-                    logger.debug(f"Tupled value is {value}")
+                    #value = tuple(value)
+                    #logger.debug(f"Tupled value is {value}")
                     query_parts.append(conditions[key] % [value])
                     break
                 
