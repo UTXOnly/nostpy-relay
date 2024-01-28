@@ -266,11 +266,11 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 logger.debug(f"Inside 2nd async context manager")
                 list_all = await cur.execute("SELECT * FROM events;")
                 logger.debug(f"Log line after select all")
-                listed = str(await cur.fetchall())
-                query_results = await cur.execute(completed)
-                qr_result = str(await cur.fetchall())
+                listed = await cur.fetchall()
+                #query_results = await cur.execute(completed)
+                #qr_result = str(await cur.fetchall())
                 logger.debug(f"Full table results are {listed}")
-                logger.debug(f"query results are: {qr_result}")
+                #logger.debug(f"query results are: {qr_result}")
 
         #return query_results
     
