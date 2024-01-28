@@ -252,8 +252,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
        
        # Define your conditions as SQL where clause snippets
         conditions: Dict[str, str] = {
-           "authors": "pubkey IN (%s)",
-           "kinds": "kind IN (%s)",
+           "authors": "pubkey ANY(%s)",
+           "kinds": "kind ANY(%s)",
            "#e": "tags @> ARRAY[('e', %s)]",
            "#p": "tags @> ARRAY[('p', %s)]",
            "#d": "tags @> ARRAY[('d', %s)]",
@@ -280,11 +280,14 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         tag_values.append(tag_value_pair)
                         
                     # Add the SQL condition for the tag
-                        #query_parts.append(conditions[key] % tuple(tag_value_pair))
+                        query_parts.append(conditions[key] % tuple(tag_value_pair))
+                        break
                 if key in ["kind","authors"]:
                     logger.debug(f"Raw value is {value}")
                     value = tuple(value)
                     logger.debug(f"Tupled value is {value}")
+                    query_parts.append(conditions[key] % [value])
+                    break
                 
                     # For other keys, add the SQL condition and the corresponding value
                 query_parts.append(conditions[key] % value)
