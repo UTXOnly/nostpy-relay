@@ -193,6 +193,24 @@ WHERE EXISTS (
     return complete_query
 
 
+async def base_query_test(query_addition):
+    base_query = """
+SELECT * 
+FROM events WHERE {}
+"""
+    conditions = []
+    for item in query_addition:
+
+        condition = f"elem @> '{item}'"
+        logger.debug(f"Condition iter is {condition}")
+        conditions.append(condition)
+
+    or_conditions = ' OR '.join(conditions)
+    complete_query = base_query.format(or_conditions)
+    return complete_query
+
+
+
 
 @app.post("/subscription")
 async def handle_subscription(request: Request) -> JSONResponse:
@@ -231,17 +249,23 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 output_list.append(extracted_dict)
                 logger.debug(f"Results variable is: {request}")
             #redis_get: str = str(results[list_index][str(index)])
-        
-        #conditions: Dict[str, Any] = {
-        #    "authors": lambda x: Event.pubkey.in_(x),
-        #    "kinds": lambda x: Event.kind.in_(x),
-        #    "#e": lambda x: Event.tags.any(lambda tag: tag[0] == 'e' and tag[1] in x),
-        #    "#p": lambda x: Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in x),
-        #    "#d": lambda x: Event.tags.any(lambda tag: tag[0] == 'd' and tag[1] in x), 
-        #    "since": lambda x: Event.created_at > x,
-        #    "until": lambda x: Event.created_at < x
-        #}
+       
+       # Define your conditions as SQL where clause snippets
+        conditions: Dict[str, str] = {
+           "authors": "pubkey = %s",
+           # Assuming 'Event.kind' is a column name in your table
+           "kinds": "kind = ANY(%s)",
+           # Assuming 'Event.tags' is a column of type array or a related table
+           "#e": "tags @> ARRAY[('e', %s)]",
+           "#p": "tags @> ARRAY[('p', %s)]",
+           "#d": "tags @> ARRAY[('d', %s)]",
+           "since": "created_at > %s",
+           "until": "created_at < %s"
+         }
+       
         tag_values = []
+        query_parts = []
+        
         for index, dict_item in enumerate(output_list):
             query_limit: int = int(min(dict_item.get('limit', 100), 100))
             if 'limit' in dict_item:
@@ -253,10 +277,30 @@ async def handle_subscription(request: Request) -> JSONResponse:
                     
                     for tags in value:
                         logger.debug(f"Tags is {tags}")
-                        value = [key[1], tags]
-                        logger.debug(f"Valuevar is {value} of type: {type(value)}")
-                        tag_values.append()
-        logger.debug(f"Tag values are: {tag_values}")
+                        tag_value_pair = (key[1], tags)
+                        logger.debug(f"Valuevar is {tag_value_pair} of type: {type(tag_value_pair)}")
+                        tag_values.append(tag_value_pair)
+                        
+                    # Add the SQL condition for the tag
+                    query_parts.append(conditions[key])
+                else:
+                    # For other keys, add the SQL condition and the corresponding value
+                    query_parts.append(conditions[key] % value)
+        
+        # Combine all parts of the where clause
+        where_clause = ' OR '.join(query_parts)
+        
+        # Your final SQL query string
+        sql_query = f"SELECT * FROM events WHERE {where_clause} LIMIT %s"
+        
+        # Execute the query with psycopg
+        # You would typically do this inside a 'with' block or ensure you close the cursor/connection
+        # cur is your cursor object from psycopg connection
+        #await cur.execute(sql_query, (*tag_values, query_limit))
+        
+        # Fetch the results
+        
+
                     
                 
         completed = generate_query(tag_values)
@@ -264,9 +308,11 @@ async def handle_subscription(request: Request) -> JSONResponse:
         async with app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
                 logger.debug(f"Inside 2nd async context manager")
-                list_all = await cur.execute("SELECT * FROM events;")
-                logger.debug(f"Log line after select all")
+                q1 = await cur.execute(sql_query, (*tag_values, query_limit))
                 listed = await cur.fetchall()
+                #listed = await cur.execute("SELECT * FROM events LIMIT %s", (query_limit,)).fetchall()
+                logger.debug(f"Log line after select all")
+                #listed = await cur.fetchall()
                 #query_results = await cur.execute(completed)
                 #qr_result = str(await cur.fetchall())
                 logger.debug(f"Full table results type is {type(listed)} are {listed}")
