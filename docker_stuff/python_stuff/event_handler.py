@@ -153,7 +153,8 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     await conn.commit()
                 await cur.execute("""
             INSERT INTO events (event_id,pubkey,kind,created_at,tags,content,sig) VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (event_obj.event_id, event_obj.pubkey, event_obj.kind, event_obj.created_at, event_obj.tags, event_obj.content, event_obj.sig))  # Add other event fields here
+        """, (event_obj.event_id, event_obj.pubkey, event_obj.kind, event_obj.created_at, json.dumps(event_obj.tags)
+, event_obj.content, event_obj.sig))  # Add other event fields here
                 await conn.commit()
         response = {'event': "OK", 'subscription_id': "n0stafarian419", 'results_json': "true"}
         statsd.increment('nostr.event.added.count', tags=["func:new_event"])
