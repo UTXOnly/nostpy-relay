@@ -194,11 +194,11 @@ WHERE EXISTS (
 
 
 
-async def event_query(request: Request) -> List[Dict[str, Any]]:
+async def event_query(filters, request: Request) -> List[Dict[str, Any]]:
     try:
 
-        results: List[Dict[str, Any]] = json.loads(request)
-        logger.debug(f"Filter variable is: {request}")
+        results: List[Dict[str, Any]] = json.loads(filters)
+        logger.debug(f"Filter variable is: {filters}")
         list_index: int = 0
         index: int = 2
         output_list: List[Dict[str, Any]] = []
@@ -206,7 +206,7 @@ async def event_query(request: Request) -> List[Dict[str, Any]]:
         for request in results:
             extracted_dict: Dict[str, Any] = results[list_index][str(index)]
             logger.debug(f"Extracted Dictionary is: {extracted_dict}")
-            if isinstance(request, dict):
+            if isinstance(filters, dict):
                 output_list.append(extracted_dict)
                 logger.debug(f"Results variable is: {request}")
             #redis_get: str = str(results[list_index][str(index)])
