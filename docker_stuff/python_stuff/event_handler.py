@@ -269,7 +269,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 listed = str(await cur.fetchall())
                 query_results = await cur.execute(completed)
                 qr_result = str(await cur.fetchall())
-                logger.debug(f"Full table results are {list_all}")
+                logger.debug(f"Full table results are {listed}")
                 logger.debug(f"query results are: {qr_result}")
 
         #return query_results
