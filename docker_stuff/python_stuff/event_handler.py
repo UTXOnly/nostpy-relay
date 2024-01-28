@@ -220,6 +220,7 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
         #    "since": lambda x: Event.created_at > x,
         #    "until": lambda x: Event.created_at < x
         #}
+        tag_values = []
         for index, dict_item in enumerate(output_list):
             query_limit: int = int(min(dict_item.get('limit', 100), 100))
             if 'limit' in dict_item:
@@ -228,7 +229,7 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                 logger.debug(f"Key value is: {key}, {value}")
                 if key in ["#e", "#p", "#d"]:
                     logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
-                    tag_values = []
+                    
                     for tags in value:
                         logger.debug(f"Tags is {tags}")
                         value = [key[1], tags]
