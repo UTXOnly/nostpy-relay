@@ -252,8 +252,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
        
        # Define your conditions as SQL where clause snippets
         conditions: Dict[str, str] = {
-           "authors": "pubkey ANY(%s)",
-           "kinds": "kind ANY(%s)",
+           "authors": "pubkey = ANY(ARRAY%s)",
+           "kinds": "kind = ANY(ARRAY%s)",
            "#e": "tags @> ARRAY[('e', %s)]",
            "#p": "tags @> ARRAY[('p', %s)]",
            "#d": "tags @> ARRAY[('d', %s)]",
