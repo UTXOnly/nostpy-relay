@@ -244,8 +244,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
         for request in results:
             extracted_dict: Dict[str, Any] = results[list_index][str(index)]
-            logger.debug(f"Extracted Dictionary is: {extracted_dict}")
-            if isinstance(filters, dict):
+            logger.debug(f"Extracted Dictionary is: {extracted_dict} and type {type(extracted_dict)}")
+            if isinstance(request, dict):
                 output_list.append(extracted_dict)
                 logger.debug(f"Results variable is: {request}")
             #redis_get: str = str(results[list_index][str(index)])
