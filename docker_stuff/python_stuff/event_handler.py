@@ -269,12 +269,14 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 listed = await cur.fetchall()
                 #query_results = await cur.execute(completed)
                 #qr_result = str(await cur.fetchall())
-                logger.debug(f"Full table results are {listed}")
+                logger.debug(f"Full table results type is {type(listed)} are {listed}")
+                for record in listed:
+                    logger.debug(f"Record is: {record} and is of type {type(listed)} ")
                 #logger.debug(f"query results are: {qr_result}")
 
         #return query_results
     
-                serialized_events: List[Dict[str, Any]] = await cur.execute(completed).fetchall() #await event_query(json.dumps(filters), request)
+                serialized_events: List[Dict[str, Any]] = listed #await cur.execute(completed).fetchall() #await event_query(json.dumps(filters), request)
 
                 if len(serialized_events) < 2:
                     response = None
