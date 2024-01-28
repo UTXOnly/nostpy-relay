@@ -252,10 +252,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
        
        # Define your conditions as SQL where clause snippets
         conditions: Dict[str, str] = {
-           "authors": "pubkey = %s",
-           # Assuming 'Event.kind' is a column name in your table
+           "authors": "pubkey =ANY(%s)",
            "kinds": "kind = ANY(%s)",
-           # Assuming 'Event.tags' is a column of type array or a related table
            "#e": "tags @> ARRAY[('e', %s)]",
            "#p": "tags @> ARRAY[('p', %s)]",
            "#d": "tags @> ARRAY[('d', %s)]",
@@ -291,7 +289,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         where_clause = ' OR '.join(query_parts)
         
         # Your final SQL query string
-        sql_query = f"SELECT * FROM events WHERE {where_clause} LIMIT %s"
+        sql_query = f"SELECT * FROM events WHERE {where_clause} LIMIT %s;"
         logger.debug(f"SQL query constructed: {sql_query}")
         logger.debug(f"Tag values are: {tag_values}")
         logger.debug(f"Limit is {query_limit}")
