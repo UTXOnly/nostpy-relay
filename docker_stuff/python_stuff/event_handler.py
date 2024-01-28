@@ -185,6 +185,7 @@ WHERE EXISTS (
     for tag in tags:
 
         condition = f"elem @> '{tag}'"
+        logger.debug(f"Condition iter is {condition}")
         conditions.append(condition)
 
     or_conditions = ' OR '.join(conditions)
