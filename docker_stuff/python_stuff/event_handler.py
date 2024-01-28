@@ -280,9 +280,9 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         tag_values.append(tag_value_pair)
                         
                     # Add the SQL condition for the tag
-                query_parts.append(conditions[key])
+                #query_parts.append(conditions[key] % tuple(tag_value_pair))
                 if key in ["kind","authors"]:
-                    key = tuple(key)
+                    value = tuple(value)
                 
                     # For other keys, add the SQL condition and the corresponding value
                 query_parts.append(conditions[key] % value)
@@ -292,6 +292,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         
         # Your final SQL query string
         sql_query = f"SELECT * FROM events WHERE {where_clause};"
+        logger.debug(f"Query parts are {query_parts}")
         logger.debug(f"SQL query constructed: {sql_query}")
         logger.debug(f"Tag values are: {tag_values}")
         logger.debug(f"Limit is {query_limit}")
