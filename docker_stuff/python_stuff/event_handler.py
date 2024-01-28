@@ -194,11 +194,11 @@ WHERE EXISTS (
 
 
 
-async def event_query(filters: str) -> List[Dict[str, Any]]:
+async def event_query(request: Request) -> List[Dict[str, Any]]:
     try:
 
-        results: List[Dict[str, Any]] = json.loads(filters)
-        logger.debug(f"Filter variable is: {filters}")
+        results: List[Dict[str, Any]] = json.loads(request)
+        logger.debug(f"Filter variable is: {request}")
         list_index: int = 0
         index: int = 2
         output_list: List[Dict[str, Any]] = []
