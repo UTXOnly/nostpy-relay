@@ -233,12 +233,12 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
                         logger.debug(f"Tags is {tags}")
                         value = [key[1], tags]
                         logger.debug(f"Valuevar is {value} of type: {type(value)}")
-                        tag_list = ["key"]
                         tag_values.append()
         logger.debug(f"Tag values are: {tag_values}")
                     
                 
         completed = generate_query(tag_values)
+        logger.debug(f"Completed var is : {completed}")
         async with request.app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
                 list_all = await cur.execute("SELECT * FROM events;")
@@ -254,6 +254,9 @@ async def event_query(filters: str) -> List[Dict[str, Any]]:
     except psycopg.Error as exc:
         
         logger.error(f"Error occurred: {str(exc)} ({inspect.currentframe().f_lineno})")
+
+    except Exception as exc:
+        logger.error(f"General exception occured: {exc}")
         
         
     finally:
