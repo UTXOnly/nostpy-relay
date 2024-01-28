@@ -280,12 +280,12 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         tag_values.append(tag_value_pair)
                         
                     # Add the SQL condition for the tag
-                        query_parts.append(conditions[key])
-                elif key in ["kind","authors"]:
+                query_parts.append(conditions[key])
+                if key in ["kind","authors"]:
                     key = tuple(key)
-                else:
+                
                     # For other keys, add the SQL condition and the corresponding value
-                    query_parts.append(conditions[key] % value)
+                query_parts.append(conditions[key] % value)
         
         # Combine all parts of the where clause
         where_clause = ' OR '.join(query_parts)
