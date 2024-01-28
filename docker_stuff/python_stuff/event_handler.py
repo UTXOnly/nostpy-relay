@@ -194,8 +194,29 @@ WHERE EXISTS (
 
 
 
-async def event_query(filters, request: Request) -> List[Dict[str, Any]]:
+@app.post("/subscription")
+async def handle_subscription(request: Request) -> JSONResponse:
     try:
+        response: Optional[Dict[str, Any]] = None
+        payload: Dict[str, Any] = await request.json()
+        subscription_dict: Dict[str, Any] = payload.get('event_dict', {})
+        subscription_id: str = payload.get('subscription_id', "")
+        filters: str = subscription_dict
+        
+
+
+    #except Exception:
+    #    raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
+    #finally:
+    #    try:
+    #        if response is None:
+    #            response = {'event': "EOSE", 'subscription_id': subscription_id, 'results_json': "None"}
+    #        return JSONResponse(content=response, status_code=200)
+    #    except Exception as e:
+    #        return JSONResponse(content={'error': str(e)}, status_code=500)
+        
+
+    #try:
 
         results: List[Dict[str, Any]] = json.loads(filters)
         logger.debug(f"Filter variable is: {filters}")
@@ -249,7 +270,14 @@ async def event_query(filters, request: Request) -> List[Dict[str, Any]]:
                 logger.debug(f"Full table results are {listed}")
                 logger.debug(f"query results are: {qr_result}")
 
-        return query_results
+        #return query_results
+    
+        serialized_events: List[Dict[str, Any]] = query_results #await event_query(json.dumps(filters), request)
+
+        if len(serialized_events) < 2:
+            response = None
+        else:
+            response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': serialized_events}
                 
         
 
@@ -263,35 +291,17 @@ async def event_query(filters, request: Request) -> List[Dict[str, Any]]:
         
         
     finally:
-        logger.debug("FINISH PG BLOCK")
-
-
-
-@app.post("/subscription")
-async def handle_subscription(request: Request) -> JSONResponse:
-    try:
-        response: Optional[Dict[str, Any]] = None
-        payload: Dict[str, Any] = await request.json()
-        subscription_dict: Dict[str, Any] = payload.get('event_dict', {})
-        subscription_id: str = payload.get('subscription_id', "")
-        filters: str = subscription_dict
-        serialized_events: List[Dict[str, Any]] = await event_query(json.dumps(filters), request)
-
-        if len(serialized_events) < 2:
-            response = None
-        else:
-            response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': serialized_events}
-
-
-    except Exception:
-        raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
-    finally:
         try:
             if response is None:
                 response = {'event': "EOSE", 'subscription_id': subscription_id, 'results_json': "None"}
             return JSONResponse(content=response, status_code=200)
         except Exception as e:
             return JSONResponse(content={'error': str(e)}, status_code=500)
+        #logger.debug("FINISH PG BLOCK")
+
+
+
+
 
 
 if __name__ == "__main__":
