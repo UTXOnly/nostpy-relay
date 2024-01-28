@@ -287,7 +287,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                     logger.debug(f"Tupled value is {value}")
                 
                     # For other keys, add the SQL condition and the corresponding value
-                query_parts.append(conditions[key]) # % value)
+                query_parts.append(conditions[key] % value)
         
         # Combine all parts of the where clause
         where_clause = ' OR '.join(query_parts)
