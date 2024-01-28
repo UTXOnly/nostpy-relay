@@ -252,7 +252,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
        
        # Define your conditions as SQL where clause snippets
         conditions: Dict[str, str] = {
-           "authors": "pubkey =ANY(%s)",
+           "authors": "pubkey = ANY(%s)",
            "kinds": "kind = ANY(%s)",
            "#e": "tags @> ARRAY[('e', %s)]",
            "#p": "tags @> ARRAY[('p', %s)]",
@@ -289,7 +289,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         where_clause = ' OR '.join(query_parts)
         
         # Your final SQL query string
-        sql_query = f"SELECT * FROM events WHERE {where_clause} LIMIT %s;"
+        sql_query = f"SELECT * FROM events WHERE {where_clause};" #LIMIT %s;"
         logger.debug(f"SQL query constructed: {sql_query}")
         logger.debug(f"Tag values are: {tag_values}")
         logger.debug(f"Limit is {query_limit}")
@@ -309,7 +309,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         async with app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
                 logger.debug(f"Inside 2nd async context manager")
-                q1 = await cur.execute(sql_query, (query_limit,))#(*tag_values, query_limit))
+                q1 = await cur.execute(sql_query) #, (query_limit,))#(*tag_values, query_limit))
                 listed = await cur.fetchall()
                 #listed = await cur.execute("SELECT * FROM events LIMIT %s", (query_limit,)).fetchall()
                 logger.debug(f"Log line after select all")
