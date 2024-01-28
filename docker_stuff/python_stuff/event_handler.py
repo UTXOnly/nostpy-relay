@@ -195,7 +195,7 @@ WHERE EXISTS (
 
 
 @app.post("/subscription")
-async def handle_subscription(request: Request, app: FastAPI = app) -> JSONResponse:
+async def handle_subscription(request: Request) -> JSONResponse:
     try:
         response: Optional[Dict[str, Any]] = None
         payload: Dict[str, Any] = await request.json()
