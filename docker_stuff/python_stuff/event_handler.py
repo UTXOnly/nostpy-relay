@@ -264,7 +264,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         async with app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
                 logger.debug(f"Inside 2nd async context manager")
-                list_all = await cur.execute("SELECT * FROM events;").fetchall()
+                list_all = await cur.execute("SELECT * FROM events;")
                 logger.debug(f"Log line after select all")
                 listed = str(await cur.fetchall())
                 query_results = await cur.execute(completed)
