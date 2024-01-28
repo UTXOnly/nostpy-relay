@@ -309,7 +309,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         async with app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
                 logger.debug(f"Inside 2nd async context manager")
-                q1 = await cur.execute(sql_query, (*tag_values, query_limit))
+                q1 = await cur.execute(sql_query, (query_limit,))#(*tag_values, query_limit))
                 listed = await cur.fetchall()
                 #listed = await cur.execute("SELECT * FROM events LIMIT %s", (query_limit,)).fetchall()
                 logger.debug(f"Log line after select all")
