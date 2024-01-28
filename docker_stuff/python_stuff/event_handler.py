@@ -201,7 +201,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         payload: Dict[str, Any] = await request.json()
         subscription_dict: Dict[str, Any] = payload.get('event_dict', {})
         subscription_id: str = payload.get('subscription_id', "")
-        filters: str = subscription_dict
+        filters: str = json.dumps(subscription_dict)
         
 
 
