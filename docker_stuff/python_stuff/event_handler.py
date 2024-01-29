@@ -225,7 +225,7 @@ async def query_result_parser(query_result):
             #sorted = {column_names[i] : item}
             i += 1
         logger.debug(f"Row result var is {row_result}")
-        column_added.append(row_result)
+        column_added.append([row_result])
 
     logger.debug(f"Returning col_added {column_added}")
     return column_added
