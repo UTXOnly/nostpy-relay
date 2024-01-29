@@ -283,8 +283,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         tag_values.append(tag_value_pair)
                         
                     # Add the SQL condition for the tag
-                        query_parts.append(conditions[key]) 
-                        insert_values.append(tag_value_pair)
+                        #query_parts.append(conditions[key]) 
+                        #insert_values.append(tag_value_pair)
                         break
                 if key in ["kind","authors"]:
                     query_parts.append(conditions[key]) 
