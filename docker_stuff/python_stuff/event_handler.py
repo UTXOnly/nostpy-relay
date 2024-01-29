@@ -302,6 +302,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         logger.debug(f"SQL query constructed: {sql_query}")
         logger.debug(f"Tag values are: {tag_values}")
         logger.debug(f"Limit is {query_limit}")
+        logger.debug(f"Insert values is : {insert_values} and type{type(insert_values)}")
         
 
         completed = generate_query(tag_values)
