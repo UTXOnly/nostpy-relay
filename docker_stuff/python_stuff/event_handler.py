@@ -296,13 +296,14 @@ async def handle_subscription(request: Request) -> JSONResponse:
         
         # Combine all parts of the where clause
         where_clause = ' OR '.join(query_parts)
+        tupled = tuple(insert_values)
         
         sql_query = f"SELECT * FROM events WHERE {where_clause};"
         logger.debug(f"Query parts are {query_parts}")
         logger.debug(f"SQL query constructed: {sql_query}")
         logger.debug(f"Tag values are: {tag_values}")
         logger.debug(f"Limit is {query_limit}")
-        logger.debug(f"Insert values is : {insert_values} and type{type(insert_values)}")
+        logger.debug(f"Insert values is : {tupled} and type{type(tupled)}")
         
 
         completed = generate_query(tag_values)
