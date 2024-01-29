@@ -186,7 +186,7 @@ class ExtractedResponse:
                 stripped = str(event_result)[1:-2]
                 client_response: Tuple[str, Optional[str], Dict[str, Any]] = self.event_type, self.subscription_id, event_result
                 logger.debug(f"Client response loop iter is {client_response} and of type {type(client_response)}")
-                events_to_send.append(str(client_response).strip('[]'))
+                events_to_send.append(client_response)
             return events_to_send
         else:
             # Return EOSE
