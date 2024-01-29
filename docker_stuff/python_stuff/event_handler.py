@@ -214,7 +214,7 @@ FROM events WHERE {}
 
 
 async def query_result_parser(query_result):
-    column_names = ['event_id', 'pubkey', 'kind', 'created_at', 'tags', 'content', 'sig']
+    column_names = ['id', 'pubkey', 'kind', 'created_at', 'tags', 'content', 'sig']
     column_added = []
     
     for record in query_result:
@@ -255,17 +255,17 @@ async def handle_subscription(request: Request) -> JSONResponse:
     #try:
 
         results: List[Dict[str, Any]] = json.loads(filters)
-        logger.debug(f"Filter variable is: {filters}")
+        #logger.debug(f"Filter variable is: {filters}")
         list_index: int = 0
         index: int = 2
         output_list: List[Dict[str, Any]] = []
 
         for request in results:
             extracted_dict: Dict[str, Any] = results[list_index][str(index)]
-            logger.debug(f"Extracted Dictionary is: {extracted_dict} and type {type(extracted_dict)}")
+            #logger.debug(f"Extracted Dictionary is: {extracted_dict} and type {type(extracted_dict)}")
             if isinstance(request, dict):
                 output_list.append(extracted_dict)
-                logger.debug(f"Results variable is: {request}")
+                #logger.debug(f"Results variable is: {request}")
             #redis_get: str = str(results[list_index][str(index)])
        
        # Define your conditions as SQL where clause snippets
@@ -351,7 +351,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
         #return query_results
     
-                serialized_events: List[Dict[str, Any]] = parsed_results #await cur.execute(completed).fetchall() #await event_query(json.dumps(filters), request)
+                serialized_events: List[Dict[str, Any]] = json.dumps(parsed_results) #await cur.execute(completed).fetchall() #await event_query(json.dumps(filters), request)
 
                 if len(serialized_events) < 2:
                     response = None
