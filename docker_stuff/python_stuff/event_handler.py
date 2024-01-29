@@ -218,17 +218,17 @@ async def query_result_parser(query_result):
     column_added = []
     
     for record in query_result:
-        row_result = []
+        row_result = {}
         i = 0
         for item in record:
-            row_result.append({column_names[i] : item})
+            row_result[column_names[i]] = item
             #sorted = {column_names[i] : item}
             i += 1
         logger.debug(f"Row result var is {row_result}")
         column_added.append(row_result)
 
     logger.debug(f"Returning col_added {column_added}")
-    return column_added
+    return str(column_added).strip('[]')
 
 
 
