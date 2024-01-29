@@ -55,6 +55,9 @@ class Event():
 
     def __str__(self) -> str:
         return f"{self.event_id}, {self.pubkey}, {self.kind}, {self.created_at}, {self.tags}, {self.content}, {self.sig} "
+    
+    def column_names(self) -> str:
+        return ['event_id', 'pubkey', 'kind', 'created_at', 'tags', 'content', 'sig']
 
 
 
@@ -210,6 +213,18 @@ FROM events WHERE {}
     return complete_query
 
 
+async def query_result_parser(query_result):
+    column_names = ['event_id', 'pubkey', 'kind', 'created_at', 'tags', 'content', 'sig']
+    column_added = {}
+    for record in query_result:
+        i = 0
+        for item in record:
+            column_added[column_names[i]] = item
+            i += 1
+    return column_added
+
+
+
 
 
 @app.post("/subscription")
@@ -324,6 +339,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 #listed = await cur.fetchall()
                 #query_results = await cur.execute(completed)
                 #qr_result = str(await cur.fetchall())
+                parsed_results = query_result_parser(listed)
                 logger.debug(f"Full table results type is {type(listed)} are {listed}")
                 for record in listed:
                     logger.debug(f"Record is: {record} and is of type {type(listed)} ")
@@ -331,7 +347,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
         #return query_results
     
-                serialized_events: List[Dict[str, Any]] = listed #await cur.execute(completed).fetchall() #await event_query(json.dumps(filters), request)
+                serialized_events: List[Dict[str, Any]] = parsed_results #await cur.execute(completed).fetchall() #await event_query(json.dumps(filters), request)
 
                 if len(serialized_events) < 2:
                     response = None
