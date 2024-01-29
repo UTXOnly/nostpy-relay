@@ -256,9 +256,9 @@ async def handle_subscription(request: Request) -> JSONResponse:
         conditions: Dict[str, str] = {
            "authors": "pubkey = ANY(ARRAY%s)",
            "kinds": "kind = ANY(ARRAY%s)",
-           "#e": "tags @> ARRAY%s",
-           "#p": "tags @> ARRAY%s",
-           "#d": "tags @> ARRAY%s",
+           #"#e": "tags @> ARRAY%s",
+           #"#p": "tags @> ARRAY%s",
+           #"#d": "tags @> ARRAY%s",
            "since": "created_at > %s",
            "until": "created_at < %s"
          }
