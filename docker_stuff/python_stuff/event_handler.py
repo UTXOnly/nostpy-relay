@@ -311,9 +311,9 @@ async def handle_subscription(request: Request) -> JSONResponse:
         async with app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
                 logger.debug(f"Inside 2nd async context manager")
-                matchup = (sql_query, tupled)
+                matchup = (sql_query, insert_values)
                 logger.debug(f"Matchup is {matchup}")
-                q1 = await cur.execute(sql_query, tupled) #, (query_limit,))#(*tag_values, query_limit))
+                q1 = await cur.execute(sql_query, insert_values) #, (query_limit,))#(*tag_values, query_limit))
                 listed = await cur.fetchall()
                 logger.debug(f"Log line after select all")
      
