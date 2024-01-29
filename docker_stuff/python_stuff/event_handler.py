@@ -351,6 +351,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 logger.debug(f"Full table results type is {type(listed)} are {listed}")
                 parsed_results = await query_result_parser(listed)
                 logger.debug(f"with colun name {parsed_results}")
+                logger.debug(f"json dumps version {json.dumps(parsed_results)}")
+
                 #for record in listed:
                 #    logger.debug(f"Record is: {record} and is of type {type(listed)} ")
                 #logger.debug(f"query results are: {qr_result}")
