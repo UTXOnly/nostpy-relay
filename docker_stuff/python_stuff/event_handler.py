@@ -231,9 +231,6 @@ async def query_result_parser(query_result):
     return column_added
 
 
-
-
-
 @app.post("/subscription")
 async def handle_subscription(request: Request) -> JSONResponse:
     try:
@@ -242,21 +239,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         subscription_dict: Dict[str, Any] = payload.get('event_dict', {})
         subscription_id: str = payload.get('subscription_id', "")
         filters: str = json.dumps(subscription_dict)
-        
 
-
-    #except Exception:
-    #    raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
-    #finally:
-    #    try:
-    #        if response is None:
-    #            response = {'event': "EOSE", 'subscription_id': subscription_id, 'results_json': "None"}
-    #        return JSONResponse(content=response, status_code=200)
-    #    except Exception as e:
-    #        return JSONResponse(content={'error': str(e)}, status_code=500)
-        
-
-    #try:
 
         results: List[Dict[str, Any]] = json.loads(filters)
         #logger.debug(f"Filter variable is: {filters}")
@@ -269,22 +252,20 @@ async def handle_subscription(request: Request) -> JSONResponse:
             #logger.debug(f"Extracted Dictionary is: {extracted_dict} and type {type(extracted_dict)}")
             if isinstance(request, dict):
                 output_list.append(extracted_dict)
-                #logger.debug(f"Results variable is: {request}")
-            #redis_get: str = str(results[list_index][str(index)])
-       
-       # Define your conditions as SQL where clause snippets
+
         conditions: Dict[str, str] = {
            "authors": "pubkey = ANY(ARRAY%s)",
            "kinds": "kind = ANY(ARRAY%s)",
-           "#e": "tags @> ARRAY[('e', %s)]",
-           "#p": "tags @> ARRAY[('p', %s)]",
-           "#d": "tags @> ARRAY[('d', %s)]",
+           "#e": "tags @> ARRAY%s",
+           "#p": "tags @> ARRAY%s",
+           "#d": "tags @> ARRAY%s",
            "since": "created_at > %s",
            "until": "created_at < %s"
          }
        
         tag_values = []
         query_parts = []
+        insert_values = []
         
         for index, dict_item in enumerate(output_list):
             query_limit: int = int(min(dict_item.get('limit', 100), 100))
@@ -293,7 +274,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
             for key, value in dict_item.items():
                 #logger.debug(f"Key value is: {key}, {value}")
                 if key in ["#e", "#p", "#d"]:
-                    logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
+                    #logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
                     
                     for tags in value:
                         #logger.debug(f"Tags is {tags}")
@@ -302,78 +283,54 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         tag_values.append(tag_value_pair)
                         
                     # Add the SQL condition for the tag
-                        query_parts.append(conditions[key] % tag_value_pair)
+                        query_parts.append(conditions[key]) 
+                        insert_values.append(tag_value_pair)
                         break
                 if key in ["kind","authors"]:
-                    #logger.debug(f"Raw value is {value}")
-                    #value = tuple(value)
-                    #logger.debug(f"Tupled value is {value}")
-                    query_parts.append(conditions[key] % [value])
+                    query_parts.append(conditions[key]) 
+                    insert_values.append(value)
                     break
-                
-                    # For other keys, add the SQL condition and the corresponding value
-                query_parts.append(conditions[key] % value)
+
+                query_parts.append(conditions[key])
+                insert_values.append(value)
         
         # Combine all parts of the where clause
         where_clause = ' OR '.join(query_parts)
         
-        # Your final SQL query string
         sql_query = f"SELECT * FROM events WHERE {where_clause};"
         logger.debug(f"Query parts are {query_parts}")
         logger.debug(f"SQL query constructed: {sql_query}")
         logger.debug(f"Tag values are: {tag_values}")
         logger.debug(f"Limit is {query_limit}")
         
-        # Execute the query with psycopg
-        # You would typically do this inside a 'with' block or ensure you close the cursor/connection
-        # cur is your cursor object from psycopg connection
-        #await cur.execute(sql_query, (*tag_values, query_limit))
-        
-        # Fetch the results
-        
 
-                    
-                
         completed = generate_query(tag_values)
         logger.debug(f"Completed var is : {str(completed)}")
         async with app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
                 logger.debug(f"Inside 2nd async context manager")
-                q1 = await cur.execute(sql_query) #, (query_limit,))#(*tag_values, query_limit))
+                q1 = await cur.execute(sql_query, insert_values) #, (query_limit,))#(*tag_values, query_limit))
                 listed = await cur.fetchall()
-                #listed = await cur.execute("SELECT * FROM events LIMIT %s", (query_limit,)).fetchall()
                 logger.debug(f"Log line after select all")
-                #listed = await cur.fetchall()
-                #query_results = await cur.execute(completed)
-                #qr_result = str(await cur.fetchall())
-                
-                
+     
                 logger.debug(f"Full table results type is {type(listed)} are {listed}")
                 parsed_results = await query_result_parser(listed)
                 logger.debug(f"with colun name {parsed_results}")
                 logger.debug(f"json dumps version {json.dumps(parsed_results)}")
 
-                #for record in listed:
-                #    logger.debug(f"Record is: {record} and is of type {type(listed)} ")
-                #logger.debug(f"query results are: {qr_result}")
-
-        #return query_results
-    
-                serialized_events: List[Dict[str, Any]] = json.dumps(parsed_results)#await cur.execute(completed).fetchall() #await event_query(json.dumps(filters), request)
+                serialized_events: List[Dict[str, Any]] = json.dumps(parsed_results)
 
                 if len(serialized_events) < 2:
                     response = None
                 else:
                     response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': serialized_events}
                 
-
     except psycopg.Error as exc:
         
         logger.error(f"Error occurred: {str(exc)} ({inspect.currentframe().f_lineno})")
 
     except Exception as exc:
         logger.error(f"General exception occured: {exc}")
-        
         
     finally:
         try:
@@ -382,7 +339,6 @@ async def handle_subscription(request: Request) -> JSONResponse:
             return JSONResponse(content=response, status_code=200)
         except Exception as e:
             return JSONResponse(content={'error': str(e)}, status_code=500)
-        #logger.debug("FINISH PG BLOCK")
 
 if __name__ == "__main__":
     initialize_db()
