@@ -275,6 +275,8 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
                     
                 else:
                     logger.warning(f"Unsupported message format: {message_list}")
+        except aiohttp.ClientError as e:
+            logger.error(f"http client error {e}")
         except Exception as e:
             logger.error(f"Error occurred while starting the server: {e}")
             raise

@@ -242,14 +242,14 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
 
         results: List[Dict[str, Any]] = json.loads(filters)
-        #logger.debug(f"Filter variable is: {filters}")
+        logger.debug(f"Filter variable is: {filters}")
         list_index: int = 0
         index: int = 2
         output_list: List[Dict[str, Any]] = []
 
         for request in results:
             extracted_dict: Dict[str, Any] = results[list_index][str(index)]
-            #logger.debug(f"Extracted Dictionary is: {extracted_dict} and type {type(extracted_dict)}")
+            logger.debug(f"Extracted Dictionary is: {extracted_dict} and type {type(extracted_dict)}")
             if isinstance(request, dict):
                 output_list.append(extracted_dict)
 
@@ -272,9 +272,9 @@ async def handle_subscription(request: Request) -> JSONResponse:
             if 'limit' in dict_item:
                 del dict_item['limit']
             for key, value in dict_item.items():
-                #logger.debug(f"Key value is: {key}, {value}")
+                logger.debug(f"Key value is: {key}, {value}")
                 if key in ["#e", "#p", "#d"]:
-                    #logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
+                    logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
                     
                     for tags in value:
                         #logger.debug(f"Tags is {tags}")
@@ -306,8 +306,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
         logger.debug(f"Insert values is : {tupled} and type{type(tupled)}")
         
 
-        completed = generate_query(tag_values)
-        logger.debug(f"Completed var is : {str(completed)}")
+        #completed = generate_query(tag_values)
+        #logger.debug(f"Completed var is : {str(completed)}")
         async with app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
                 logger.debug(f"Inside 2nd async context manager")
