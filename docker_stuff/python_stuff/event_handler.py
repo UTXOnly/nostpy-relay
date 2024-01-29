@@ -219,6 +219,7 @@ async def query_result_parser(query_result):
     
     for record in query_result:
         row_result = []
+        i = 0
         for item in record:
             row_result.append({column_names[i] : item})
             #sorted = {column_names[i] : item}
