@@ -79,9 +79,15 @@ services:
             "host": "172.28.0.4",
             "port" : "5432",
             "disable_generic_tags": true,
-            "tags" : "db:stg_test",
-            "service" : "STAGING-pg-db",
-            "reported_hostname" : "STAGING-pg-db"
+            "tags" : "db:dev_test",
+            "service" : "dev-pg-db",
+            "reported_hostname" : "dev-pg-db",
+            "collect_activity_metrics" : "true",
+            "collect_bloat_metrics": "false",
+            "database_autodiscovery": {
+              "enabled": true},
+            "collect_schemas": {
+              "enabled": true}
           }
         ]
         
