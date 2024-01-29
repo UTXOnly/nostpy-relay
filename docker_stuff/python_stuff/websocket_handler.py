@@ -315,9 +315,9 @@ async def send_subscription_to_handler(
         if response.status == 200 and response_object.event_type == "EVENT":
             response_list = await response_object.format_response()
             logger.debug(f"Response list is : {response_list}")
-            for event_item in response_list:
-                logger.debug(f"Final response from REQ to ws client: {event_item}")
-                await websocket.send(json.dumps(event_item))
+            #for event_item in response_list:
+            logger.debug(f"Final response from REQ to ws client: {event_item}")
+            await websocket.send(json.dumps(response_list))
 
             await websocket.send(json.dumps(EOSE))
         else:
