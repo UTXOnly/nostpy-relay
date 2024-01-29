@@ -215,11 +215,11 @@ FROM events WHERE {}
 
 async def query_result_parser(query_result):
     column_names = ['event_id', 'pubkey', 'kind', 'created_at', 'tags', 'content', 'sig']
-    column_added = {}
+    column_added = []
     for record in query_result:
         i = 0
         for item in record:
-            column_added[column_names[i]] = item
+            column_added.append({column_names[i] : item})
             i += 1
     return column_added
 
@@ -284,21 +284,21 @@ async def handle_subscription(request: Request) -> JSONResponse:
             if 'limit' in dict_item:
                 del dict_item['limit']
             for key, value in dict_item.items():
-                logger.debug(f"Key value is: {key}, {value}")
+                #logger.debug(f"Key value is: {key}, {value}")
                 if key in ["#e", "#p", "#d"]:
                     logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
                     
                     for tags in value:
-                        logger.debug(f"Tags is {tags}")
+                        #logger.debug(f"Tags is {tags}")
                         tag_value_pair = [key[1], tags]
-                        logger.debug(f"Valuevar is {tag_value_pair} of type: {type(tag_value_pair)}")
+                        #logger.debug(f"Valuevar is {tag_value_pair} of type: {type(tag_value_pair)}")
                         tag_values.append(tag_value_pair)
                         
                     # Add the SQL condition for the tag
                         query_parts.append(conditions[key] % tag_value_pair)
                         break
                 if key in ["kind","authors"]:
-                    logger.debug(f"Raw value is {value}")
+                    #logger.debug(f"Raw value is {value}")
                     #value = tuple(value)
                     #logger.debug(f"Tupled value is {value}")
                     query_parts.append(conditions[key] % [value])
@@ -342,8 +342,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 parsed_results = await query_result_parser(listed)
                 logger.debug(f"with colun name {parsed_results}")
                 logger.debug(f"Full table results type is {type(listed)} are {listed}")
-                for record in listed:
-                    logger.debug(f"Record is: {record} and is of type {type(listed)} ")
+                #for record in listed:
+                #    logger.debug(f"Record is: {record} and is of type {type(listed)} ")
                 #logger.debug(f"query results are: {qr_result}")
 
         #return query_results
