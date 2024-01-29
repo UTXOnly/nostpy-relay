@@ -223,7 +223,10 @@ async def query_result_parser(query_result):
             row_result.append({column_names[i] : item})
             #sorted = {column_names[i] : item}
             i += 1
+        logger.debug(f"Row result var is {row_result}")
         column_added.append(row_result)
+
+    logger.debug(f"Returning col_added {column_added}")
     return column_added
 
 
@@ -342,9 +345,11 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 #listed = await cur.fetchall()
                 #query_results = await cur.execute(completed)
                 #qr_result = str(await cur.fetchall())
+                
+                
+                logger.debug(f"Full table results type is {type(listed)} are {listed}")
                 parsed_results = await query_result_parser(listed)
                 logger.debug(f"with colun name {parsed_results}")
-                logger.debug(f"Full table results type is {type(listed)} are {listed}")
                 #for record in listed:
                 #    logger.debug(f"Record is: {record} and is of type {type(listed)} ")
                 #logger.debug(f"query results are: {qr_result}")
