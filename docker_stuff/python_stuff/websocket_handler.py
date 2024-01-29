@@ -356,5 +356,6 @@ if __name__ == "__main__":
         asyncio.get_event_loop().create_task(send_active_connections_metric())
         asyncio.get_event_loop().run_until_complete(start_server)
         asyncio.get_event_loop().run_forever()
+
     except Exception as e:
-        logger.error(f"Error occurred while starting the server: {e}")
+        logger.error(f"Error occurred while starting the server main loop: {e}")
