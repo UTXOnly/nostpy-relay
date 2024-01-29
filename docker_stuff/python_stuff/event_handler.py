@@ -216,11 +216,14 @@ FROM events WHERE {}
 async def query_result_parser(query_result):
     column_names = ['event_id', 'pubkey', 'kind', 'created_at', 'tags', 'content', 'sig']
     column_added = []
+    
     for record in query_result:
-        i = 0
+        row_result = []
         for item in record:
-            column_added.append({column_names[i] : item})
+            row_result.append({column_names[i] : item})
+            #sorted = {column_names[i] : item}
             i += 1
+        column_added.append(row_result)
     return column_added
 
 
