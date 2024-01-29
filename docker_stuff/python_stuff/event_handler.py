@@ -228,7 +228,7 @@ async def query_result_parser(query_result):
         column_added.append(row_result)
 
     logger.debug(f"Returning col_added {column_added}")
-    return str(column_added).strip('[]')
+    return column_added
 
 
 

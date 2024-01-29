@@ -180,9 +180,12 @@ class ExtractedResponse:
             client_response: Tuple[str, Optional[str], str, Optional[str]] = self.event_type, self.subscription_id, self.results, self.comment
         elif self.event_type == "EVENT":
             events_to_send = []
+            logger.debug(f"Self results are {self.results}")
             for event_result in self.results:
+                logger.debug(f"Event result is {event_result}")
                 client_response: Tuple[str, Optional[str], Dict[str, Any]] = self.event_type, self.subscription_id, event_result
-                events_to_send.append(client_response)
+                logger.debug(f"Client response loop iter is {client_response} and of type {type(client_response)}")
+                events_to_send.append(str(client_response).strip('[]'))
             return events_to_send
         else:
             # Return EOSE
