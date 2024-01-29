@@ -340,6 +340,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 #query_results = await cur.execute(completed)
                 #qr_result = str(await cur.fetchall())
                 parsed_results = query_result_parser(listed)
+                logger.debug(f"with colun name {parsed_results}")
                 logger.debug(f"Full table results type is {type(listed)} are {listed}")
                 for record in listed:
                     logger.debug(f"Record is: {record} and is of type {type(listed)} ")
