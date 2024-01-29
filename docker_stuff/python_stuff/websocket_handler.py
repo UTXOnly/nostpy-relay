@@ -184,7 +184,7 @@ class ExtractedResponse:
             logger.debug(f"Self results are {self.results} and of type {type(self.results)}")
             for event_result in self.results:
                 logger.debug(f"Event result is {event_result}")
-                stripped = str(event_result)[1:-2]
+                stripped = str(event_result)[1:-1]
                 logger.debug(f"Stripped = {stripped} and is type {type(stripped)}")
                 client_response: Tuple[str, Optional[str], Dict[str, Any]] = self.event_type, self.subscription_id, ast.literal_eval(stripped)
                 logger.debug(f"Client response loop iter is {client_response} and of type {type(client_response)}")
