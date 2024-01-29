@@ -163,7 +163,7 @@ class ExtractedResponse:
         """
         self.event_type = response_data["event"]
         self.subscription_id = response_data["subscription_id"]
-        self.results = response_data["results_json"]
+        self.results = json.loads(response_data["results_json"])
         self.comment = ""
         self.rate_limit_response: Tuple[str, Optional[str], str, Optional[str]] = "OK", "nostafarian419", "false", "rate-limited: slow your roll nostrich"
         self.duplicate_response: Tuple[str, Optional[str], str, Optional[str]] = "OK", "nostafarian419", "false", "duplicate: already have this event"
@@ -180,7 +180,7 @@ class ExtractedResponse:
             client_response: Tuple[str, Optional[str], str, Optional[str]] = self.event_type, self.subscription_id, self.results, self.comment
         elif self.event_type == "EVENT":
             events_to_send = []
-            logger.debug(f"Self results are {self.results}")
+            logger.debug(f"Self results are {self.results} and of type {type(self.results)}")
             for event_result in self.results:
                 logger.debug(f"Event result is {event_result}")
                 client_response: Tuple[str, Optional[str], Dict[str, Any]] = self.event_type, self.subscription_id, event_result
