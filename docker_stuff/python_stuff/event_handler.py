@@ -292,7 +292,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                     break
 
                 query_parts.append(conditions[key])
-                insert_values.append(value)
+                insert_values.append(str(value))
         
         # Combine all parts of the where clause
         where_clause = ' OR '.join(query_parts)
@@ -313,7 +313,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 logger.debug(f"Inside 2nd async context manager")
                 matchup = (sql_query, insert_values)
                 logger.debug(f"Matchup is {matchup}")
-                q1 = await cur.execute(sql_query, *insert_values) #, (query_limit,))#(*tag_values, query_limit))
+                q1 = await cur.execute(sql_query, insert_values) #, (query_limit,))#(*tag_values, query_limit))
                 listed = await cur.fetchall()
                 logger.debug(f"Log line after select all")
      
