@@ -292,7 +292,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                     if key == "authors":
                         key = "pubkey"
                     #snip = psycopg.sql.SQL(',').join(psycopg.sql.identifier(x) for x in value)
-                    q_part = f"{key} = ANY(ARRAY {value}"
+                    q_part = f"{key} = ANY(ARRAY {value})"
                     #logger.debug(f"{snip.as_string(cur)}")
                     query_parts.append(q_part) 
                     insert_values.append(value)
