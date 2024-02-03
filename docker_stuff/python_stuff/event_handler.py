@@ -237,6 +237,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
     try:
         response: Optional[Dict[str, Any]] = None
         payload: Dict[str, Any] = await request.json()
+        logger.debug(f"payload is {payload} and of type {type(payload)}")
         subscription_dict: Dict[str, Any] = payload.get('event_dict', {})
         logger.debug(f"Subdict is : {subscription_dict} and of type {type(subscription_dict)}")
         subscription_id: str = payload.get('subscription_id', "")
