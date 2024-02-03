@@ -242,19 +242,19 @@ async def handle_subscription(request: Request) -> JSONResponse:
         filters: str = json.dumps(subscription_dict)
 
 
-        results: List[Dict[str, Any]] = json.loads(filters)
+        #results: List[Dict[str, Any]] = json.loads(filters)
         logger.debug(f"Filter variable is: {filters}")
         list_index: int = 0
         index: int = 2
         output_list: List[Dict[str, Any]] = []
 
-        for request in results:
-            extracted_dict: Dict[str, Any] = results[list_index][str(index)]
-            logger.debug(f"Extracted Dictionary is: {extracted_dict} and type {type(extracted_dict)}")
-            if isinstance(request, dict):
-                output_list.append(extracted_dict)
+        #for request in results:
+        #    extracted_dict: Dict[str, Any] = results[list_index][str(index)]
+        #    logger.debug(f"Extracted Dictionary is: {extracted_dict} and type {type(extracted_dict)}")
+        #    if isinstance(request, dict):
+        #        output_list.append(extracted_dict)
                 
-        logger.debug(f"Output list is: {output_list} and of length: {len(output_list)}")
+        #logger.debug(f"Output list is: {output_list} and of length: {len(output_list)}")
         conditions: Dict[str, str] = {
            #"authors": [x for x in x],#"pubkey = ANY(ARRAY x)",
            #"kinds": f"kind = ANY(ARRAY {value})",
@@ -270,39 +270,39 @@ async def handle_subscription(request: Request) -> JSONResponse:
         query_parts = []
         insert_values = []
         
-        for index, dict_item in enumerate(output_list):
-            query_limit: int = int(min(dict_item.get('limit', 100), 100))
-            if 'limit' in dict_item:
-                del dict_item['limit']
-            for key, value in dict_item.items():
-                logger.debug(f"Key value is: {key}, {value}")
-                if key in ["#e", "#p", "#d"]:
-                    logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
+        #for index, dict_item in enumerate(output_list):
+        #    query_limit: int = int(min(dict_item.get('limit', 100), 100))
+        #    if 'limit' in dict_item:
+        #        del dict_item['limit']
+        for key in filters: #dict_item.items():
+            logger.debug(f"Key value is: {key}, {filters[key]}")
+            if key in ["#e", "#p", "#d"]:
+                logger.debug(f"Tag key is : {key} , value is {filters[key]} and of type: {type(filters[key])}")
+                
+                for tags in filters[key]:
+                    #logger.debug(f"Tags is {tags}")
+                    tag_value_pair = [key[1], tags]
+                    #logger.debug(f"Valuevar is {tag_value_pair} of type: {type(tag_value_pair)}")
+                    tag_values.append(tag_value_pair)
                     
-                    for tags in value:
-                        #logger.debug(f"Tags is {tags}")
-                        tag_value_pair = [key[1], tags]
-                        #logger.debug(f"Valuevar is {tag_value_pair} of type: {type(tag_value_pair)}")
-                        tag_values.append(tag_value_pair)
-                        
-                    # Add the SQL condition for the tag
-                        #query_parts.append(conditions[key]) 
-                        #insert_values.append(tag_value_pair)
-                        break
-                if key in ["kind","authors","kinds"]:
-                    if key == "authors":
-                        key = "pubkey"
-                    if key == "kinds":
-                        key = "kind"
-                    #snip = psycopg.sql.SQL(',').join(psycopg.sql.identifier(x) for x in value)
-                    q_part = f"{key} = ANY(ARRAY {value})"
-                    #logger.debug(f"{snip.as_string(cur)}")
-                    query_parts.append(q_part) 
-                    insert_values.append(value)
+                # Add the SQL condition for the tag
+                    #query_parts.append(conditions[key]) 
+                    #insert_values.append(tag_value_pair)
                     break
+            if key in ["kind","authors","kinds"]:
+                if key == "authors":
+                    key = "pubkey"
+                if key == "kinds":
+                    key = "kind"
+                #snip = psycopg.sql.SQL(',').join(psycopg.sql.identifier(x) for x in value)
+                q_part = f"{key} = ANY(ARRAY {filters[key]})"
+                #logger.debug(f"{snip.as_string(cur)}")
+                query_parts.append(q_part) 
+                insert_values.append(filters[key])
+                break
 
-                query_parts.append(conditions[key])
-                insert_values.append(str(value))
+        query_parts.append(conditions[key])
+        insert_values.append(str(filters[key]))
         
         # Combine all parts of the where clause
         where_clause = ' OR '.join(query_parts)
@@ -312,7 +312,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         logger.debug(f"Query parts are {query_parts}")
         logger.debug(f"SQL query constructed: {sql_query}")
         logger.debug(f"Tag values are: {tag_values}")
-        logger.debug(f"Limit is {query_limit}")
+        #logger.debug(f"Limit is {query_limit}")
         logger.debug(f"Insert values is : {tupled} and type{type(tupled)} len tuple is {len(tupled)}")
 
         #snip = sql.SQL(', ').join(
