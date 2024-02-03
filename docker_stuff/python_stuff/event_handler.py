@@ -6,6 +6,7 @@ import inspect
 from typing import List, Dict, Any, Optional
 
 from dotenv import load_dotenv
+#from psycopg import sq
 
 
 import uvicorn
@@ -254,14 +255,15 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 output_list.append(extracted_dict)
 
         conditions: Dict[str, str] = {
-           "authors": f"pubkey = ANY(ARRAY {value})",
-           "kinds": f"kind = ANY(ARRAY {value})",
+           #"authors": [x for x in x],#"pubkey = ANY(ARRAY x)",
+           #"kinds": f"kind = ANY(ARRAY {value})",
            #"#e": "tags @> ARRAY%s",
            #"#p": "tags @> ARRAY%s",
            #"#d": "tags @> ARRAY%s",
-           "since": f"created_at > {value}",
-           "until": f"created_at < {value}"
+           "since": "created_at > %s",
+           "until": "created_at < %s"
          }
+
        
         tag_values = []
         query_parts = []
@@ -287,7 +289,12 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         #insert_values.append(tag_value_pair)
                         break
                 if key in ["kind","authors"]:
-                    query_parts.append(conditions[key]) 
+                    if key == "authors":
+                        key = "pubkey"
+                    snip = psycopg.sql.SQL(',').join(psycopg.sql.identifier(x) for x in value)
+                    q_part = f"{key} = ANY(ARRAY {snip})"
+                    logger.debug(f"{snip.as_string(cur)}")
+                    query_parts.append(q_part) 
                     insert_values.append(value)
                     break
 
@@ -304,6 +311,10 @@ async def handle_subscription(request: Request) -> JSONResponse:
         logger.debug(f"Tag values are: {tag_values}")
         logger.debug(f"Limit is {query_limit}")
         logger.debug(f"Insert values is : {tupled} and type{type(tupled)} len tuple is {len(tupled)}")
+
+        #snip = sql.SQL(', ').join(
+        #sql.Identifier(n) for n in ['foo', 'bar', 'baz'])
+        #print(snip.as_string(conn))
         
 
         #completed = generate_query(tag_values)
