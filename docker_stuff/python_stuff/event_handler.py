@@ -254,8 +254,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 output_list.append(extracted_dict)
 
         conditions: Dict[str, str] = {
-           #"authors": "pubkey = ANY(ARRAY%s)",
-           #"kinds": "kind = ANY(ARRAY%s)",
+           "authors": "pubkey = ANY(ARRAY %s)",
+           "kinds": "kind = ANY(ARRAY %s)",
            #"#e": "tags @> ARRAY%s",
            #"#p": "tags @> ARRAY%s",
            #"#d": "tags @> ARRAY%s",
@@ -315,7 +315,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 logger.debug(f"Matchup is {matchup}")
                 q1 = await cur.execute(sql_query, tupled) #, (query_limit,))#(*tag_values, query_limit))
                 listed = await cur.fetchall()
-                logger.debug(f"Log line after select all")
+                logger.debug(f"Log line after query executed")
      
                 logger.debug(f"Full table results type is {type(listed)} are {listed}")
                 parsed_results = await query_result_parser(listed)
