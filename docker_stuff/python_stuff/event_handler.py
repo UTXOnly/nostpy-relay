@@ -253,7 +253,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
             logger.debug(f"Extracted Dictionary is: {extracted_dict} and type {type(extracted_dict)}")
             if isinstance(request, dict):
                 output_list.append(extracted_dict)
-
+                
+        logger.debug(f"Output list is: {output_list} and of length: {len(output_list)}")
         conditions: Dict[str, str] = {
            #"authors": [x for x in x],#"pubkey = ANY(ARRAY x)",
            #"kinds": f"kind = ANY(ARRAY {value})",
