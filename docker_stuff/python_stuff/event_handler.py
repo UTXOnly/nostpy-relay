@@ -291,6 +291,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 if key in ["kind","authors","kinds"]:
                     if key == "authors":
                         key = "pubkey"
+                    if key == "kinds":
+                        key = "kind"
                     #snip = psycopg.sql.SQL(',').join(psycopg.sql.identifier(x) for x in value)
                     q_part = f"{key} = ANY(ARRAY {value})"
                     #logger.debug(f"{snip.as_string(cur)}")
