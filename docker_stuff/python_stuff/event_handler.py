@@ -315,7 +315,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 logger.debug(f"Matchup is {matchup}")
                 #q1 = await cur.execute(query=sql_query, params=([1],) )#params=tupled) 
                 #logger.debug(f"{query.as})#, (query_limit,))#(*tag_values, query_limit))
-                new_new = await cur.execute("SELECT * from events WHERE kind IN %s AND created_at > %s;", (tuple([1,7]), 1675470876))
+                new_new = await cur.execute("SELECT * from events WHERE kind IN %s AND created_at > %s;", (str(tuple([1,7])), 1675470876))
                 listed = await cur.fetchall()
                 logger.debug(f"Log line after query executed")
      
