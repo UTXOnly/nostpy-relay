@@ -254,13 +254,13 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 output_list.append(extracted_dict)
 
         conditions: Dict[str, str] = {
-           "authors": "pubkey = ANY(ARRAY %s)",
-           "kinds": "kind = ANY(ARRAY %s)",
+           "authors": f"pubkey = ANY(ARRAY {value})",
+           "kinds": f"kind = ANY(ARRAY {value})",
            #"#e": "tags @> ARRAY%s",
            #"#p": "tags @> ARRAY%s",
            #"#d": "tags @> ARRAY%s",
-           "since": "created_at > %s",
-           "until": "created_at < %s"
+           "since": f"created_at > {value}",
+           "until": f"created_at < {value}"
          }
        
         tag_values = []
