@@ -291,9 +291,9 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 if key in ["kind","authors","kinds"]:
                     if key == "authors":
                         key = "pubkey"
-                    snip = psycopg.sql.SQL(',').join(psycopg.sql.identifier(x) for x in value)
-                    q_part = f"{key} = ANY(ARRAY {snip})"
-                    logger.debug(f"{snip.as_string(cur)}")
+                    #snip = psycopg.sql.SQL(',').join(psycopg.sql.identifier(x) for x in value)
+                    q_part = f"{key} = ANY(ARRAY {value}"
+                    #logger.debug(f"{snip.as_string(cur)}")
                     query_parts.append(q_part) 
                     insert_values.append(value)
                     break
@@ -324,7 +324,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 logger.debug(f"Inside 2nd async context manager")
                 matchup = (sql_query, tupled)
                 logger.debug(f"Matchup is {matchup}")
-                q1 = await cur.execute(query=sql_query, params=tupled )#params=tupled) 
+                q1 = await cur.execute(query=sql_query)#params=tupled) 
                 #logger.debug(f"{query.as})#, (query_limit,))#(*tag_values, query_limit))
                 #new_new = await cur.execute("SELECT * from events WHERE kind = ANY(ARRAY(%s)) AND created_at > %s;", ((1,7), 1675470876))
                 listed = await cur.fetchall()
