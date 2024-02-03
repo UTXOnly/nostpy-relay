@@ -239,14 +239,15 @@ async def handle_subscription(request: Request) -> JSONResponse:
         payload: Dict[str, Any] = await request.json()
         subscription_dict: Dict[str, Any] = payload.get('event_dict', {})
         subscription_id: str = payload.get('subscription_id', "")
-        filters = subscription_dict#json.dumps(subscription_dict)
+        filters = subscription_dict["2"] 
+        #json.dumps(subscription_dict)
 
 
         #results: List[Dict[str, Any]] = json.loads(filters)
         logger.debug(f"Filter variable is: {filters}")
-        list_index: int = 0
-        index: int = 2
-        output_list: List[Dict[str, Any]] = []
+        #list_index: int = 0
+        #index: int = 2
+        #output_list: List[Dict[str, Any]] = []
 
         #for request in results:
         #    extracted_dict: Dict[str, Any] = results[list_index][str(index)]
