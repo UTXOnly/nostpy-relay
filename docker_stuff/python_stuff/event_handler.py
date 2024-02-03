@@ -313,7 +313,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 logger.debug(f"Inside 2nd async context manager")
                 matchup = (sql_query, tupled)
                 logger.debug(f"Matchup is {matchup}")
-                q1 = await cur.execute(query=sql_query, params=tupled) 
+                q1 = await cur.execute(query=sql_query, params=([1],) )#params=tupled) 
                 #logger.debug(f"{query.as})#, (query_limit,))#(*tag_values, query_limit))
                 listed = await cur.fetchall()
                 logger.debug(f"Log line after query executed")
