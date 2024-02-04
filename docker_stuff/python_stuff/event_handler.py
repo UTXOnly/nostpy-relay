@@ -59,6 +59,89 @@ class Event():
     
     def column_names(self) -> str:
         return ['event_id', 'pubkey', 'kind', 'created_at', 'tags', 'content', 'sig']
+    
+
+    
+    def sanitize_event_keys(raw_payload):
+
+        logger.debug(f"ec payload is {raw_payload} and of type {type(raw_payload)}")
+        subscription_dict= raw_payload.get('event_dict', {})
+        logger.debug(f"Subdict is : {subscription_dict} and of type {type(subscription_dict)}")
+        subscription_id= raw_payload.get('subscription_id', "")
+        filters = subscription_dict
+        #json.dumps(subscription_dict)
+        #results: List[Dict[str, Any]] = json.loads(filters)
+        logger.debug(f"Filter variable is: {filters} and of length {len(filters)}")
+
+        tag_values = []
+        query_parts = []
+
+
+        key_mappings = {
+            "authors": "pubkey",
+            "kinds": "kind",
+            "ids": "id",
+            # Add more mappings as needed
+        }
+        
+        for key in filters:
+            logger.debug(f"Key value is: {key}, {filters[key]}")
+        
+            # Apply key mappings
+            new_key = key_mappings.get(key, key)
+            if new_key != key:
+                stored_val = filters[key]
+                filters.pop(key)
+                filters[new_key] = stored_val
+                logger.debug(f"Adding new key {new_key} with value {stored_val}")
+            
+            if key in ["#e", "#p", "#d"]:
+                logger.debug(f"Tag key is : {key} , value is {filters[key]} and of type: {type(filters[key])}")
+                
+                for tags in filters[key]:
+                    #logger.debug(f"Tags is {tags}")
+                    tag_value_pair = [key[1], tags]
+                    #logger.debug(f"Valuevar is {tag_value_pair} of type: {type(tag_value_pair)}")
+                    tag_values.append(tag_value_pair)
+                    
+                # Add the SQL condition for the tag
+                    #query_parts.append(conditions[key]) 
+                    #insert_values.append(tag_value_pair)
+                    break
+
+
+                
+            #if key in ["kind","authors","kinds"]:
+            #    if key == "authors":
+            #        key = "pubkey"
+            #        stored_val = filters[key]
+            #        filters.pop("authors")
+            #        logger.debug(f"Adding new key {key}")
+            #        filters["pubkey"] = stored_val
+            #        logger.debug(f"New author is {key} and val {filters[key]}")
+            #    elif key == "kinds":
+            #        stored_val = filters[key]
+            #        filters.pop("kinds")
+            #        logger.debug(f"Adding new key {key}")
+            #        filters["kind"] = stored_val
+            #        logger.debug(f"New kind is {key} and val {filters[key]}")
+            #    elif key == "ids":
+            #        stored_val = filters[key]
+            #        filters.pop("ids")
+            #        logger.debug(f"Adding new key {key}")
+            #        filters["id"] = stored_val
+            #        logger.debug(f"New id is {key} and val {filters[key]}")
+
+
+                q_part = f"{key} = ANY(ARRAY {filters[key]})"
+                logger.debug(f"q_part is {q_part}")
+                #logger.debug(f"{snip.as_string(cur)}")
+                query_parts.append(q_part) 
+                #insert_values.append(filters[key])
+                break
+
+        return tag_values, query_parts
+
 
 
 
@@ -237,27 +320,21 @@ async def handle_subscription(request: Request) -> JSONResponse:
     try:
         response: Optional[Dict[str, Any]] = None
         payload: Dict[str, Any] = await request.json()
+        
         logger.debug(f"payload is {payload} and of type {type(payload)}")
         subscription_dict: Dict[str, Any] = payload.get('event_dict', {})
         logger.debug(f"Subdict is : {subscription_dict} and of type {type(subscription_dict)}")
         subscription_id: str = payload.get('subscription_id', "")
         filters = subscription_dict
+        tag_values, query_parts = Event.sanitize_event_keys(filters)
+
+        logger.debug(f"tg and qp are {tag_values} and {query_parts}")
         #json.dumps(subscription_dict)
 
 
         #results: List[Dict[str, Any]] = json.loads(filters)
         logger.debug(f"Filter variable is: {filters} and of length {len(filters)}")
-        #list_index: int = 0
-        #index: int = 2
-        #output_list: List[Dict[str, Any]] = []
 
-        #for request in results:
-        #    extracted_dict: Dict[str, Any] = results[list_index][str(index)]
-        #    logger.debug(f"Extracted Dictionary is: {extracted_dict} and type {type(extracted_dict)}")
-        #    if isinstance(request, dict):
-        #        output_list.append(extracted_dict)
-                
-        #logger.debug(f"Output list is: {output_list} and of length: {len(output_list)}")
         conditions: Dict[str, str] = {
            #"authors": [x for x in x],#"pubkey = ANY(ARRAY x)",
            #"kinds": f"kind = ANY(ARRAY {value})",
@@ -268,77 +345,21 @@ async def handle_subscription(request: Request) -> JSONResponse:
            "until": "created_at < %s"
          }
 
-       
-        tag_values = []
-        query_parts = []
-        insert_values = []
-        
-        #for index, dict_item in enumerate(output_list):
-        #    query_limit: int = int(min(dict_item.get('limit', 100), 100))
-        #    if 'limit' in dict_item:
-        #        del dict_item['limit']
-        for key in filters: #dict_item.items():
-            logger.debug(f"Key value is: {key}, {filters[key]}")
-            if key in ["#e", "#p", "#d"]:
-                logger.debug(f"Tag key is : {key} , value is {filters[key]} and of type: {type(filters[key])}")
-                
-                for tags in filters[key]:
-                    #logger.debug(f"Tags is {tags}")
-                    tag_value_pair = [key[1], tags]
-                    #logger.debug(f"Valuevar is {tag_value_pair} of type: {type(tag_value_pair)}")
-                    tag_values.append(tag_value_pair)
-                    
-                # Add the SQL condition for the tag
-                    #query_parts.append(conditions[key]) 
-                    #insert_values.append(tag_value_pair)
-                    break
-            if key in ["kind","authors","kinds"]:
-                if key == "authors":
-                    key = "pubkey"
-                if key == "kinds":
-                    stored_val = filters[key]
-                    filters.pop("kinds")
-                    key = "kind"
-                    logger.debug(f"Adding new key {key}")
-                    filters[key] = stored_val
-                    logger.debug(f"New kind is {key} and val {filters[key]}")
-                #snip = psycopg.sql.SQL(',').join(psycopg.sql.identifier(x) for x in value)
-                q_part = f"{key} = ANY(ARRAY {filters[key]})"
-                logger.debug(f"q_part is {q_part}")
-                #logger.debug(f"{snip.as_string(cur)}")
-                query_parts.append(q_part) 
-                #insert_values.append(filters[key])
-                break
-
-        #query_parts.append(conditions[key])
-        #insert_values.append(str(filters[key]))
         
         # Combine all parts of the where clause
         where_clause = ' OR '.join(query_parts)
-        tupled = tuple(insert_values)
         
         sql_query = f"SELECT * FROM events WHERE {where_clause};"
         logger.debug(f"Query parts are {query_parts}")
         logger.debug(f"SQL query constructed: {sql_query}")
         logger.debug(f"Tag values are: {tag_values}")
         #logger.debug(f"Limit is {query_limit}")
-        logger.debug(f"Insert values is : {tupled} and type{type(tupled)} len tuple is {len(tupled)}")
 
-        #snip = sql.SQL(', ').join(
-        #sql.Identifier(n) for n in ['foo', 'bar', 'baz'])
-        #print(snip.as_string(conn))
-        
-
-        #completed = generate_query(tag_values)
-        #logger.debug(f"Completed var is : {str(completed)}")
         async with app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
                 logger.debug(f"Inside 2nd async context manager")
-                matchup = (sql_query, tupled)
-                logger.debug(f"Matchup is {matchup}")
+
                 q1 = await cur.execute(query=sql_query)#params=tupled) 
-                #logger.debug(f"{query.as})#, (query_limit,))#(*tag_values, query_limit))
-                #new_new = await cur.execute("SELECT * from events WHERE kind = ANY(ARRAY(%s)) AND created_at > %s;", ((1,7), 1675470876))
                 listed = await cur.fetchall()
                 logger.debug(f"Log line after query executed")
      
