@@ -81,7 +81,7 @@ def sanitize_event_keys(raw_payload):
             "ids": "id",
         }
         
-        for key in filters:
+        for key in list(filters.keys()):
             logger.debug(f"Key value is: {key}, {filters[key]}")
         
             # Apply key mappings
