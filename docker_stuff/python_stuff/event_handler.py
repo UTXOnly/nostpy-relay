@@ -316,26 +316,31 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
         tag_stuff = tag_values
         # Combine all parts of the where clause
-        where_clause = ' OR '.join(query_parts)
-        seperator = " "
-        if len(tag_values) > 0:
-            tag_clause = await generate_query(tag_values)
-            where_clause = str(where_clause) + ' OR ' + str(tag_clause)
-        #where_clause.join(tag_stuff)
         
-        sql_query = f"SELECT * FROM events WHERE {where_clause};"
-        logger.debug(f"Query parts are {query_parts}")
-        logger.debug(f"SQL query constructed: {sql_query}")
-        logger.debug(f"Tag values are: {tag_values}")
-        #logger.debug(f"Limit is {query_limit}")
+        seperator = " "
+
 
         async with app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
                 logger.debug(f"Inside 2nd async context manager")
-
-                q1 = await cur.execute(query=sql_query)#params=tupled) 
-                listed = await cur.fetchall()
-                logger.debug(f"Log line after query executed")
+                if len(query_parts) > 0:
+                    where_clause = ' OR '.join(query_parts)
+                    run_query = True
+                if len(tag_values) > 0:
+                    tag_clause = await generate_query(tag_values)
+                    where_clause = str(where_clause) + ' OR ' + str(tag_clause)
+                    run_query = True
+                #where_clause.join(tag_stuff)
+                
+                sql_query = f"SELECT * FROM events WHERE {where_clause};"
+                logger.debug(f"Query parts are {query_parts}")
+                logger.debug(f"SQL query constructed: {sql_query}")
+                logger.debug(f"Tag values are: {tag_values}")
+                #logger.debug(f"Limit is {query_limit}")
+                if run_query:
+                    q1 = await cur.execute(query=sql_query)#params=tupled) 
+                    listed = await cur.fetchall()
+                    logger.debug(f"Log line after query executed")
      
                 logger.debug(f"Full table results type is {type(listed)} are {listed}")
                 parsed_results = await query_result_parser(listed)
