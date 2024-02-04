@@ -108,9 +108,9 @@ def sanitize_event_keys(raw_payload):
                         tag_value_pair = [key[1], tags]
                         tag_values.append(tag_value_pair)
                         q_part = f"tags = ANY(ARRAY {tag_value_pair})"
-                        query_parts.append(q_part)
+                        #query_parts.append(q_part)
                         outer_break = True
-                        break
+                        continue
                 except TypeError as e:
                     logger.error(f"Error processing tags for key {key}: {e}")
             
@@ -119,15 +119,15 @@ def sanitize_event_keys(raw_payload):
                     q_part = f'created_at > {updated_keys["since"]}'
                     query_parts.append(q_part)
                     outer_break = True
-                    break
+                    continue
                 elif key == "until":
                     q_part = f'created_at < {updated_keys["until"]}'
                     query_parts.append(q_part)
                     outer_break = True
-                    break
+                    continue
 
             if outer_break:
-                break
+                continue
             
             q_part = f"{item} = ANY(ARRAY {updated_keys[item]})"
             logger.debug(f"q_part is {q_part}")
