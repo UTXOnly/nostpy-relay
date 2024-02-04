@@ -63,53 +63,65 @@ class Event():
 
     
 def sanitize_event_keys(raw_payload):
-    logger.debug(f"ec payload is {raw_payload} and of type {type(raw_payload)}")
-    subscription_dict= raw_payload.get('event_dict', {})
-    logger.debug(f"Subdict is : {subscription_dict} and of type {type(subscription_dict)}")
-    filters = raw_payload
-    #json.dumps(subscription_dict)
-    #results: List[Dict[str, Any]] = json.loads(filters)
-    logger.debug(f"Filter variable is: {filters} and of length {len(filters)}")
-    tag_values = []
-    query_parts = []
-    key_mappings = {
-        "authors": "pubkey",
-        "kinds": "kind",
-        "ids": "id",
-    }
-    
-    for key in filters:
-        logger.debug(f"Key value is: {key}, {filters[key]}")
-    
-        # Apply key mappings
-        new_key = key_mappings.get(key, key)
-        if new_key != key:
-            stored_val = filters[key]
-            filters.pop(key)
-            filters[new_key] = stored_val
-            logger.debug(f"Adding new key {new_key} with value {stored_val}")
+    try:
+        logger.debug(f"EC payload is {raw_payload} and of type {type(raw_payload)}")
         
-        if key in ["#e", "#p", "#d"]:
-            logger.debug(f"Tag key is : {key} , value is {filters[key]} and of type: {type(filters[key])}")
+        subscription_dict = raw_payload.get('event_dict', {})
+        logger.debug(f"Subdict is: {subscription_dict} and of type {type(subscription_dict)}")
+        
+        filters = raw_payload
+        logger.debug(f"Filter variable is: {filters} and of length {len(filters)}")
+        
+        tag_values = []
+        query_parts = []
+        
+        key_mappings = {
+            "authors": "pubkey",
+            "kinds": "kind",
+            "ids": "id",
+        }
+        
+        for key in filters:
+            logger.debug(f"Key value is: {key}, {filters[key]}")
+        
+            # Apply key mappings
+            new_key = key_mappings.get(key, key)
+            if new_key != key:
+                stored_val = filters[key]
+                filters.pop(key)
+                filters[new_key] = stored_val
+                logger.debug(f"Adding new key {new_key} with value {stored_val}")
             
-            for tags in filters[key]:
-                #logger.debug(f"Tags is {tags}")
-                tag_value_pair = [key[1], tags]
-                #logger.debug(f"Valuevar is {tag_value_pair} of type: {type(tag_value_pair)}")
-                tag_values.append(tag_value_pair)
+            if key in ["#e", "#p", "#d"]:
+                logger.debug(f"Tag key is: {key}, value is {filters[key]} and of type: {type(filters[key])}")
+                
+                try:
+                    for tags in filters[key]:
+                        tag_value_pair = [key[1], tags]
+                        tag_values.append(tag_value_pair)
+                        break
+                except TypeError as e:
+                    logger.error(f"Error processing tags for key {key}: {e}")
+            
+            elif key in ["since", "until"]:
+                if key == "since":
+                    q_part = f'created_at > {filters["since"]}'
+                    query_parts.append(q_part)
+                elif key == "until":
+                    q_part = f'created_at < {filters["until"]}'
+                    query_parts.append(q_part)
                 break
-        elif key in ["since", "until"]:
-            if key == "since":
-                q_part = f'created at > {filters["since"]}'
-                query_parts.append(q_part)
-            elif key == "until":
-                q_part = f'created at < {filters["until"]}'
-                query_parts.append(q_part)
-            break
-        q_part = f"{key} = ANY(ARRAY {filters[key]})"
-        logger.debug(f"q_part is {q_part}")
-        query_parts.append(q_part) 
-    return tag_values, query_parts
+            
+            q_part = f"{key} = ANY(ARRAY {filters[key]})"
+            logger.debug(f"q_part is {q_part}")
+            query_parts.append(q_part)
+        
+        return tag_values, query_parts
+
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
+        return [], []
+
 
 
                 
