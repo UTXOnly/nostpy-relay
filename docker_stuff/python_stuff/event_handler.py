@@ -321,7 +321,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         logger.debug(f"Subdict is : {subscription_dict} and of type {type(subscription_dict)}")
         subscription_id: str = payload.get('subscription_id', "")
         filters = subscription_dict
-        tag_values, query_parts = Event.sanitize_event_keys(filters)
+        tag_values, query_parts = sanitize_event_keys(filters)
 
         logger.debug(f"tg and qp are {tag_values} and {query_parts}")
         #json.dumps(subscription_dict)
