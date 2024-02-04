@@ -296,13 +296,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
 
 async def generate_query(tags):
-    base_query = """
- EXISTS (
-    SELECT 1 
-    FROM jsonb_array_elements(tags) as elem
-    WHERE {}
-);
-"""
+    base_query = "EXISTS (SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
     conditions = []
     for tag in tags:
 
@@ -314,22 +308,6 @@ async def generate_query(tags):
     complete_query = base_query.format(or_conditions)
     return complete_query
 
-
-async def base_query_test(query_addition):
-    base_query = """
-SELECT * 
-FROM events WHERE {}
-"""
-    conditions = []
-    for item in query_addition:
-
-        condition = f"elem @> '{item}'"
-        logger.debug(f"Condition iter is {condition}")
-        conditions.append(condition)
-
-    or_conditions = ' OR '.join(conditions)
-    complete_query = base_query.format(or_conditions)
-    return complete_query
 
 
 async def query_result_parser(query_result):
