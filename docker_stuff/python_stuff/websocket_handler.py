@@ -228,7 +228,9 @@ class WebsocketMessages:
         self.event_type = message[0]
         if self.event_type in ('REQ', 'CLOSE'):
             self.subscription_id: str = message[1]
-            self.event_payload: List[Dict[str, Any]] = [{index: message[index]} for index in range(2, len(message))]
+            raw_payload = message[2:]
+            logger.debug(f"Raw payload is {raw_payload} and len {len(raw_payload)}")
+            self.event_payload = json.loads(message[2])#{json.loads(item) for item in range(2, len(message))}
         else:
             self.event_payload: Dict[str, Any] = message[1]
         headers: websockets.Headers = websocket.request_headers
@@ -270,6 +272,7 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
                     await send_event_to_handler(session=session, event_dict=dict(ws_message.event_payload), websocket=websocket)
                 elif ws_message.event_type == "REQ":
                     logger.debug(f"Entering REQ branch")
+                    logger.debug(f"Payload is {ws_message.event_payload} and of type: {type(ws_message.event_payload)}")
                     await send_subscription_to_handler(session=session, event_dict=ws_message.event_payload, subscription_id=ws_message.subscription_id, websocket=websocket)
                 elif ws_message.event_type == "CLOSE":
                     response: Tuple[str, str] = "NOTICE", f"closing {ws_message.subscription_id}"
