@@ -120,14 +120,14 @@ def sanitize_event_keys(raw_payload):
         for item in updated_keys:
             outer_break = False
             
-            if key in ["#e", "#p", "#d", "#k"]:
+            if item in ["#e", "#p", "#d", "#k"]:
                 logger.debug(f"Tag key is: {key}, value is {updated_keys[key]} and of type: {type(updated_keys[key])}")
                 
                 try:
                     for tags in updated_keys[key]:
                         tag_value_pair = [key[1], tags]
                         tag_values.append(tag_value_pair)
-                        q_part = f"tags = ANY(ARRAY {tag_value_pair})"
+                        #q_part = f"tags = ANY(ARRAY {tag_value_pair})"
                         #query_parts.append(q_part)
                         outer_break = True
                         continue
@@ -387,7 +387,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
         tag_stuff = tag_values
         # Combine all parts of the where clause
         where_clause = ' OR '.join(query_parts)
-        where_clause = where_clause + tag_stuff
+        seperator = " "
+        where_clause = seperator.join(where_clause, tag_values)
         #where_clause.join(tag_stuff)
         
         sql_query = f"SELECT * FROM events WHERE {where_clause};"
