@@ -69,8 +69,8 @@ async def generate_query(tags):
         #json_key = json.dumps(key)  # Convert key to JSON string
         #json_values = json.dumps(values)  # Convert values to a JSON array
         dub_quoted = str(tag_pair).replace("'", '"')
-        condition = f"elem @> '{json.dumps(dub_quoted)}'"
-        logger.debug(f"Condition iter is {dub_quoted}")
+        condition = f"elem @> '{json.dumps(tag_pair)}'"
+        logger.debug(f"Condition iter is {json.dumps(tag_pair)}")
         conditions.append(condition)
 
     or_conditions = ' OR '.join(conditions)
