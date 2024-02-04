@@ -95,7 +95,10 @@ def sanitize_event_keys(raw_payload):
             else:
                 updated_keys[key] = filters[key]
 
+   
+
         for item in updated_keys:
+            outer_break = False
             
             if key in ["#e", "#p", "#d", "#k"]:
                 logger.debug(f"Tag key is: {key}, value is {updated_keys[key]} and of type: {type(updated_keys[key])}")
@@ -106,6 +109,7 @@ def sanitize_event_keys(raw_payload):
                         tag_values.append(tag_value_pair)
                         q_part = f"tags = ANY(ARRAY {tag_value_pair})"
                         query_parts.append(q_part)
+                        outer_break = True
                         break
                 except TypeError as e:
                     logger.error(f"Error processing tags for key {key}: {e}")
@@ -114,11 +118,16 @@ def sanitize_event_keys(raw_payload):
                 if key == "since":
                     q_part = f'created_at > {updated_keys["since"]}'
                     query_parts.append(q_part)
+                    outer_break = True
                     break
                 elif key == "until":
                     q_part = f'created_at < {updated_keys["until"]}'
                     query_parts.append(q_part)
+                    outer_break = True
                     break
+
+            if outer_break:
+                break
             
             q_part = f"{item} = ANY(ARRAY {updated_keys[item]})"
             logger.debug(f"q_part is {q_part}")
