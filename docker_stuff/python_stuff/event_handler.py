@@ -128,12 +128,12 @@ def sanitize_event_keys(raw_payload):
                     logger.error(f"Error processing tags for key {key}: {e}")
             
             elif item in ["since", "until"]:
-                if key == "since":
+                if item == "since":
                     q_part = f'created_at > {updated_keys["since"]}'
                     query_parts.append(q_part)
                     outer_break = True
                     continue
-                elif key == "until":
+                elif item == "until":
                     q_part = f'created_at < {updated_keys["until"]}'
                     query_parts.append(q_part)
                     outer_break = True
