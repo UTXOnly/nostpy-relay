@@ -109,8 +109,6 @@ def sanitize_event_keys(raw_payload):
             else:
                 updated_keys[key] = filters[key]
 
-   
-
         for item in updated_keys:
             outer_break = False
             
@@ -153,34 +151,6 @@ def sanitize_event_keys(raw_payload):
     except Exception as e:
         logger.error(f"An unexpected error occurred: {e}")
         return [], []
-
-
-
-                
-            #if key in ["kind","authors","kinds"]:
-            #    if key == "authors":
-            #        key = "pubkey"
-            #        stored_val = filters[key]
-            #        filters.pop("authors")
-            #        logger.debug(f"Adding new key {key}")
-            #        filters["pubkey"] = stored_val
-            #        logger.debug(f"New author is {key} and val {filters[key]}")
-            #    elif key == "kinds":
-            #        stored_val = filters[key]
-            #        filters.pop("kinds")
-            #        logger.debug(f"Adding new key {key}")
-            #        filters["kind"] = stored_val
-            #        logger.debug(f"New kind is {key} and val {filters[key]}")
-            #    elif key == "ids":
-            #        stored_val = filters[key]
-            #        filters.pop("ids")
-            #        logger.debug(f"Adding new key {key}")
-            #        filters["id"] = stored_val
-            #        logger.debug(f"New id is {key} and val {filters[key]}")
-
-
-
-
 
 def get_conn_str():
     return f"""
@@ -227,19 +197,6 @@ def initialize_db():
     finally:
         conn.close()
 
-
-@app.post("/dogs")
-async def insert_dog(request: Request):
-    try:
-        async with request.app.async_pool.connection() as conn:
-            async with conn.cursor() as cur:
-                await cur.execute("""
-                        INSERT INTO dogs (name,age,colour)
-                        VALUES (%s, %s, %s); 
-                    """, ("bonzo", 10, "red",))
-                await conn.commit()
-    except Exception:
-        await conn.rollback()
 
 @app.post("/new_event")
 async def handle_new_event(request: Request) -> JSONResponse:
@@ -361,8 +318,9 @@ async def handle_subscription(request: Request) -> JSONResponse:
         # Combine all parts of the where clause
         where_clause = ' OR '.join(query_parts)
         seperator = " "
-        tag_clause = await generate_query(tag_values)
-        where_clause = str(where_clause) + ' OR ' + str(tag_clause)
+        if len(tag_values) > 0:
+            tag_clause = await generate_query(tag_values)
+            where_clause = str(where_clause) + ' OR ' + str(tag_clause)
         #where_clause.join(tag_stuff)
         
         sql_query = f"SELECT * FROM events WHERE {where_clause};"
