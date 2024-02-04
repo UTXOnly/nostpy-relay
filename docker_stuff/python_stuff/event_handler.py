@@ -61,6 +61,26 @@ class Event():
         return ['event_id', 'pubkey', 'kind', 'created_at', 'tags', 'content', 'sig']
     
 
+async def generate_query(tags):
+    base_query = """
+    EXISTS (
+    SELECT 1 
+    FROM jsonb_array_elements(tags) as elem
+    WHERE {}
+);
+"""
+    conditions = []
+    for tag in tags:
+
+        condition = f"elem @> '{tag}'"
+        logger.debug(f"Condition iter is {condition}")
+        conditions.append(condition)
+
+    or_conditions = ' OR '.join(conditions)
+    complete_query = base_query.format(or_conditions)
+    return complete_query
+    
+
     
 def sanitize_event_keys(raw_payload):
     try:
@@ -282,9 +302,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
 async def generate_query(tags):
     base_query = """
-SELECT * 
-FROM events 
-WHERE EXISTS (
+ EXISTS (
     SELECT 1 
     FROM jsonb_array_elements(tags) as elem
     WHERE {}
@@ -366,9 +384,10 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
          }
 
-        
+        tag_stuff = tag_values
         # Combine all parts of the where clause
         where_clause = ' OR '.join(query_parts)
+        where_clause.join(tag_stuff)
         
         sql_query = f"SELECT * FROM events WHERE {where_clause};"
         logger.debug(f"Query parts are {query_parts}")
