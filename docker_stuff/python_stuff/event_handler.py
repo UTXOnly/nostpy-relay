@@ -112,7 +112,7 @@ def sanitize_event_keys(raw_payload):
                     query_parts.append(q_part)
                 break
             
-            q_part = f"{key} = ANY(ARRAY {filters[key]})"
+            q_part = f"{key} = ANY(ARRAY {filters[new_key]})"
             logger.debug(f"q_part is {q_part}")
             query_parts.append(q_part)
         
