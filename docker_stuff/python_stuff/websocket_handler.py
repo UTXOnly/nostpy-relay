@@ -256,7 +256,7 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
                 
         try:
             async for message in websocket:
-                if len(message) > 0:
+                if len(message) < 0:
                     continue
                 message_list = json.loads(message)
                 ws_message = WebsocketMessages(message=json.loads(message), websocket=websocket)
