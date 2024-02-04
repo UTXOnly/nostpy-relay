@@ -310,7 +310,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 #insert_values.append(filters[key])
                 break
 
-        query_parts.append(conditions[key])
+        #query_parts.append(conditions[key])
         #insert_values.append(str(filters[key]))
         
         # Combine all parts of the where clause
