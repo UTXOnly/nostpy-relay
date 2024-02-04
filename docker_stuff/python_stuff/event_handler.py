@@ -65,10 +65,10 @@ async def generate_query(tags):
     base_query = " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
     conditions = []
     for tag_pair in tags:
-        key, values = tag_pair
-        json_key = json.dumps(key)  # Convert key to JSON string
-        json_values = json.dumps(values)  # Convert values to a JSON array
-        condition = f"elem @> '{{{json_key}, {json_values}}}'"
+        #key, values = tag_pair
+        #json_key = json.dumps(key)  # Convert key to JSON string
+        #json_values = json.dumps(values)  # Convert values to a JSON array
+        condition = f"elem @> '{json.dumps(tag_pair)}'"
         logger.debug(f"Condition iter is {condition}")
         conditions.append(condition)
 
@@ -113,7 +113,7 @@ def sanitize_event_keys(raw_payload):
         for item in updated_keys:
             outer_break = False
             
-            if item in ["#e", "#p", "#d", "#k"]:
+            if item in ["#e", "#p", "#d", "#k", "#a"]:
                 logger.debug(f"Tag key is: {key}, value is {updated_keys[key]} and of type: {type(updated_keys[key])}")
                 
                 try:
