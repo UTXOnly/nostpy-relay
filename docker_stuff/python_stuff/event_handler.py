@@ -299,13 +299,14 @@ async def handle_subscription(request: Request) -> JSONResponse:
                     key = "kind"
                 #snip = psycopg.sql.SQL(',').join(psycopg.sql.identifier(x) for x in value)
                 q_part = f"{key} = ANY(ARRAY {filters[key]})"
+                logger.debug(f"q_part is {q_part}")
                 #logger.debug(f"{snip.as_string(cur)}")
                 query_parts.append(q_part) 
-                insert_values.append(filters[key])
+                #insert_values.append(filters[key])
                 break
 
         query_parts.append(conditions[key])
-        insert_values.append(str(filters[key]))
+        #insert_values.append(str(filters[key]))
         
         # Combine all parts of the where clause
         where_clause = ' OR '.join(query_parts)
