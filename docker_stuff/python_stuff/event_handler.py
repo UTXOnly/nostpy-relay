@@ -297,7 +297,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                     key = "pubkey"
                 if key == "kinds":
                     stored_val = filters[key]
-                    filters.pop("kind")
+                    filters.pop("kinds")
                     key = "kind"
                     logger.debug(f"Adding new key {key}")
                     filters[key] = stored_val
