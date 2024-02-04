@@ -387,7 +387,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
         tag_stuff = tag_values
         # Combine all parts of the where clause
         where_clause = ' OR '.join(query_parts)
-        where_clause.join(tag_stuff)
+        where_clause = where_clause + tag_stuff
+        #where_clause.join(tag_stuff)
         
         sql_query = f"SELECT * FROM events WHERE {where_clause};"
         logger.debug(f"Query parts are {query_parts}")
