@@ -97,7 +97,7 @@ def sanitize_event_keys(raw_payload):
 
         for item in updated_keys:
             
-            if key in ["#e", "#p", "#d"]:
+            if key in ["#e", "#p", "#d", "#k"]:
                 logger.debug(f"Tag key is: {key}, value is {updated_keys[key]} and of type: {type(updated_keys[key])}")
                 
                 try:
@@ -117,7 +117,7 @@ def sanitize_event_keys(raw_payload):
                     query_parts.append(q_part)
                 break
             
-            q_part = f"{item} = ANY(ARRAY {updated_keys[new_key]})"
+            q_part = f"{item} = ANY(ARRAY {updated_keys[item]})"
             logger.debug(f"q_part is {q_part}")
             query_parts.append(q_part)
         
