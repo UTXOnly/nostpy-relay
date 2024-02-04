@@ -296,7 +296,12 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 if key == "authors":
                     key = "pubkey"
                 if key == "kinds":
+                    stored_val = filters[key]
+                    filters.pop("kind")
                     key = "kind"
+                    logger.debug(f"Adding new key {key}")
+                    filters[key] = stored_val
+                    logger.debug(f"New kind is {key} and val {filters[key]}")
                 #snip = psycopg.sql.SQL(',').join(psycopg.sql.identifier(x) for x in value)
                 q_part = f"{key} = ANY(ARRAY {filters[key]})"
                 logger.debug(f"q_part is {q_part}")
