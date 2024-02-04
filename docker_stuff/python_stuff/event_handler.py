@@ -69,7 +69,7 @@ def sanitize_event_keys(raw_payload):
         subscription_dict = raw_payload.get('event_dict', {})
         logger.debug(f"Subdict is: {subscription_dict} and of type {type(subscription_dict)}")
         
-        filters = raw_payload
+        filters = raw_payload.copy()
         logger.debug(f"Filter variable is: {filters} and of length {len(filters)}")
         
         tag_values = []
