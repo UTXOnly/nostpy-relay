@@ -66,7 +66,6 @@ def sanitize_event_keys(raw_payload):
     logger.debug(f"ec payload is {raw_payload} and of type {type(raw_payload)}")
     subscription_dict= raw_payload.get('event_dict', {})
     logger.debug(f"Subdict is : {subscription_dict} and of type {type(subscription_dict)}")
-    subscription_id= raw_payload.get('subscription_id', "")
     filters = subscription_dict
     #json.dumps(subscription_dict)
     #results: List[Dict[str, Any]] = json.loads(filters)
@@ -77,7 +76,6 @@ def sanitize_event_keys(raw_payload):
         "authors": "pubkey",
         "kinds": "kind",
         "ids": "id",
-        # Add more mappings as needed
     }
     
     for key in filters:
@@ -316,9 +314,9 @@ async def handle_subscription(request: Request) -> JSONResponse:
         response: Optional[Dict[str, Any]] = None
         payload: Dict[str, Any] = await request.json()
         
-        logger.debug(f"payload is {payload} and of type {type(payload)}")
+        #logger.debug(f"payload is {payload} and of type {type(payload)}")
         subscription_dict: Dict[str, Any] = payload.get('event_dict', {})
-        logger.debug(f"Subdict is : {subscription_dict} and of type {type(subscription_dict)}")
+        #logger.debug(f"Subdict is : {subscription_dict} and of type {type(subscription_dict)}")
         subscription_id: str = payload.get('subscription_id', "")
         filters = subscription_dict
         tag_values, query_parts = sanitize_event_keys(filters)
@@ -328,7 +326,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
 
         #results: List[Dict[str, Any]] = json.loads(filters)
-        logger.debug(f"Filter variable is: {filters} and of length {len(filters)}")
+        #logger.debug(f"Filter variable is: {filters} and of length {len(filters)}")
 
         conditions: Dict[str, str] = {
            #"authors": [x for x in x],#"pubkey = ANY(ARRAY x)",
