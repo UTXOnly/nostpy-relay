@@ -81,23 +81,27 @@ def sanitize_event_keys(raw_payload):
             "kinds": "kind",
             "ids": "id",
         }
-        
-        for key in list(copy.keys()):
+        updated_keys = {}
+        for key in filters:
             logger.debug(f"Key value is: {key}, {filters[key]}")
         
             # Apply key mappings
             new_key = key_mappings.get(key, key)
             if new_key != key:
                 stored_val = filters[key]
-                filters.pop(key)
-                filters[new_key] = stored_val
+                #filters.pop(key)
+                updated_keys[new_key] = stored_val
                 logger.debug(f"Adding new key {new_key} with value {stored_val}")
+            else:
+                updated_keys[key] = filters[key]
+
+        for item in updated_keys:
             
             if key in ["#e", "#p", "#d"]:
-                logger.debug(f"Tag key is: {key}, value is {filters[key]} and of type: {type(filters[key])}")
+                logger.debug(f"Tag key is: {key}, value is {updated_keys[key]} and of type: {type(updated_keys[key])}")
                 
                 try:
-                    for tags in filters[key]:
+                    for tags in updated_keys[key]:
                         tag_value_pair = [key[1], tags]
                         tag_values.append(tag_value_pair)
                         break
@@ -106,14 +110,14 @@ def sanitize_event_keys(raw_payload):
             
             elif key in ["since", "until"]:
                 if key == "since":
-                    q_part = f'created_at > {filters["since"]}'
+                    q_part = f'created_at > {updated_keys["since"]}'
                     query_parts.append(q_part)
                 elif key == "until":
-                    q_part = f'created_at < {filters["until"]}'
+                    q_part = f'created_at < {updated_keys["until"]}'
                     query_parts.append(q_part)
                 break
             
-            q_part = f"{key} = ANY(ARRAY {filters[new_key]})"
+            q_part = f"{item} = ANY(ARRAY {updated_keys[new_key]})"
             logger.debug(f"q_part is {q_part}")
             query_parts.append(q_part)
         
