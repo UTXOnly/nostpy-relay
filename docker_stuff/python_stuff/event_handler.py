@@ -64,9 +64,11 @@ class Event():
 async def generate_query(tags):
     base_query = " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
     conditions = []
-    for tag in tags:
-
-        condition = f"elem @> '{tag}'"
+    for tag_pair in tags:
+        key, values = tag_pair
+        json_key = json.dumps(key)  # Convert key to JSON string
+        json_values = json.dumps(values)  # Convert values to a JSON array
+        condition = f"elem @> '{{{json_key}, {json_values}}}'"
         logger.debug(f"Condition iter is {condition}")
         conditions.append(condition)
 
@@ -84,7 +86,6 @@ def sanitize_event_keys(raw_payload):
         logger.debug(f"Subdict is: {subscription_dict} and of type {type(subscription_dict)}")
         raw_payload.pop("limit")
         filters = raw_payload
-        copy = filters.copy()
         logger.debug(f"Filter variable is: {filters} and of length {len(filters)}")
         
         tag_values = []
@@ -323,6 +324,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         async with app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
                 logger.debug(f"Inside 2nd async context manager")
+                run_query = False
                 if len(query_parts) > 0:
                     where_clause = ' OR '.join(query_parts)
                     run_query = True
