@@ -66,7 +66,7 @@ def sanitize_event_keys(raw_payload):
     logger.debug(f"ec payload is {raw_payload} and of type {type(raw_payload)}")
     subscription_dict= raw_payload.get('event_dict', {})
     logger.debug(f"Subdict is : {subscription_dict} and of type {type(subscription_dict)}")
-    filters = subscription_dict
+    filters = raw_payload
     #json.dumps(subscription_dict)
     #results: List[Dict[str, Any]] = json.loads(filters)
     logger.debug(f"Filter variable is: {filters} and of length {len(filters)}")
