@@ -68,8 +68,9 @@ def sanitize_event_keys(raw_payload):
         
         subscription_dict = raw_payload.get('event_dict', {})
         logger.debug(f"Subdict is: {subscription_dict} and of type {type(subscription_dict)}")
-        
-        filters = raw_payload.copy()
+        raw_payload.pop("limit")
+        filters = raw_payload
+        copy = filters.copy()
         logger.debug(f"Filter variable is: {filters} and of length {len(filters)}")
         
         tag_values = []
@@ -81,7 +82,7 @@ def sanitize_event_keys(raw_payload):
             "ids": "id",
         }
         
-        for key in list(filters.keys()):
+        for key in list(copy.keys()):
             logger.debug(f"Key value is: {key}, {filters[key]}")
         
             # Apply key mappings
