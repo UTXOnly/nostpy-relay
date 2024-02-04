@@ -256,8 +256,8 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
                 
         try:
             async for message in websocket:
-                if len(message) < 0:
-                    continue
+                #if len(message) < 0:
+                #    continue
                 message_list = json.loads(message)
                 ws_message = WebsocketMessages(message=json.loads(message), websocket=websocket)
                 logger.debug(f"UUID = {ws_message.uuid}")
@@ -292,7 +292,7 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
 
         except Exception as e:
             logger.error(f"Error occurred while starting the server: {e}")
-            raise
+
 
 async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: Dict[str, Any], websocket: websockets.WebSocketServerProtocol) -> None:
     url: str = 'http://event_handler/new_event'
