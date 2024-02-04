@@ -119,7 +119,7 @@ def sanitize_event_keys(raw_payload):
                 
                 try:
                     for tags in updated_keys[item]:
-                        tag_value_pair = [item[1], tags]
+                        tag_value_pair = json.dumps([item[1], tags])
                         logger.debug(f"Adding tag key value pair: {tag_value_pair}")
                         tag_values.append(tag_value_pair)
                         #q_part = f"tags = ANY(ARRAY {tag_value_pair})"
