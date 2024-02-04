@@ -62,13 +62,7 @@ class Event():
     
 
 async def generate_query(tags):
-    base_query = """
-    EXISTS (
-    SELECT 1 
-    FROM jsonb_array_elements(tags) as elem
-    WHERE {}
-);
-"""
+    base_query = " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
     conditions = []
     for tag in tags:
 
