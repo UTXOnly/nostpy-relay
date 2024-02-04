@@ -62,52 +62,56 @@ class Event():
     
 
     
-    def sanitize_event_keys(raw_payload):
-
-        logger.debug(f"ec payload is {raw_payload} and of type {type(raw_payload)}")
-        subscription_dict= raw_payload.get('event_dict', {})
-        logger.debug(f"Subdict is : {subscription_dict} and of type {type(subscription_dict)}")
-        subscription_id= raw_payload.get('subscription_id', "")
-        filters = subscription_dict
-        #json.dumps(subscription_dict)
-        #results: List[Dict[str, Any]] = json.loads(filters)
-        logger.debug(f"Filter variable is: {filters} and of length {len(filters)}")
-
-        tag_values = []
-        query_parts = []
-
-
-        key_mappings = {
-            "authors": "pubkey",
-            "kinds": "kind",
-            "ids": "id",
-            # Add more mappings as needed
-        }
+def sanitize_event_keys(raw_payload):
+    logger.debug(f"ec payload is {raw_payload} and of type {type(raw_payload)}")
+    subscription_dict= raw_payload.get('event_dict', {})
+    logger.debug(f"Subdict is : {subscription_dict} and of type {type(subscription_dict)}")
+    subscription_id= raw_payload.get('subscription_id', "")
+    filters = subscription_dict
+    #json.dumps(subscription_dict)
+    #results: List[Dict[str, Any]] = json.loads(filters)
+    logger.debug(f"Filter variable is: {filters} and of length {len(filters)}")
+    tag_values = []
+    query_parts = []
+    key_mappings = {
+        "authors": "pubkey",
+        "kinds": "kind",
+        "ids": "id",
+        # Add more mappings as needed
+    }
+    
+    for key in filters:
+        logger.debug(f"Key value is: {key}, {filters[key]}")
+    
+        # Apply key mappings
+        new_key = key_mappings.get(key, key)
+        if new_key != key:
+            stored_val = filters[key]
+            filters.pop(key)
+            filters[new_key] = stored_val
+            logger.debug(f"Adding new key {new_key} with value {stored_val}")
         
-        for key in filters:
-            logger.debug(f"Key value is: {key}, {filters[key]}")
-        
-            # Apply key mappings
-            new_key = key_mappings.get(key, key)
-            if new_key != key:
-                stored_val = filters[key]
-                filters.pop(key)
-                filters[new_key] = stored_val
-                logger.debug(f"Adding new key {new_key} with value {stored_val}")
+        if key in ["#e", "#p", "#d"]:
+            logger.debug(f"Tag key is : {key} , value is {filters[key]} and of type: {type(filters[key])}")
             
-            if key in ["#e", "#p", "#d"]:
-                logger.debug(f"Tag key is : {key} , value is {filters[key]} and of type: {type(filters[key])}")
-                
-                for tags in filters[key]:
-                    #logger.debug(f"Tags is {tags}")
-                    tag_value_pair = [key[1], tags]
-                    #logger.debug(f"Valuevar is {tag_value_pair} of type: {type(tag_value_pair)}")
-                    tag_values.append(tag_value_pair)
-                    
-                # Add the SQL condition for the tag
-                    #query_parts.append(conditions[key]) 
-                    #insert_values.append(tag_value_pair)
-                    break
+            for tags in filters[key]:
+                #logger.debug(f"Tags is {tags}")
+                tag_value_pair = [key[1], tags]
+                #logger.debug(f"Valuevar is {tag_value_pair} of type: {type(tag_value_pair)}")
+                tag_values.append(tag_value_pair)
+                break
+        elif key in ["since", "until"]:
+            if key == "since":
+                q_part = f'created at > {filters["since"]}'
+                query_parts.append(q_part)
+            elif key == "until":
+                q_part = f'created at < {filters["until"]}'
+                query_parts.append(q_part)
+            break
+        q_part = f"{key} = ANY(ARRAY {filters[key]})"
+        logger.debug(f"q_part is {q_part}")
+        query_parts.append(q_part) 
+    return tag_values, query_parts
 
 
                 
@@ -132,15 +136,6 @@ class Event():
             #        filters["id"] = stored_val
             #        logger.debug(f"New id is {key} and val {filters[key]}")
 
-
-                q_part = f"{key} = ANY(ARRAY {filters[key]})"
-                logger.debug(f"q_part is {q_part}")
-                #logger.debug(f"{snip.as_string(cur)}")
-                query_parts.append(q_part) 
-                #insert_values.append(filters[key])
-                break
-
-        return tag_values, query_parts
 
 
 
@@ -341,8 +336,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
            #"#e": "tags @> ARRAY%s",
            #"#p": "tags @> ARRAY%s",
            #"#d": "tags @> ARRAY%s",
-           "since": "created_at > %s",
-           "until": "created_at < %s"
+
          }
 
         
