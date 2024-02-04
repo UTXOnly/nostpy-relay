@@ -258,35 +258,39 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
             async for message in websocket:
                 #if len(message) < 0:
                 #    continue
-                message_list = json.loads(message)
-                ws_message = WebsocketMessages(message=json.loads(message), websocket=websocket)
-                logger.debug(f"UUID = {ws_message.uuid}")
-                statsd.increment('nostr.new_connection.count', tags=[f"client_ip:{ws_message.obfuscated_client_ip}", f"nostr_client:{ws_message.origin}"])
-                logger.debug(f"WS event payload is {ws_message.event_payload}")
-
-
-                if not rate_limiter.check_request(ws_message.obfuscated_client_ip):
-                    logger.warning(f"Rate limit exceeded for client: {ws_message.obfuscated_client_ip}")
-                    rate_limit_response: Tuple[str, Optional[str], str, Optional[str]] = "OK", "nostafarian419", "false", "rate-limited: slow your roll nostrich"
-                    statsd.increment('nostr.client.rate_limited.count', tags=[f"client_ip:{ws_message.obfuscated_client_ip}", f"nostr_client:{ws_message.origin}"])
-                    await websocket.send(json.dumps(rate_limit_response))
-                    await websocket.close()
-                    return
-
-
-                if ws_message.event_type == "EVENT":
-                    logger.debug(f"Event to be sent payload is: {ws_message.event_payload} of type {type(ws_message.event_payload)}")
-                    await send_event_to_handler(session=session, event_dict=dict(ws_message.event_payload), websocket=websocket)
-                elif ws_message.event_type == "REQ":
-                    logger.debug(f"Entering REQ branch")
-                    logger.debug(f"Payload is {ws_message.event_payload} and of type: {type(ws_message.event_payload)}")
-                    await send_subscription_to_handler(session=session, event_dict=ws_message.event_payload, subscription_id=ws_message.subscription_id, websocket=websocket)
-                elif ws_message.event_type == "CLOSE":
-                    response: Tuple[str, str] = "NOTICE", f"closing {ws_message.subscription_id}"
-                    await websocket.send(json.dumps(response))
+                try:
+                    #message_list = json.loads(message)
                     
-                else:
-                    logger.warning(f"Unsupported message format: {message_list}")
+                    ws_message = WebsocketMessages(message=json.loads(message), websocket=websocket)
+                    logger.debug(f"UUID = {ws_message.uuid}")
+                    statsd.increment('nostr.new_connection.count', tags=[f"client_ip:{ws_message.obfuscated_client_ip}", f"nostr_client:{ws_message.origin}"])
+                    logger.debug(f"WS event payload is {ws_message.event_payload}")
+
+
+                    if not rate_limiter.check_request(ws_message.obfuscated_client_ip):
+                        logger.warning(f"Rate limit exceeded for client: {ws_message.obfuscated_client_ip}")
+                        rate_limit_response: Tuple[str, Optional[str], str, Optional[str]] = "OK", "nostafarian419", "false", "rate-limited: slow your roll nostrich"
+                        statsd.increment('nostr.client.rate_limited.count', tags=[f"client_ip:{ws_message.obfuscated_client_ip}", f"nostr_client:{ws_message.origin}"])
+                        await websocket.send(json.dumps(rate_limit_response))
+                        await websocket.close()
+                        return
+    
+    
+                    if ws_message.event_type == "EVENT":
+                        logger.debug(f"Event to be sent payload is: {ws_message.event_payload} of type {type(ws_message.event_payload)}")
+                        await send_event_to_handler(session=session, event_dict=dict(ws_message.event_payload), websocket=websocket)
+                    elif ws_message.event_type == "REQ":
+                        logger.debug(f"Entering REQ branch")
+                        logger.debug(f"Payload is {ws_message.event_payload} and of type: {type(ws_message.event_payload)}")
+                        await send_subscription_to_handler(session=session, event_dict=ws_message.event_payload, subscription_id=ws_message.subscription_id, websocket=websocket)
+                    elif ws_message.event_type == "CLOSE":
+                        response: Tuple[str, str] = "NOTICE", f"closing {ws_message.subscription_id}"
+                        await websocket.send(json.dumps(response))
+
+                except Exception as exc:
+                    logger.error(f"Inner loop {exc}")
+                    
+               
         except aiohttp.ClientError as e:
             logger.error(f"http client error {e}")
 
