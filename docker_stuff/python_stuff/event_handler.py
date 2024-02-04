@@ -69,8 +69,8 @@ async def generate_query(tags):
         #json_key = json.dumps(key)  # Convert key to JSON string
         #json_values = json.dumps(values)  # Convert values to a JSON array
         dub_quoted = str(tag_pair).replace("'", '"')
-        condition = f"elem @> '{json.dumps(tag_pair)}'"
-        logger.debug(f"Condition iter is {condition}")
+        condition = f"elem @> '{json.dumps(dub_quoted)}'"
+        logger.debug(f"Condition iter is {dub_quoted}")
         conditions.append(condition)
 
     or_conditions = ' OR '.join(conditions)
@@ -301,26 +301,6 @@ async def handle_subscription(request: Request) -> JSONResponse:
         tag_values, query_parts = sanitize_event_keys(filters)
 
         logger.debug(f"tg and qp are {tag_values} and {query_parts}")
-        #json.dumps(subscription_dict)
-
-
-        #results: List[Dict[str, Any]] = json.loads(filters)
-        #logger.debug(f"Filter variable is: {filters} and of length {len(filters)}")
-
-        conditions: Dict[str, str] = {
-           #"authors": [x for x in x],#"pubkey = ANY(ARRAY x)",
-           #"kinds": f"kind = ANY(ARRAY {value})",
-           #"#e": "tags @> ARRAY%s",
-           #"#p": "tags @> ARRAY%s",
-           #"#d": "tags @> ARRAY%s",
-
-         }
-
-        tag_stuff = tag_values
-        # Combine all parts of the where clause
-        
-        seperator = " "
-
 
         async with app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
@@ -333,7 +313,6 @@ async def handle_subscription(request: Request) -> JSONResponse:
                     tag_clause = await generate_query(tag_values)
                     where_clause = str(where_clause) + ' OR ' + str(tag_clause)
                     run_query = True
-                #where_clause.join(tag_stuff)
                 
                 sql_query = f"SELECT * FROM events WHERE {where_clause};"
                 logger.debug(f"Query parts are {query_parts}")
