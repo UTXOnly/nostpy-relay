@@ -108,7 +108,7 @@ def sanitize_event_keys(raw_payload):
                 except TypeError as e:
                     logger.error(f"Error processing tags for key {key}: {e}")
             
-            elif key in ["since", "until"]:
+            elif item in ["since", "until"]:
                 if key == "since":
                     q_part = f'created_at > {updated_keys["since"]}'
                     query_parts.append(q_part)
