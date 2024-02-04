@@ -79,7 +79,7 @@ async def generate_query(tags):
     
 
     
-def sanitize_event_keys(raw_payload):
+async def sanitize_event_keys(raw_payload):
     try:
         logger.debug(f"EC payload is {raw_payload} and of type {type(raw_payload)}")
         
@@ -114,7 +114,7 @@ def sanitize_event_keys(raw_payload):
         for item in updated_keys:
             outer_break = False
             
-            if item in ["#e", "#p", "#d", "#k", "#a"]:
+            if item.startswith("#"):
                 logger.debug(f"Tag key is: {key}, value is {updated_keys[key]} and of type: {type(updated_keys[key])}")
                 
                 try:
@@ -298,7 +298,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         #logger.debug(f"Subdict is : {subscription_dict} and of type {type(subscription_dict)}")
         subscription_id: str = payload.get('subscription_id', "")
         filters = subscription_dict
-        tag_values, query_parts = sanitize_event_keys(filters)
+        tag_values, query_parts = await sanitize_event_keys(filters)
 
         logger.debug(f"tg and qp are {tag_values} and {query_parts}")
 
