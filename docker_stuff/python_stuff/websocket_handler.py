@@ -231,7 +231,11 @@ class WebsocketMessages:
             logger.debug(f"Message is {message} and of type {type(message)}")
             raw_payload = message[2:]
             logger.debug(f"Raw payload is {raw_payload} and len {len(raw_payload)}")
-            self.event_payload = json.dumps(raw_payload)#{json.loads(item) for item in range(2, len(message))}
+            merged = {}
+            for item in raw_payload:
+                merged.update(item)
+            logger.debug(f"merged is {merged} and type {type(merged)}")
+            self.event_payload = merged#{json.loads(item) for item in range(2, len(message))}
         else:
             self.event_payload: Dict[str, Any] = message[1]
         headers: websockets.Headers = websocket.request_headers
@@ -308,7 +312,7 @@ async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: Dict
         
 async def send_subscription_to_handler(
     session: aiohttp.ClientSession,
-    event_dict: List[Dict[str, Any]],
+    event_dict: Dict,
     subscription_id: str,
     websocket: websockets.WebSocketServerProtocol
 ) -> None:
@@ -352,10 +356,10 @@ if __name__ == "__main__":
 
                     token_count = str(rate_limiter._get_tokens("0.0.0.0"))
                     dictionary = rate_limiter._parse_token_count(token_count=token_count)
-                    logger.debug(f"Dictionary variable length is {len(dictionary)} and the value is: {dictionary} ")
+                    #logger.debug(f"Dictionary variable length is {len(dictionary)} and the value is: {dictionary} ")
                     for key, value in dictionary.items():
 
-                        logger.debug(f"Rate limiter tokens variable is: {value}, client IP is {key}")
+                        #logger.debug(f"Rate limiter tokens variable is: {value}, client IP is {key}")
                         statsd.gauge('nostr.websocket_tokens_avail.gauge', value, tags=[f"client_ip:{key}"])
 
                 except Exception as e:
