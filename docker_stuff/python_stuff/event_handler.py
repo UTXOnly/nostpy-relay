@@ -112,10 +112,11 @@ def sanitize_event_keys(raw_payload):
                 if key == "since":
                     q_part = f'created_at > {updated_keys["since"]}'
                     query_parts.append(q_part)
+                    break
                 elif key == "until":
                     q_part = f'created_at < {updated_keys["until"]}'
                     query_parts.append(q_part)
-                break
+                    break
             
             q_part = f"{item} = ANY(ARRAY {updated_keys[item]})"
             logger.debug(f"q_part is {q_part}")
