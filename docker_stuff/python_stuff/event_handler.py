@@ -124,8 +124,9 @@ def sanitize_event_keys(raw_payload):
                 logger.debug(f"Tag key is: {key}, value is {updated_keys[key]} and of type: {type(updated_keys[key])}")
                 
                 try:
-                    for tags in updated_keys[key]:
-                        tag_value_pair = [key[1], tags]
+                    for tags in updated_keys[item]:
+                        tag_value_pair = [item[1], tags]
+                        logger.debug(f"Adding tag key value pair: {tag_value_pair}")
                         tag_values.append(tag_value_pair)
                         #q_part = f"tags = ANY(ARRAY {tag_value_pair})"
                         #query_parts.append(q_part)
