@@ -229,9 +229,9 @@ class WebsocketMessages:
         if self.event_type in ('REQ', 'CLOSE'):
             self.subscription_id: str = message[1]
             logger.debug(f"Message is {message} and of type {type(message)}")
-            raw_payload = message[2:-1]
+            raw_payload = message[2:]
             logger.debug(f"Raw payload is {raw_payload} and len {len(raw_payload)}")
-            self.event_payload = json.loads(message[2])#{json.loads(item) for item in range(2, len(message))}
+            self.event_payload = json.dumps(raw_payload)#{json.loads(item) for item in range(2, len(message))}
         else:
             self.event_payload: Dict[str, Any] = message[1]
         headers: websockets.Headers = websocket.request_headers
