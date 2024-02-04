@@ -104,6 +104,8 @@ def sanitize_event_keys(raw_payload):
                     for tags in updated_keys[key]:
                         tag_value_pair = [key[1], tags]
                         tag_values.append(tag_value_pair)
+                        q_part = f"tags = ANY(ARRAY {tag_value_pair})"
+                        query_parts.append(q_part)
                         break
                 except TypeError as e:
                     logger.error(f"Error processing tags for key {key}: {e}")
