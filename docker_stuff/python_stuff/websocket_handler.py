@@ -1,37 +1,30 @@
-from collections import defaultdict
-from logging.handlers import RotatingFileHandler
-from typing import Dict, Any, List, Tuple, Union, Optional
-import hashlib
 import ast
-
-import asyncio
+import hashlib
 import json
 import logging
-
+from collections import defaultdict
+from logging.handlers import RotatingFileHandler
+from typing import Any, Dict, List, Optional, Tuple, Union
 import time
+
 import aiohttp
+import asyncio
 import websockets
-
-from ddtrace import tracer
 from datadog import initialize, statsd
+from ddtrace import tracer
 
-
-
-options: Dict[str, Any] = {
-    'statsd_host': '172.28.0.5',
-    'statsd_port': 8125
-}
+options: Dict[str, Any] = {"statsd_host": "172.28.0.5", "statsd_port": 8125}
 
 initialize(**options)
 
-tracer.configure(hostname='172.28.0.5', port=8126)
+tracer.configure(hostname="172.28.0.5", port=8126)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
-log_file: str = './logs/websocket_handler.log'
+log_file: str = "./logs/websocket_handler.log"
 handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
@@ -82,7 +75,9 @@ class TokenBucketRateLimiter:
         current_time = time.time()
         time_passed = current_time - self.last_request_time[client_id]
         new_tokens = int(time_passed * self.tokens_per_second)
-        self.tokens[client_id] = min(self.tokens[client_id] + new_tokens, self.max_tokens)
+        self.tokens[client_id] = min(
+            self.tokens[client_id] + new_tokens, self.max_tokens
+        )
         self.last_request_time[client_id] = current_time
         return self.tokens
 
@@ -135,8 +130,6 @@ class TokenBucketRateLimiter:
         return False
 
 
-
-    
 class ExtractedResponse:
     """
     A class representing an extracted response.
@@ -166,8 +159,18 @@ class ExtractedResponse:
         self.subscription_id = response_data["subscription_id"]
         self.results = json.loads(response_data["results_json"])
         self.comment = ""
-        self.rate_limit_response: Tuple[str, Optional[str], str, Optional[str]] = "OK", "nostafarian419", "false", "rate-limited: slow your roll nostrich"
-        self.duplicate_response: Tuple[str, Optional[str], str, Optional[str]] = "OK", "nostafarian419", "false", "duplicate: already have this event"
+        self.rate_limit_response: Tuple[str, Optional[str], str, Optional[str]] = (
+            "OK",
+            "nostafarian419",
+            "false",
+            "rate-limited: slow your roll nostrich",
+        )
+        self.duplicate_response: Tuple[str, Optional[str], str, Optional[str]] = (
+            "OK",
+            "nostafarian419",
+            "false",
+            "duplicate: already have this event",
+        )
 
     async def format_response(self):
         """
@@ -178,24 +181,39 @@ class ExtractedResponse:
 
         """
         if self.event_type == "OK":
-            client_response: Tuple[str, Optional[str], str, Optional[str]] = self.event_type, self.subscription_id, self.results, self.comment
+            client_response: Tuple[str, Optional[str], str, Optional[str]] = (
+                self.event_type,
+                self.subscription_id,
+                self.results,
+                self.comment,
+            )
         elif self.event_type == "EVENT":
             events_to_send = []
-            logger.debug(f"Self results are {self.results} and of type {type(self.results)}")
+            logger.debug(
+                f"Self results are {self.results} and of type {type(self.results)}"
+            )
             for event_result in self.results:
                 logger.debug(f"Event result is {event_result}")
                 stripped = str(event_result)[1:-1]
                 logger.debug(f"Stripped = {stripped} and is type {type(stripped)}")
-                client_response: Tuple[str, Optional[str], Dict[str, Any]] = self.event_type, self.subscription_id, ast.literal_eval(stripped)
-                logger.debug(f"Client response loop iter is {client_response} and of type {type(client_response)}")
+                client_response: Tuple[str, Optional[str], Dict[str, Any]] = (
+                    self.event_type,
+                    self.subscription_id,
+                    ast.literal_eval(stripped),
+                )
+                logger.debug(
+                    f"Client response loop iter is {client_response} and of type {type(client_response)}"
+                )
                 events_to_send.append(client_response)
             return events_to_send
         else:
             # Return EOSE
-            client_response: Tuple[str, Optional[str]] = self.event_type, self.subscription_id
+            client_response: Tuple[str, Optional[str]] = (
+                self.event_type,
+                self.subscription_id,
+            )
 
         return client_response
-
 
 
 class WebsocketMessages:
@@ -226,7 +244,7 @@ class WebsocketMessages:
 
         """
         self.event_type = message[0]
-        if self.event_type in ('REQ', 'CLOSE'):
+        if self.event_type in ("REQ", "CLOSE"):
             self.subscription_id: str = message[1]
             logger.debug(f"Message is {message} and of type {type(message)}")
             raw_payload = message[2:]
@@ -235,13 +253,17 @@ class WebsocketMessages:
             for item in raw_payload:
                 merged.update(item)
             logger.debug(f"merged is {merged} and type {type(merged)}")
-            self.event_payload = merged#{json.loads(item) for item in range(2, len(message))}
+            self.event_payload = (
+                merged  # {json.loads(item) for item in range(2, len(message))}
+            )
         else:
             self.event_payload: Dict[str, Any] = message[1]
         headers: websockets.Headers = websocket.request_headers
         self.origin: str = headers.get("origin", "") or headers.get("referer", "")
-        self.obfuscate_ip = lambda ip: hashlib.sha256(ip.encode('utf-8')).hexdigest()
-        self.obfuscated_client_ip = self.obfuscate_ip("X-Real-IP") or headers.get("X-Forwarded-For")
+        self.obfuscate_ip = lambda ip: hashlib.sha256(ip.encode("utf-8")).hexdigest()
+        self.obfuscated_client_ip = self.obfuscate_ip("X-Real-IP") or headers.get(
+            "X-Forwarded-For"
+        )
         logger.debug(f"Client obfuscated IP is {self.obfuscated_client_ip}")
         self.uuid: str = websocket.id
 
@@ -249,48 +271,82 @@ class WebsocketMessages:
 unique_sessions = []
 client_ips = []
 
-async def handle_websocket_connection(websocket: websockets.WebSocketServerProtocol) -> None:
+
+async def handle_websocket_connection(
+    websocket: websockets.WebSocketServerProtocol,
+) -> None:
     global unique_sessions, client_ips
 
     async with aiohttp.ClientSession() as session:
-                
         try:
             async for message in websocket:
-                #if len(message) < 0:
-                #    continue
                 try:
-                    #message_list = json.loads(message)
-                    
-                    ws_message = WebsocketMessages(message=json.loads(message), websocket=websocket)
+                    ws_message = WebsocketMessages(
+                        message=json.loads(message), websocket=websocket
+                    )
                     logger.debug(f"UUID = {ws_message.uuid}")
-                    statsd.increment('nostr.new_connection.count', tags=[f"client_ip:{ws_message.obfuscated_client_ip}", f"nostr_client:{ws_message.origin}"])
+                    statsd.increment(
+                        "nostr.new_connection.count",
+                        tags=[
+                            f"client_ip:{ws_message.obfuscated_client_ip}",
+                            f"nostr_client:{ws_message.origin}",
+                        ],
+                    )
                     logger.debug(f"WS event payload is {ws_message.event_payload}")
 
-
                     if not rate_limiter.check_request(ws_message.obfuscated_client_ip):
-                        logger.warning(f"Rate limit exceeded for client: {ws_message.obfuscated_client_ip}")
-                        rate_limit_response: Tuple[str, Optional[str], str, Optional[str]] = "OK", "nostafarian419", "false", "rate-limited: slow your roll nostrich"
-                        statsd.increment('nostr.client.rate_limited.count', tags=[f"client_ip:{ws_message.obfuscated_client_ip}", f"nostr_client:{ws_message.origin}"])
+                        logger.warning(
+                            f"Rate limit exceeded for client: {ws_message.obfuscated_client_ip}"
+                        )
+                        rate_limit_response: Tuple[
+                            str, Optional[str], str, Optional[str]
+                        ] = (
+                            "OK",
+                            "nostafarian419",
+                            "false",
+                            "rate-limited: slow your roll nostrich",
+                        )
+                        statsd.increment(
+                            "nostr.client.rate_limited.count",
+                            tags=[
+                                f"client_ip:{ws_message.obfuscated_client_ip}",
+                                f"nostr_client:{ws_message.origin}",
+                            ],
+                        )
                         await websocket.send(json.dumps(rate_limit_response))
                         await websocket.close()
                         return
-    
-    
+
                     if ws_message.event_type == "EVENT":
-                        logger.debug(f"Event to be sent payload is: {ws_message.event_payload} of type {type(ws_message.event_payload)}")
-                        await send_event_to_handler(session=session, event_dict=dict(ws_message.event_payload), websocket=websocket)
+                        logger.debug(
+                            f"Event to be sent payload is: {ws_message.event_payload} of type {type(ws_message.event_payload)}"
+                        )
+                        await send_event_to_handler(
+                            session=session,
+                            event_dict=dict(ws_message.event_payload),
+                            websocket=websocket,
+                        )
                     elif ws_message.event_type == "REQ":
                         logger.debug(f"Entering REQ branch")
-                        logger.debug(f"Payload is {ws_message.event_payload} and of type: {type(ws_message.event_payload)}")
-                        await send_subscription_to_handler(session=session, event_dict=ws_message.event_payload, subscription_id=ws_message.subscription_id, websocket=websocket)
+                        logger.debug(
+                            f"Payload is {ws_message.event_payload} and of type: {type(ws_message.event_payload)}"
+                        )
+                        await send_subscription_to_handler(
+                            session=session,
+                            event_dict=ws_message.event_payload,
+                            subscription_id=ws_message.subscription_id,
+                            websocket=websocket,
+                        )
                     elif ws_message.event_type == "CLOSE":
-                        response: Tuple[str, str] = "NOTICE", f"closing {ws_message.subscription_id}"
+                        response: Tuple[str, str] = (
+                            "NOTICE",
+                            f"closing {ws_message.subscription_id}",
+                        )
                         await websocket.send(json.dumps(response))
 
                 except Exception as exc:
                     logger.error(f"Inner loop {exc}")
-                    
-               
+
         except aiohttp.ClientError as e:
             logger.error(f"http client error {e}")
 
@@ -298,17 +354,25 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
             logger.error(f"Error occurred while starting the server: {e}")
 
 
-async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: Dict[str, Any], websocket: websockets.WebSocketServerProtocol) -> None:
-    url: str = 'http://event_handler/new_event'
+async def send_event_to_handler(
+    session: aiohttp.ClientSession,
+    event_dict: Dict[str, Any],
+    websocket: websockets.WebSocketServerProtocol,
+) -> None:
+    url: str = "http://event_handler/new_event"
     try:
         async with session.post(url, data=json.dumps(event_dict)) as response:
             logger.debug(f"Response event handler variable is {response}")
             response_data: Dict[str, Any] = await response.json()
-            logger.debug(f"Received response from Event Handler {response_data}, data types is {type(response_data)}")
+            logger.debug(
+                f"Received response from Event Handler {response_data}, data types is {type(response_data)}"
+            )
             response_object = ExtractedResponse(response_data)
             if response.status == 200:
                 formatted_response = await response_object.format_response()
-                logger.debug(f"Formatted response data from send_event_to_handler function: {formatted_response}")
+                logger.debug(
+                    f"Formatted response data from send_event_to_handler function: {formatted_response}"
+                )
                 await websocket.send(json.dumps(formatted_response))
             elif response.status == 409:
                 return response_object.duplicate_response
@@ -316,24 +380,25 @@ async def send_event_to_handler(session: aiohttp.ClientSession, event_dict: Dict
         logger.error(f"An error occurred while sending the event to the handler: {e}")
 
 
-        
 async def send_subscription_to_handler(
     session: aiohttp.ClientSession,
     event_dict: Dict,
     subscription_id: str,
-    websocket: websockets.WebSocketServerProtocol
+    websocket: websockets.WebSocketServerProtocol,
 ) -> None:
-    url: str = 'http://event_handler/subscription'
+    url: str = "http://event_handler/subscription"
     payload: Dict[str, Any] = {
-        'event_dict': event_dict,
-        'subscription_id': subscription_id
+        "event_dict": event_dict,
+        "subscription_id": subscription_id,
     }
-    
+
     async with session.post(url, data=json.dumps(payload)) as response:
         response_data: Dict[str, Any] = await response.json()
         response_object = ExtractedResponse(response_data=response_data)
-        logger.debug(f"Data type of response_data: {type(response_data)}, Response Data: {response_data}")
-        
+        logger.debug(
+            f"Data type of response_data: {type(response_data)}, Response Data: {response_data}"
+        )
+
         logger.debug(f"Response received as: {response_data}")
         EOSE: Tuple[str, Optional[str]] = "EOSE", response_object.subscription_id
 
@@ -354,24 +419,31 @@ if __name__ == "__main__":
     rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=300)
 
     try:
-        start_server = websockets.serve(handle_websocket_connection, '0.0.0.0', 8008)
+        start_server = websockets.serve(handle_websocket_connection, "0.0.0.0", 8008)
+
         async def send_active_connections_metric():
             global unique_sessions, client_ips
             while True:
                 await asyncio.sleep(5)
                 try:
-
                     token_count = str(rate_limiter._get_tokens("0.0.0.0"))
-                    dictionary = rate_limiter._parse_token_count(token_count=token_count)
-                    #logger.debug(f"Dictionary variable length is {len(dictionary)} and the value is: {dictionary} ")
+                    dictionary = rate_limiter._parse_token_count(
+                        token_count=token_count
+                    )
+                    # logger.debug(f"Dictionary variable length is {len(dictionary)} and the value is: {dictionary} ")
                     for key, value in dictionary.items():
-
-                        #logger.debug(f"Rate limiter tokens variable is: {value}, client IP is {key}")
-                        statsd.gauge('nostr.websocket_tokens_avail.gauge', value, tags=[f"client_ip:{key}"])
+                        # logger.debug(f"Rate limiter tokens variable is: {value}, client IP is {key}")
+                        statsd.gauge(
+                            "nostr.websocket_tokens_avail.gauge",
+                            value,
+                            tags=[f"client_ip:{key}"],
+                        )
 
                 except Exception as e:
-                    logger.error(f"Error occurred while sending active connections metric: {e}")
-        
+                    logger.error(
+                        f"Error occurred while sending active connections metric: {e}"
+                    )
+
         asyncio.get_event_loop().create_task(send_active_connections_metric())
         asyncio.get_event_loop().run_until_complete(start_server)
         asyncio.get_event_loop().run_forever()

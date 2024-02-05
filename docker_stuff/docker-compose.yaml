@@ -85,18 +85,15 @@ services:
           }
         ]
 
-        
-
-
   datadog-agent:
     container_name: datadog-agent
     image: datadog/agent:latest
     environment:
       - DD_API_KEY=${DD_API_KEY}
       - DD_SITE=datadoghq.com
-      - DD_HOSTNAME=dev-nostpy
+      - DD_HOSTNAME=${DD_HOSTNAME}
       - DD_ENV=${DD_ENV}
-      - DD_TAGS=owner:brian
+      - DD_TAGS=owner:nostrich
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
       - DD_DOCKER_LABELS_AS_TAGS=true
       - DD_DOCKER_ENV_AS_TAGS=true
