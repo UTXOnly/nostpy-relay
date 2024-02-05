@@ -23,7 +23,7 @@ from psycopg_pool import AsyncConnectionPool
 
 load_dotenv()
 
-options: Dict[str, Any] = {
+options = {
     'statsd_host': '172.28.0.5',
     'statsd_port': 8125
 }
@@ -33,12 +33,12 @@ initialize(**options)
 tracer.configure(hostname='172.28.0.5', port=8126)
 redis_client: redis.Redis = redis.Redis(host='172.28.0.6', port=6379)
 
-logger: logging.Logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-log_file: str = './logs/event_handler.log'
-handler: RotatingFileHandler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
-formatter: logging.Formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+log_file = './logs/event_handler.log'
+handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
+formatter= logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
@@ -56,9 +56,7 @@ class Event():
 
     def __str__(self) -> str:
         return f"{self.event_id}, {self.pubkey}, {self.kind}, {self.created_at}, {self.tags}, {self.content}, {self.sig} "
-    
-    def column_names(self) -> str:
-        return ['event_id', 'pubkey', 'kind', 'created_at', 'tags', 'content', 'sig']
+
     
 
 async def generate_query(tags):
@@ -68,13 +66,11 @@ async def generate_query(tags):
         #key, values = tag_pair
         #json_key = json.dumps(key)  # Convert key to JSON string
         #json_values = json.dumps(values)  # Convert values to a JSON array
-        dub_quoted = str(tag_pair).replace("'", '"')
         condition = f"elem @> '{json.dumps(tag_pair)}'"
         logger.debug(f"Condition iter is {json.dumps(tag_pair)}")
         conditions.append(condition)
 
-    or_conditions = ' OR '.join(conditions)
-    complete_query = base_query.format(or_conditions)
+    complete_query = base_query.format(' OR '.join(conditions))
     return complete_query
     
 
@@ -89,8 +85,6 @@ async def sanitize_event_keys(raw_payload):
         filters = raw_payload
         logger.debug(f"Filter variable is: {filters} and of length {len(filters)}")
         
-        tag_values = []
-        query_parts = []
         
         key_mappings = {
             "authors": "pubkey",
@@ -100,22 +94,29 @@ async def sanitize_event_keys(raw_payload):
         updated_keys = {}
         for key in filters:
             logger.debug(f"Key value is: {key}, {filters[key]}")
-        
-            # Apply key mappings
+
             new_key = key_mappings.get(key, key)
             if new_key != key:
                 stored_val = filters[key]
-                #filters.pop(key)
                 updated_keys[new_key] = stored_val
                 logger.debug(f"Adding new key {new_key} with value {stored_val}")
             else:
                 updated_keys[key] = filters[key]
 
+        return updated_keys
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
+        return updated_keys
+
+async def parse_sanitized_query(updated_keys):
+        tag_values = []
+        query_parts = []
+
         for item in updated_keys:
             outer_break = False
             
             if item.startswith("#"):
-                logger.debug(f"Tag key is: {key}, value is {updated_keys[key]} and of type: {type(updated_keys[key])}")
+                logger.debug(f"Tag key is: {item}, value is {updated_keys[item]} and of type: {type(updated_keys[item])}")
                 
                 try:
                     for tags in updated_keys[item]:
@@ -150,9 +151,7 @@ async def sanitize_event_keys(raw_payload):
         
         return tag_values, query_parts
 
-    except Exception as e:
-        logger.error(f"An unexpected error occurred: {e}")
-        return [], []
+
 
 def get_conn_str():
     return f"""
@@ -177,9 +176,7 @@ def initialize_db():
     Initialize the database by creating the necessary table if it doesn't exist.
     """
     try:
-        # Replace 'your_dsn_here' with your actual DSN or connection details
         conn = psycopg.connect(get_conn_str())
-        
         with conn.cursor() as cur:
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS events (
@@ -196,13 +193,15 @@ def initialize_db():
         print("Database initialization complete.")
     except psycopg.Error as caught_error:
         print(f"Error occurred during database initialization: {caught_error}")
+        return False
     finally:
         conn.close()
+        return True
 
 
 @app.post("/new_event")
 async def handle_new_event(request: Request) -> JSONResponse:
-    event_dict: Dict[str, Any] = await request.json()
+    event_dict = await request.json()
     event_obj = Event(
     event_id=event_dict.get("id", ""),
     pubkey=event_dict.get("pubkey", ""),
@@ -217,7 +216,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
 
     try:
-        delete_message: Optional[str] = None
+        delete_message = None
         async with request.app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
                 if event_obj.kind in {0, 3}:
@@ -256,17 +255,11 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
 async def generate_query(tags):
     base_query = "EXISTS (SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
-    conditions = []
-    for tag in tags:
-
-        condition = f"elem @> '{tag}'"
-        logger.debug(f"Condition iter is {condition}")
-        conditions.append(condition)
-
-    or_conditions = ' OR '.join(conditions)
+    
+    or_conditions = ' OR '.join(f"elem @> '{tag}'" for tag in tags)
+    
     complete_query = base_query.format(or_conditions)
     return complete_query
-
 
 
 async def query_result_parser(query_result):
@@ -278,7 +271,6 @@ async def query_result_parser(query_result):
         i = 0
         for item in record:
             row_result[column_names[i]] = item
-            #sorted = {column_names[i] : item}
             i += 1
         logger.debug(f"Row result var is {row_result}")
         column_added.append([row_result])
@@ -290,15 +282,14 @@ async def query_result_parser(query_result):
 @app.post("/subscription")
 async def handle_subscription(request: Request) -> JSONResponse:
     try:
-        response: Optional[Dict[str, Any]] = None
-        payload: Dict[str, Any] = await request.json()
-        
-        #logger.debug(f"payload is {payload} and of type {type(payload)}")
-        subscription_dict: Dict[str, Any] = payload.get('event_dict', {})
+        response = None
+        payload = await request.json()
+        filters = payload.get('event_dict', {})
         #logger.debug(f"Subdict is : {subscription_dict} and of type {type(subscription_dict)}")
-        subscription_id: str = payload.get('subscription_id', "")
-        filters = subscription_dict
-        tag_values, query_parts = await sanitize_event_keys(filters)
+        subscription_id = payload.get('subscription_id', "")
+        updated_keys = await sanitize_event_keys(filters)
+        logger.debug(f"UPdated keys are {updated_keys}")
+        tag_values, query_parts = await parse_sanitized_query(updated_keys)
 
         logger.debug(f"tg and qp are {tag_values} and {query_parts}")
 
@@ -314,22 +305,22 @@ async def handle_subscription(request: Request) -> JSONResponse:
                     where_clause = str(where_clause) + ' OR ' + str(tag_clause)
                     run_query = True
                 
-                sql_query = f"SELECT * FROM events WHERE {where_clause};"
-                logger.debug(f"Query parts are {query_parts}")
+                sql_query = f"SELECT * FROM events WHERE {where_clause} LIMIT 15;"
+                #logger.debug(f"Query parts are {query_parts}")
                 logger.debug(f"SQL query constructed: {sql_query}")
                 logger.debug(f"Tag values are: {tag_values}")
                 #logger.debug(f"Limit is {query_limit}")
                 if run_query:
-                    q1 = await cur.execute(query=sql_query)#params=tupled) 
+                    q1 = await cur.execute(query=sql_query)
                     listed = await cur.fetchall()
                     logger.debug(f"Log line after query executed")
      
-                logger.debug(f"Full table results type is {type(listed)} are {listed}")
+                #logger.debug(f"Full table results type is {type(listed)} are {listed}")
                 parsed_results = await query_result_parser(listed)
                 logger.debug(f"with colun name {parsed_results}")
                 logger.debug(f"json dumps version {json.dumps(parsed_results)}")
 
-                serialized_events: List[Dict[str, Any]] = json.dumps(parsed_results)
+                serialized_events = json.dumps(parsed_results)
 
                 if len(serialized_events) < 2:
                     response = None
@@ -337,9 +328,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
                     response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': serialized_events}
                 
     except psycopg.Error as exc:
-        
-        logger.error(f"Error occurred: {str(exc)} ({inspect.currentframe().f_lineno})")
-
+        logger.error(f"Error occurred: {str(exc)}")
+    
     except Exception as exc:
         logger.error(f"General exception occured: {exc}")
         
