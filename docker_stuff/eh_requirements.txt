@@ -1,6 +1,5 @@
 websockets==11.0.3
-SQLAlchemy==2.0.20
-psycopg2-binary==2.9.7
+psycopg[binary,pool]
 ddtrace==1.18.4
 redis==5.0.0
 aiohttp==3.8.5
@@ -8,4 +7,5 @@ fastapi==0.103.1
 uvicorn==0.23.2
 asyncio==3.4.3
 datadog==0.47.0
-secp256k1==0.14.0
+python-dotenv
+

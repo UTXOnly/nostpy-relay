@@ -3,8 +3,10 @@ FROM python:3.9-slim
 WORKDIR /app
 
 COPY eh_requirements.txt .
+COPY .env .
 
 RUN pip install --no-cache-dir -r eh_requirements.txt
 COPY ./python_stuff/event_handler.py .
+
 
 CMD ["ddtrace-run", "python", "event_handler.py"]

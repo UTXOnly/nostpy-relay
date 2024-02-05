@@ -1,22 +1,23 @@
-import os
 import json
 import logging
+import os
+from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
-import inspect
-from typing import List, Dict, Any, Optional
+from typing import List
 
-import uvicorn
-from ddtrace import tracer
 from datadog import initialize, statsd
-import redis
-from sqlalchemy import create_engine, Column, String, Integer, JSON, desc
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, class_mapper
-from sqlalchemy.exc import SQLAlchemyError
+from ddtrace import tracer
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
+import psycopg
+import redis
+import uvicorn
+from psycopg_pool import AsyncConnectionPool
 
-options: Dict[str, Any] = {
+load_dotenv()
+
+options = {
     'statsd_host': '172.28.0.5',
     'statsd_port': 8125
 }
@@ -26,33 +27,20 @@ initialize(**options)
 tracer.configure(hostname='172.28.0.5', port=8126)
 redis_client: redis.Redis = redis.Redis(host='172.28.0.6', port=6379)
 
-logger: logging.Logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-log_file: str = './logs/event_handler.log'
-handler: RotatingFileHandler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
-formatter: logging.Formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+log_file = './logs/event_handler.log'
+handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
+formatter= logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-DATABASE_URL: str = os.environ.get("DATABASE_URL")
 
-engine: create_engine = create_engine(DATABASE_URL, echo=True)
-Base: declarative_base = declarative_base()
+class Event():
 
-class Event(Base):
-    __tablename__: str = 'event'
-
-    id: Column = Column(String, primary_key=True)
-    pubkey: Column = Column(String, index=True)
-    kind: Column = Column(Integer, index=True)
-    created_at: Column = Column(Integer)
-    tags: Column = Column(JSON)
-    content: Column = Column(String)
-    sig: Column = Column(String)
-
-    def __init__(self, id: str, pubkey: str, kind: int, created_at: int, tags: List, content: str, sig: str) -> None:
-        self.id = id
+    def __init__(self, event_id: str, pubkey: str, kind: int, created_at: int, tags: List, content: str, sig: str) -> None:
+        self.event_id = event_id
         self.pubkey = pubkey
         self.kind = kind
         self.created_at = created_at
@@ -60,184 +48,279 @@ class Event(Base):
         self.content = content
         self.sig = sig
 
-logger.info("Creating database metadata")
-Base.metadata.create_all(bind=engine)
-app: FastAPI = FastAPI()
+    def __str__(self) -> str:
+        return f"{self.event_id}, {self.pubkey}, {self.kind}, {self.created_at}, {self.tags}, {self.content}, {self.sig} "
 
-Session: sessionmaker = sessionmaker(bind=engine)
-session: Session = Session()
+    
+
+async def generate_query(tags):
+    base_query = " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
+    conditions = []
+    for tag_pair in tags:
+        #key, values = tag_pair
+        #json_key = json.dumps(key)  # Convert key to JSON string
+        #json_values = json.dumps(values)  # Convert values to a JSON array
+        condition = f"elem @> '{json.dumps(tag_pair)}'"
+        logger.debug(f"Condition iter is {json.dumps(tag_pair)}")
+        conditions.append(condition)
+
+    complete_query = base_query.format(' OR '.join(conditions))
+    return complete_query
+    
+
+    
+async def sanitize_event_keys(raw_payload):
+    try:
+        logger.debug(f"EC payload is {raw_payload} and of type {type(raw_payload)}")
+        
+        subscription_dict = raw_payload.get('event_dict', {})
+        logger.debug(f"Subdict is: {subscription_dict} and of type {type(subscription_dict)}")
+        raw_payload.pop("limit")
+        filters = raw_payload
+        logger.debug(f"Filter variable is: {filters} and of length {len(filters)}")
+        
+        
+        key_mappings = {
+            "authors": "pubkey",
+            "kinds": "kind",
+            "ids": "id",
+        }
+        updated_keys = {}
+        for key in filters:
+            logger.debug(f"Key value is: {key}, {filters[key]}")
+
+            new_key = key_mappings.get(key, key)
+            if new_key != key:
+                stored_val = filters[key]
+                updated_keys[new_key] = stored_val
+                logger.debug(f"Adding new key {new_key} with value {stored_val}")
+            else:
+                updated_keys[key] = filters[key]
+
+        return updated_keys
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
+        return updated_keys
+
+async def parse_sanitized_query(updated_keys):
+        tag_values = []
+        query_parts = []
+
+        for item in updated_keys:
+            outer_break = False
+            
+            if item.startswith("#"):
+                logger.debug(f"Tag key is: {item}, value is {updated_keys[item]} and of type: {type(updated_keys[item])}")
+                
+                try:
+                    for tags in updated_keys[item]:
+                        tag_value_pair = json.dumps([item[1], tags])
+                        logger.debug(f"Adding tag key value pair: {tag_value_pair}")
+                        tag_values.append(tag_value_pair)
+                        outer_break = True
+                        continue
+                except TypeError as e:
+                    logger.error(f"Error processing tags for key {item}: {e}")
+            
+            elif item in ["since", "until"]:
+                if item == "since":
+                    q_part = f'created_at > {updated_keys["since"]}'
+                    query_parts.append(q_part)
+                    outer_break = True
+                    continue
+                elif item == "until":
+                    q_part = f'created_at < {updated_keys["until"]}'
+                    query_parts.append(q_part)
+                    outer_break = True
+                    continue
+
+            if outer_break:
+                continue
+            
+            q_part = f"{item} = ANY(ARRAY {updated_keys[item]})"
+            logger.debug(f"q_part is {q_part}")
+            query_parts.append(q_part)
+        
+        return tag_values, query_parts
+
+
+
+def get_conn_str():
+    return f"""
+    dbname={os.getenv('PGDATABASE')}
+    user={os.getenv('PGUSER')}
+    password={os.getenv('PGPASSWORD')}
+    host={os.getenv('PGHOST')}
+    port={os.getenv('PGPORT')}
+    """
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.async_pool = AsyncConnectionPool(conninfo=get_conn_str())
+    yield
+    await app.async_pool.close()
+
+
+app = FastAPI(lifespan=lifespan)
+
+def initialize_db():
+    """
+    Initialize the database by creating the necessary table if it doesn't exist.
+    """
+    try:
+        conn = psycopg.connect(get_conn_str())
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS events (
+                    event_id VARCHAR(255) PRIMARY KEY,
+                    pubkey VARCHAR(255),
+                    kind INTEGER,
+                    created_at INTEGER,
+                    tags JSONB,
+                    content TEXT,
+                    sig VARCHAR(255)
+                );
+            """)
+            conn.commit()
+        print("Database initialization complete.")
+    except psycopg.Error as caught_error:
+        print(f"Error occurred during database initialization: {caught_error}")
+        return False
+    finally:
+        conn.close()
+        return True
 
 
 @app.post("/new_event")
 async def handle_new_event(request: Request) -> JSONResponse:
-    event_dict: Dict[str, Any] = await request.json()
-    pubkey: str = event_dict.get("pubkey", "")
-    kind: int = event_dict.get("kind", 0)
-    created_at: int = event_dict.get("created_at", 0)
-    tags: dict = event_dict.get("tags", {})
-    content: str = event_dict.get("content", "")
-    event_id: str = event_dict.get("id", "")
-    sig: str = event_dict.get("sig", "")
+    event_dict = await request.json()
+    event_obj = Event(
+    event_id=event_dict.get("id", ""),
+    pubkey=event_dict.get("pubkey", ""),
+    kind=event_dict.get("kind", 0),
+    created_at=event_dict.get("created_at", 0),
+    tags=event_dict.get("tags", {}),
+    content=event_dict.get("content", ""),
+    sig=event_dict.get("sig", "")
+    )
+
+    logger.debug(f"Created event object {event_obj}")
 
 
     try:
-        delete_message: Optional[str] = None
-        if kind in {0, 3}:
-            delete_message = f"Deleting existing metadata for pubkey {pubkey}"
-            session.query(Event).filter_by(pubkey=pubkey, kind=kind).delete()
-            statsd.decrement('nostr.event.added.count', tags=["func:new_event"])
-            statsd.increment('nostr.event.deleted.count', tags=["func:new_event"])
-
-        existing_event: Optional[Event] = session.query(Event).filter_by(id=event_id).scalar()
-        if existing_event is not None:
-            #["OK", "b1a649ebe8...", true, "duplicate: already have this event"]
-            raise HTTPException(status_code=409, detail=f"Event with ID {event_id} already exists")
-
-        new_event: Event = Event(
-            id=event_id,
-            pubkey=pubkey,
-            kind=kind,
-            created_at=created_at,
-            tags=tags,
-            content=content,
-            sig=sig
-        )
-
-        session.add(new_event)
-        session.commit()
+        delete_message = None
+        async with request.app.async_pool.connection() as conn:
+            async with conn.cursor() as cur:
+                if event_obj.kind in {0, 3}:
+                    delete_message = f"Deleting existing metadata for pubkey {event_obj.pubkey}"
+    
+                    delete_query = """
+                    DELETE FROM events
+                    WHERE pubkey = %s AND kind = %s;
+                    """
+    
+                    await cur.execute(delete_query, (event_obj.pubkey, event_obj.kind))
+    
+                    statsd.decrement('nostr.event.added.count', tags=["func:new_event"])
+                    statsd.increment('nostr.event.deleted.count', tags=["func:new_event"])
+    
+                    await conn.commit()
+                await cur.execute("""
+            INSERT INTO events (event_id,pubkey,kind,created_at,tags,content,sig) VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (event_obj.event_id, event_obj.pubkey, event_obj.kind, event_obj.created_at, json.dumps(event_obj.tags)
+, event_obj.content, event_obj.sig))  # Add other event fields here
+                await conn.commit()
         response = {'event': "OK", 'subscription_id': "n0stafarian419", 'results_json': "true"}
         statsd.increment('nostr.event.added.count', tags=["func:new_event"])
         return JSONResponse(content=response, status_code=200)
 
-    except SQLAlchemyError as e:
-        logger.exception(f"Error saving event: {e}")
-        raise HTTPException(status_code=500, detail="Failed to save event to database")
-
+    except psycopg.IntegrityError as e:
+        conn.rollback()
+        raise HTTPException(status_code=409, detail=f"Event with ID {event_obj.event_id} already exists") from e
+    except Exception as e:
+        conn.rollback() 
+        raise HTTPException(status_code=409, detail=f"Error occured adding event {event_obj.event_id}") from e
     finally:
         if delete_message:
-            logger.debug(delete_message.format(pubkey=pubkey))
-
-def serialize(model: Event) -> Dict[str, Any]:
-    # Helper function to convert an SQLAlchemy model instance to a dictionary
-    columns: List[str] = [c.key for c in class_mapper(model.__class__).columns]
-    return dict((c, getattr(model, c)) for c in columns)
-
-async def event_query(filters: str) -> List[Dict[str, Any]]:
-    serialized_events: List[Dict[str, Any]] = []
-    try:
-        results: List[Dict[str, Any]] = json.loads(filters)
-        logger.debug(f"Filter variable is: {filters}")
-        list_index: int = 0
-        index: int = 2
-        output_list: List[Dict[str, Any]] = []
-
-        for request in results:
-            extracted_dict: Dict[str, Any] = results[list_index][str(index)]
-            logger.debug(f"Extracted Dictionary is: {extracted_dict}")
-            if isinstance(request, dict):
-                output_list.append(extracted_dict)
-                logger.debug(f"Results variable is: {request}")
-            redis_get: str = str(results[list_index][str(index)])
-
-            try:
-                cached_result: bytes = redis_client.get(redis_get)
-                logger.debug(f"Cached resuts = {cached_result}")
-                if cached_result == "b'[]'":
-                    cached_result = None
-                    return serialized_events
-                index += 1
-                list_index += 1
-                # b'[]' is the problem response
-                if cached_result:
-                    query_result: bytes = cached_result
-                    query_result_utf8: str = query_result.decode('utf-8')
-                    logger.debug(f"Query results UTF 8 = {query_result_utf8}")
-                    query_result_cleaned: str = query_result_utf8[2:-1].strip()
-                    logger.debug(f"Query result CLEANED = {query_result_cleaned}")
-                    logger.debug(f"Query result found in cache. ({inspect.currentframe().f_lineno})")
-                    if len(query_result_cleaned) > 2:
-                        statsd.increment('nostr.event.found.redis.count', tags=["func:event_query"])
-                        serialized_events.append(query_result_cleaned)
-
-                else:
-                    try:
-                        query = session.query(Event)
-                        conditions: Dict[str, Any] = {
-                            "authors": lambda x: Event.pubkey.in_(x),
-                            "kinds": lambda x: Event.kind.in_(x),
-                            "#e": lambda x: Event.tags.any(lambda tag: tag[0] == 'e' and tag[1] in x),
-                            "#p": lambda x: Event.tags.any(lambda tag: tag[0] == 'p' and tag[1] in x),
-                            "#d": lambda x: Event.tags.any(lambda tag: tag[0] == 'd' and tag[1] in x), 
-                            "since": lambda x: Event.created_at > x,
-                            "until": lambda x: Event.created_at < x
-                        }
-
-                        for index, dict_item in enumerate(output_list):
-                            query_limit: int = int(min(dict_item.get('limit', 100), 100))
-                            if 'limit' in dict_item:
-                                del dict_item['limit']
-                            for key, value in dict_item.items():
-                                logger.debug(f"Key value is: {key}, {value}")
-                                if key in ["#e", "#p", "#d"]:
-                                    logger.debug(f"Tag key is : {key} , value is {value} and of type: {type(value)}")
-                                    tag_values = []
-                                    for tags in value:
-                                        logger.debug(f"Tags is {tags}")
-                                        value = [key[1], tags]
-                                        logger.debug(f"Valuevar is {value} of type: {type(value)}")
-                                        query = query.filter(conditions[key](value))
-                                        break
+            logger.debug(delete_message.format(pubkey=event_obj.pubkey))
 
 
-                                query = query.filter(conditions[key](value))
+async def generate_query(tags):
+    base_query = "EXISTS (SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
+    
+    or_conditions = ' OR '.join(f"elem @> '{tag}'" for tag in tags)
+    
+    complete_query = base_query.format(or_conditions)
+    return complete_query
 
 
-                        query_result: List[Event] = query.order_by(desc(Event.created_at)).limit(query_limit).all()
-                        statsd.increment('nostr.event.queried.postgres', tags=["func:event_query"])
-                        serialized_events = [serialize(event) for event in query_result]
-                        logger.debug(f"serialized events are: {serialized_events}")
-                        redis_client.set(redis_get, str(serialized_events))  
-                        redis_client.expire(redis_get, 1800)
-                        logger.debug(f"Query result stored in cache. Stored as: filters: {redis_get} values: {str(serialized_events)} ({inspect.currentframe().f_lineno})")
+async def query_result_parser(query_result):
+    column_names = ['id', 'pubkey', 'kind', 'created_at', 'tags', 'content', 'sig']
+    column_added = []
+    
+    for record in query_result:
+        row_result = {}
+        i = 0
+        for item in record:
+            row_result[column_names[i]] = item
+            i += 1
+        logger.debug(f"Row result var is {row_result}")
+        column_added.append([row_result])
 
-                    except SQLAlchemyError as exc:
-                        
-                        logger.error(f"Error occurred: {str(exc)} ({inspect.currentframe().f_lineno})")
-                        
-                        session.rollback()
+    logger.debug(f"Returning col_added {column_added}")
+    return column_added
 
-                    finally:
-                        logger.debug("FINISH PG BLOCK")
-
-            except Exception as e:
-                logger.error(f"Error retrieving cached result: {e}")
-                logger.exception(f"What is the excepion {e}")
-
-        logger.debug(f"Output list is: {output_list} and length is: {len(output_list)}")
-
-    except Exception as e:
-        logger.error(f"Error parsing filters: {e}")
-
-    return serialized_events
 
 @app.post("/subscription")
 async def handle_subscription(request: Request) -> JSONResponse:
     try:
-        response: Optional[Dict[str, Any]] = None
-        payload: Dict[str, Any] = await request.json()
-        subscription_dict: Dict[str, Any] = payload.get('event_dict', {})
-        subscription_id: str = payload.get('subscription_id', "")
-        filters: str = subscription_dict
+        response = None
+        payload = await request.json()
+        filters = payload.get('event_dict', {})
+        #logger.debug(f"Subdict is : {subscription_dict} and of type {type(subscription_dict)}")
+        subscription_id = payload.get('subscription_id', "")
+        updated_keys = await sanitize_event_keys(filters)
+        logger.debug(f"UPdated keys are {updated_keys}")
+        tag_values, query_parts = await parse_sanitized_query(updated_keys)
 
-        serialized_events: List[Dict[str, Any]] = await event_query(json.dumps(filters))
+        logger.debug(f"tg and qp are {tag_values} and {query_parts}")
 
-        if len(serialized_events) < 2:
-            response = None
-        else:
-            response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': serialized_events}
+        async with app.async_pool.connection() as conn:
+            async with conn.cursor() as cur:
+                logger.debug(f"Inside 2nd async context manager")
+                run_query = False
+                if len(query_parts) > 0:
+                    where_clause = ' OR '.join(query_parts)
+                    run_query = True
+                if len(tag_values) > 0:
+                    tag_clause = await generate_query(tag_values)
+                    where_clause = str(where_clause) + ' OR ' + str(tag_clause)
+                    run_query = True
+                
+                sql_query = f"SELECT * FROM events WHERE {where_clause} LIMIT 15;"
+                #logger.debug(f"Query parts are {query_parts}")
+                logger.debug(f"SQL query constructed: {sql_query}")
+                logger.debug(f"Tag values are: {tag_values}")
+                #logger.debug(f"Limit is {query_limit}")
+                if run_query:
+                    q1 = await cur.execute(query=sql_query)
+                    listed = await cur.fetchall()
+                    parsed_results = await query_result_parser(listed)
+                    logger.debug(f"Log line after query executed")
+                    logger.debug(f"with colun name {parsed_results}")
+                    logger.debug(f"json dumps version {json.dumps(parsed_results)}")
+                    serialized_events = json.dumps(parsed_results)
+                    if len(serialized_events) < 2:
+                        response = None
+                    else:
+                        response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': serialized_events}   
 
-    except Exception:
-        raise HTTPException(status_code=500, detail="An error occurred while processing the subscription")
+    except psycopg.Error as exc:
+        logger.error(f"Error occurred: {str(exc)}")
+    
+    except Exception as exc:
+        logger.error(f"General exception occured: {exc}")
+        
     finally:
         try:
             if response is None:
@@ -246,6 +329,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         except Exception as e:
             return JSONResponse(content={'error': str(e)}, status_code=500)
 
-
 if __name__ == "__main__":
+    initialize_db()
     uvicorn.run(app, host="0.0.0.0", port=80)
+

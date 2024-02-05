@@ -36,10 +36,6 @@ services:
       - DD_PROFILING_ENABLED=true
       - DD_RUNTIME_METRICS_ENABLED=true
       - DD_APPSEC_ENABLED=true
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     networks:
       my_network:
         ipv4_address: 172.28.0.3
@@ -54,9 +50,9 @@ services:
   postgres:
     image: postgres:14
     environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${PGDATABASE}
+      - POSTGRES_USER=${PGUSER}
+      - POSTGRES_PASSWORD=${PGPASSWORD}
     ports:
       - 5432:5432
     networks:
@@ -67,7 +63,7 @@ services:
       - ./postgresql.conf:/postgresql.conf
       - ./postgresql/data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"] # database username here - nostr, should be changed if other user
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER}"] # database username here - nostr, should be changed if other user
       interval: 10s
       timeout: 5s
       retries: 5
@@ -83,13 +79,11 @@ services:
             "host": "172.28.0.4",
             "port" : "5432",
             "disable_generic_tags": true,
-            "tags" : "db:stg_test",
-            "service" : "STAGING-pg-db",
-            "reported_hostname" : "STAGING-pg-db"
+            "tags" : "db:DEV_test",
+            "service" : "DEV-pg-db",
+            "reported_hostname" : "DEV-pg-db"
           }
         ]
-        
-
 
   datadog-agent:
     container_name: datadog-agent
@@ -97,9 +91,9 @@ services:
     environment:
       - DD_API_KEY=${DD_API_KEY}
       - DD_SITE=datadoghq.com
-      - DD_HOSTNAME=staging-nostpy
+      - DD_HOSTNAME=${DD_HOSTNAME}
       - DD_ENV=${DD_ENV}
-      - DD_TAGS=owner:brian
+      - DD_TAGS=owner:nostrich
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
       - DD_DOCKER_LABELS_AS_TAGS=true
       - DD_DOCKER_ENV_AS_TAGS=true
@@ -136,15 +130,6 @@ services:
     networks:
       my_network:
         ipv4_address: 172.28.0.5
-
-  redis:
-    image: redis:latest
-    container_name: redis-cache
-    ports:
-      - "6379:6379"
-    networks:
-      my_network:
-        ipv4_address: 172.28.0.6
 
 volumes:
   postgres_data:

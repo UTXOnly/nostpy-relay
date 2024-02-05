@@ -1,3 +1,25 @@
+## v0.6
+**Enhancements**
+* Obfuscate `client_ip` tag by using a hashed value for their ip address
+  * Rate limiter is triggered off the hashed value, no `client ip` in any application logs
+* Added docstrings for classes in `websocket_handler.py`
+* Remove event verification from `handle_new_event` method (unnecessary as it is done by clients)
+* Removed `SQLalchemy` in favor of async `psycopg3`
+    * Faster
+    * Smaller memory footprint
+    * More control over dynamically constructed queries
+* Slight redesign of database schema to store `tags `in `JSONB` format
+  * Easier to query individual tags
+  * Improved query performance from executing `tag` search as a function scan
+  * Remove high cardinality `indexes` , leaving indexes only on `pubkey` and `kind`
+* `event-handler` service broken up into smaller `async` functions , with better error handling and more specific error messages
+* Updated [Database Monitoring setup script](https://github.com/DataDog/Miscellany/tree/master/dbm_setup)
+
+**Bug Fixes**
+* Tags not being added to query filter, [Issue #28](https://github.com/UTXOnly/nost-py/issues/28)
+  * Tags are now stored in `JSONB` format and use valid and dynamically constructed queries
+
+
 ## v0.5
 
 **Enhancements**
