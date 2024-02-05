@@ -1,24 +1,18 @@
-import os
 import json
 import logging
+import os
+from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
-import inspect
-from typing import List, Dict, Any, Optional
+from typing import List
 
-from dotenv import load_dotenv
-#from psycopg import sq
-
-
-import uvicorn
-from ddtrace import tracer
 from datadog import initialize, statsd
-import redis
+from ddtrace import tracer
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
-
-from contextlib import asynccontextmanager
 import psycopg
-
+import redis
+import uvicorn
 from psycopg_pool import AsyncConnectionPool
 
 load_dotenv()
@@ -123,12 +117,10 @@ async def parse_sanitized_query(updated_keys):
                         tag_value_pair = json.dumps([item[1], tags])
                         logger.debug(f"Adding tag key value pair: {tag_value_pair}")
                         tag_values.append(tag_value_pair)
-                        #q_part = f"tags = ANY(ARRAY {tag_value_pair})"
-                        #query_parts.append(q_part)
                         outer_break = True
                         continue
                 except TypeError as e:
-                    logger.error(f"Error processing tags for key {key}: {e}")
+                    logger.error(f"Error processing tags for key {item}: {e}")
             
             elif item in ["since", "until"]:
                 if item == "since":
@@ -313,20 +305,16 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 if run_query:
                     q1 = await cur.execute(query=sql_query)
                     listed = await cur.fetchall()
+                    parsed_results = await query_result_parser(listed)
                     logger.debug(f"Log line after query executed")
-     
-                #logger.debug(f"Full table results type is {type(listed)} are {listed}")
-                parsed_results = await query_result_parser(listed)
-                logger.debug(f"with colun name {parsed_results}")
-                logger.debug(f"json dumps version {json.dumps(parsed_results)}")
+                    logger.debug(f"with colun name {parsed_results}")
+                    logger.debug(f"json dumps version {json.dumps(parsed_results)}")
+                    serialized_events = json.dumps(parsed_results)
+                    if len(serialized_events) < 2:
+                        response = None
+                    else:
+                        response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': serialized_events}   
 
-                serialized_events = json.dumps(parsed_results)
-
-                if len(serialized_events) < 2:
-                    response = None
-                else:
-                    response = {'event': "EVENT", 'subscription_id': subscription_id, 'results_json': serialized_events}
-                
     except psycopg.Error as exc:
         logger.error(f"Error occurred: {str(exc)}")
     
