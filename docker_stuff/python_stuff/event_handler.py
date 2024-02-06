@@ -18,7 +18,6 @@ from psycopg_pool import AsyncConnectionPool
 load_dotenv()
 
 options = {"statsd_host": "172.28.0.5", "statsd_port": 8125}
-
 initialize(**options)
 
 tracer.configure(hostname="172.28.0.5", port=8126)
@@ -26,12 +25,12 @@ redis_client: redis.Redis = redis.Redis(host="172.28.0.6", port=6379)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
 log_file = "./logs/event_handler.log"
 handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
+
 
 
 class Event:
@@ -45,6 +44,7 @@ class Event:
         content: str,
         sig: str,
     ) -> None:
+
         self.event_id = event_id
         self.pubkey = pubkey
         self.kind = kind
@@ -142,6 +142,7 @@ async def parse_sanitized_query(updated_keys):
     return tag_values, query_parts
 
 
+
 def get_conn_str():
     return f"""
     dbname={os.getenv('PGDATABASE')}
@@ -161,11 +162,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-
 def initialize_db():
     """
     Initialize the database by creating the necessary table if it doesn't exist,
     and creating indexes on the pubkey and kind columns.
+
     """
     try:
         conn = psycopg.connect(get_conn_str())
@@ -201,6 +202,7 @@ def initialize_db():
             """
             )
 
+
             conn.commit()
         print("Database initialization complete.")
     except psycopg.Error as caught_error:
@@ -227,15 +229,17 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
     logger.debug(f"Created event object {event_obj}")
 
+
     try:
         delete_message = None
         async with request.app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
                 if event_obj.kind in {0, 3}:
+
                     delete_message = (
                         f"Deleting existing metadata for pubkey {event_obj.pubkey}"
                     )
-
+                    
                     delete_query = """
                     DELETE FROM events
                     WHERE pubkey = %s AND kind = %s;
@@ -282,6 +286,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
         raise HTTPException(
             status_code=409, detail=f"Error occured adding event {event_obj.event_id}"
         ) from e
+
     finally:
         if delete_message:
             logger.debug(delete_message.format(pubkey=event_obj.pubkey))
@@ -306,7 +311,6 @@ async def query_result_parser(query_result):
             i += 1
         column_added.append([row_result])
     return column_added
-
 
 @app.post("/subscription")
 async def handle_subscription(request: Request) -> JSONResponse:
@@ -350,7 +354,6 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
     except Exception as exc:
         logger.error(f"General exception occured: {exc}")
-
     finally:
         try:
             if response is None:
@@ -363,7 +366,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         except Exception as e:
             return JSONResponse(content={"error": str(e)}, status_code=500)
 
-
 if __name__ == "__main__":
     initialize_db()
     uvicorn.run(app, host="0.0.0.0", port=80)
+
