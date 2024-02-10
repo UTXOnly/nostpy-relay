@@ -71,7 +71,10 @@ async def generate_query(tags):
 async def sanitize_event_keys(raw_payload):
     try:
         subscription_dict = raw_payload.get("event_dict", {})
-        raw_payload.pop("limit")
+        try:
+            raw_payload.pop("limit")
+        except: 
+            logger.debug(f"No limit")
         filters = raw_payload
         logger.debug(f"Filter variable is: {filters} and of length {len(filters)}")
 
@@ -175,7 +178,7 @@ def initialize_db():
             cur.execute(
                 """
                 CREATE TABLE IF NOT EXISTS events (
-                    event_id VARCHAR(255) PRIMARY KEY,
+                    id VARCHAR(255) PRIMARY KEY,
                     pubkey VARCHAR(255),
                     kind INTEGER,
                     created_at INTEGER,
@@ -186,27 +189,19 @@ def initialize_db():
             """
             )
 
-            # Create an index on the pubkey column
-            cur.execute(
+            index_columns = ["pubkey", "kind"]
+            for column in index_columns:
+                cur.execute(
+                    f"""
+                    CREATE INDEX IF NOT EXISTS idx_{column}
+                    ON events ({column});
                 """
-                CREATE INDEX IF NOT EXISTS idx_pubkey
-                ON events (pubkey);
-            """
-            )
-
-            # Create an index on the kind column
-            cur.execute(
-                """
-                CREATE INDEX IF NOT EXISTS idx_kind
-                ON events (kind);
-            """
-            )
-
+                )
 
             conn.commit()
-        print("Database initialization complete.")
+        logger.info("Database initialization complete.")
     except psycopg.Error as caught_error:
-        print(f"Error occurred during database initialization: {caught_error}")
+        logger.info(f"Error occurred during database initialization: {caught_error}")
         return False
     finally:
         if conn:
@@ -255,7 +250,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     await conn.commit()
                 await cur.execute(
                     """
-            INSERT INTO events (event_id,pubkey,kind,created_at,tags,content,sig) VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO events (id,pubkey,kind,created_at,tags,content,sig) VALUES (%s, %s, %s, %s, %s, %s, %s)
         """,
                     (
                         event_obj.event_id,
@@ -266,7 +261,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         event_obj.content,
                         event_obj.sig,
                     ),
-                )  # Add other event fields here
+                ) 
                 await conn.commit()
         response = {
             "event": "OK",
@@ -332,7 +327,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                     tag_clause = await generate_query(tag_values)
                     where_clause = str(where_clause) + " OR " + str(tag_clause)
                     run_query = True
-                sql_query = f"SELECT * FROM events WHERE {where_clause} LIMIT 15;"
+                sql_query = f"SELECT * FROM events WHERE {where_clause};"
                 logger.debug(f"SQL query constructed: {sql_query}")
 
                 if run_query:
