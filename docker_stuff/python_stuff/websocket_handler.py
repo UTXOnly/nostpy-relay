@@ -192,14 +192,7 @@ class ExtractedResponse:
             Union[Tuple[str, Optional[str], str, Optional[str]], List[Tuple[str, Optional[str], Dict[str, Any]]], Tuple[str, Optional[str]]]: The formatted response.
 
         """
-        if self.event_type == "OK":
-            client_response: Tuple[str, Optional[str], str, Optional[str]] = (
-                self.event_type,
-                self.subscription_id,
-                self.results,
-                self.comment,
-            )
-        elif self.event_type == "EVENT":
+        if self.event_type == "EVENT":
             events_to_send = []
             tasks = []
             for event_result in self.results:
@@ -208,6 +201,14 @@ class ExtractedResponse:
             await asyncio.gather(*tasks)
 
             return events_to_send
+        elif self.event_type == "OK":
+            client_response: Tuple[str, Optional[str], str, Optional[str]] = (
+                self.event_type,
+                self.subscription_id,
+                self.results,
+                self.comment,
+            )
+
         else:
             # Return EOSE
             client_response: Tuple[str, Optional[str]] = (
@@ -273,15 +274,17 @@ class WebsocketMessages:
 unique_sessions = []
 client_ips = []
 
+
 class WebSocketHandler:
     def __init__(self):
         self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10))
 
-    async def handle_websocket_connection(self,
+    async def handle_websocket_connection(
+        self,
         websocket: websockets.WebSocketServerProtocol,
     ) -> None:
         global unique_sessions, client_ips
-    
+
         async with self.session as session:
             try:
                 async for message in websocket:
@@ -298,7 +301,7 @@ class WebSocketHandler:
                             ],
                         )
                         logger.debug(f"WS event payload is {ws_message.event_payload}")
-    
+
                         if not await rate_limiter.check_request(
                             ws_message.obfuscated_client_ip
                         ):
@@ -323,7 +326,7 @@ class WebSocketHandler:
                             await websocket.send(json.dumps(rate_limit_response))
                             await websocket.close()
                             return
-    
+
                         if ws_message.event_type == "EVENT":
                             logger.debug(
                                 f"Event to be sent payload is: {ws_message.event_payload} of type {type(ws_message.event_payload)}"
@@ -350,16 +353,16 @@ class WebSocketHandler:
                                 f"closing {ws_message.subscription_id}",
                             )
                             await websocket.send(json.dumps(response))
-    
+
                     except Exception as exc:
                         logger.error(f"Inner loop {exc}")
-    
+
             except aiohttp.ClientError as e:
                 logger.error(f"http client error {e}")
-    
+
             except Exception as e:
                 logger.error(f"Error occurred while starting the server: {e}")
-    
+
 
 async def send_event_to_handler(
     session: aiohttp.ClientSession,
@@ -433,7 +436,9 @@ async def send_subscription_to_handler(
 if __name__ == "__main__":
     rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=30000)
     handler = WebSocketHandler()
-    start_server = websockets.serve(handler.handle_websocket_connection, "0.0.0.0", 8008)
+    start_server = websockets.serve(
+        handler.handle_websocket_connection, "0.0.0.0", 8008
+    )
 
     try:
         asyncio.get_event_loop().run_until_complete(start_server)
