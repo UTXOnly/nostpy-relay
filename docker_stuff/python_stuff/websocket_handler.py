@@ -205,7 +205,7 @@ class ExtractedResponse:
                     f"Client response loop iter is {client_response} and of type {type(client_response)}"
                 )
                 events_to_send.append(client_response)
-            return json.dumps(events_to_send)
+            return events_to_send
         else:
             # Return EOSE
             client_response: Tuple[str, Optional[str]] = (
@@ -380,6 +380,13 @@ async def send_event_to_handler(
         logger.error(f"An error occurred while sending the event to the handler: {e}")
 
 
+async def send_event_loop(response_list, websocket):
+    for event_item in response_list:
+        logger.debug(f"Final response from REQ to ws client: {event_item}")
+        await websocket.send(json.dumps(event_item))
+
+    
+
 async def send_subscription_to_handler(
     session: aiohttp.ClientSession,
     event_dict: Dict,
@@ -405,19 +412,20 @@ async def send_subscription_to_handler(
         if response.status == 200 and response_object.event_type == "EVENT":
             response_list = await response_object.format_response()
             logger.debug(f"Response list is : {response_list}")
+            await send_event_loop(response_list, websocket)
             #for event_item in response_list:
             #    logger.debug(f"Final response from REQ to ws client: {event_item}")
             #    await websocket.send(json.dumps(event_item))
-#
+
             #        # Batch event items before sending
             #batched_response = [json.dumps(event_item) for event_item in response_list]
             #batched_response.append(json.dumps(EOSE))
 
             
             # Send batched response to WebSocket client
-            await websocket.send(response_list)
+            #await websocket.send(response_list)
 
-            #await websocket.send(json.dumps(EOSE))
+            await websocket.send(json.dumps(EOSE))
         else:
             await websocket.send(json.dumps(EOSE))
             logger.debug(f"Response data is {response_data} but it failed")
