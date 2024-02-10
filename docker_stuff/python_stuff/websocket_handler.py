@@ -174,7 +174,7 @@ class ExtractedResponse:
 
     async def _process_event(self,event_result, events_to_send):
         stripped = str(event_result)[1:-1]
-        client_response: Tuple[str, Optional[str], Dict[str, Any]] = (
+        client_response = (
             self.event_type,
             self.subscription_id,
             ast.literal_eval(stripped),
@@ -206,7 +206,6 @@ class ExtractedResponse:
                 tasks.append(self._process_event(event_result,events_to_send))
 
             await asyncio.gather(*tasks)
-                
 
             return events_to_send
         else:

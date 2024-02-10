@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -293,18 +294,24 @@ async def generate_query(tags):
     complete_query = base_query.format(or_conditions)
     return complete_query
 
+async def parser_worker(record, column_added):
+    column_names = ["id", "pubkey", "kind", "created_at", "tags", "content", "sig"]
+    row_result = {}
+    i = 0
+    for item in record:
+        row_result[column_names[i]] = item
+        i += 1
+    column_added.append([row_result])
+
 
 async def query_result_parser(query_result):
-    column_names = ["id", "pubkey", "kind", "created_at", "tags", "content", "sig"]
     column_added = []
-
+    tasks = []
     for record in query_result:
-        row_result = {}
-        i = 0
-        for item in record:
-            row_result[column_names[i]] = item
-            i += 1
-        column_added.append([row_result])
+        tasks.append(parser_worker(record))
+    
+    await asyncio.gather(*tasks)
+
     return column_added
 
 @app.post("/subscription")
