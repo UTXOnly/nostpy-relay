@@ -61,7 +61,7 @@ class TokenBucketRateLimiter:
         self.tokens = defaultdict(lambda: self.max_tokens)
         self.last_request_time = defaultdict(lambda: 0)
 
-    def _get_tokens(self, client_id: str) -> None:
+    async def _get_tokens(self, client_id: str) -> None:
         """
         Updates the number of tokens for a given client based on the time passed since the last request.
 
@@ -112,7 +112,7 @@ class TokenBucketRateLimiter:
         """
         return str(dict(self.tokens))
 
-    def check_request(self, client_id: str) -> bool:
+    async def check_request(self, client_id: str) -> bool:
         """
         Checks if a request from a client is allowed based on the available tokens.
 
@@ -123,7 +123,7 @@ class TokenBucketRateLimiter:
             bool: True if the request is allowed, False otherwise.
 
         """
-        self._get_tokens(client_id)
+        awaited_tokens = await self._get_tokens(client_id)
         if self.tokens[client_id] >= 1:
             self.tokens[client_id] -= 1
             return True
@@ -294,7 +294,7 @@ async def handle_websocket_connection(
                     )
                     logger.debug(f"WS event payload is {ws_message.event_payload}")
 
-                    if not rate_limiter.check_request(ws_message.obfuscated_client_ip):
+                    if not await rate_limiter.check_request(ws_message.obfuscated_client_ip):
                         logger.warning(
                             f"Rate limit exceeded for client: {ws_message.obfuscated_client_ip}"
                         )
@@ -444,7 +444,7 @@ async def send_subscription_to_handler(
 
 
 if __name__ == "__main__":
-    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=3000)
+    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=300000)
 
     try:
         start_server = websockets.serve(handle_websocket_connection, "0.0.0.0", 8008, max_size=1000000)
