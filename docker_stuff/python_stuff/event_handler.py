@@ -25,7 +25,7 @@ tracer.configure(hostname="172.28.0.5", port=8126)
 redis_client: redis.Redis = redis.Redis(host="172.28.0.6", port=6379)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 log_file = "./logs/event_handler.log"
 handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
