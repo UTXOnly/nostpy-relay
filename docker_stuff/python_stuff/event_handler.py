@@ -308,7 +308,7 @@ async def query_result_parser(query_result):
     column_added = []
     tasks = []
     for record in query_result:
-        tasks.append(parser_worker(record))
+        tasks.append(parser_worker(record, column_added))
     
     await asyncio.gather(*tasks)
 
