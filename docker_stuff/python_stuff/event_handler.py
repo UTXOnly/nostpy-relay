@@ -72,7 +72,7 @@ async def sanitize_event_keys(raw_payload):
     try:
         subscription_dict = raw_payload.get("event_dict", {})
         try:
-            subscription_dict.pop("limit")
+            raw_payload.pop("limit")
         except: 
             logger.debug(f"No limit")
         filters = raw_payload
