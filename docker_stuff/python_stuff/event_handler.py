@@ -4,7 +4,7 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
-from typing import List
+from typing import List, Tuple, Dict
 
 from datadog import initialize, statsd
 from ddtrace import tracer
@@ -58,7 +58,7 @@ class Event:
         return f"{self.event_id}, {self.pubkey}, {self.kind}, {self.created_at}, {self.tags}, {self.content}, {self.sig} "
 
 
-async def generate_query(tags):
+async def generate_query(tags) -> str:
     base_query = " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
     conditions = []
     for tag_pair in tags:
@@ -69,14 +69,12 @@ async def generate_query(tags):
     return complete_query
 
 
-async def sanitize_event_keys(raw_payload):
+async def sanitize_event_keys(filters) -> Dict:
     try:
-        subscription_dict = raw_payload.get("event_dict", {})
         try:
-            raw_payload.pop("limit")
+            filters.pop("limit")
         except: 
             logger.debug(f"No limit")
-        filters = raw_payload
         logger.debug(f"Filter variable is: {filters} and of length {len(filters)}")
 
         key_mappings = {
@@ -102,7 +100,7 @@ async def sanitize_event_keys(raw_payload):
         return updated_keys
 
 
-async def parse_sanitized_query(updated_keys):
+async def parse_sanitized_query(updated_keys) -> Tuple[List, List]:
     tag_values = []
     query_parts = []
 
@@ -147,7 +145,7 @@ async def parse_sanitized_query(updated_keys):
 
 
 
-def get_conn_str():
+def get_conn_str() -> str:
     return f"""
     dbname={os.getenv('PGDATABASE')}
     user={os.getenv('PGUSER')}
@@ -166,7 +164,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-def initialize_db():
+def initialize_db() -> None:
     """
     Initialize the database by creating the necessary table if it doesn't exist,
     and creating indexes on the pubkey and kind columns.
@@ -288,13 +286,13 @@ async def handle_new_event(request: Request) -> JSONResponse:
             logger.debug(delete_message.format(pubkey=event_obj.pubkey))
 
 
-async def generate_query(tags):
+async def generate_query(tags) -> str:
     base_query = "EXISTS (SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
     or_conditions = " OR ".join(f"elem @> '{tag}'" for tag in tags)
     complete_query = base_query.format(or_conditions)
     return complete_query
 
-async def parser_worker(record, column_added):
+async def parser_worker(record, column_added) -> None:
     column_names = ["id", "pubkey", "kind", "created_at", "tags", "content", "sig"]
     row_result = {}
     i = 0
@@ -304,7 +302,7 @@ async def parser_worker(record, column_added):
     column_added.append([row_result])
 
 
-async def query_result_parser(query_result):
+async def query_result_parser(query_result) -> List:
     column_added = []
     tasks = []
     for record in query_result:

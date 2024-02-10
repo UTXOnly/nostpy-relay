@@ -14,6 +14,7 @@ contact = os.getenv('CONTACT')
 hex_pubkey = os.getenv('HEX_PUBKEY')
 env_file_path = os.getenv('ENV_FILE_PATH')
 nginx_filepath = os.getenv('NGINX_FILE_PATH')
+version = os.getenv('VERSION')
 
 try:
     file_encryption.change_file_permissions(env_file_path)
@@ -57,7 +58,7 @@ server {{
 
     location / {{
         if ($http_accept ~* "application/nostr\\+json") {{
-            return 200 '{{"name": "{domain_name}", "description": "NostPy relay v0.3", "pubkey": "{hex_pubkey}", "contact": "{contact}", "supported_nips": [1, 2, 4, 15, 16, 25], "software": "git+https://github.com/UTXOnly/nost-py.git", "version": "0.5"}}';
+            return 200 '{{"name": "{domain_name}", "description": "NostPy relay {version}", "pubkey": "{hex_pubkey}", "contact": "{contact}", "supported_nips": [1, 2, 4, 15, 16, 25], "software": "git+https://github.com/UTXOnly/nost-py.git", "version": "{version}"}}';
             add_header 'Content-Type' 'application/json';
         }}
     
