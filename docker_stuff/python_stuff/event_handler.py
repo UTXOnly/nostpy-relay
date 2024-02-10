@@ -1,9 +1,10 @@
+import asyncio
 import json
 import logging
 import os
 from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
-from typing import List
+from typing import List, Tuple, Dict
 
 from datadog import initialize, statsd
 from ddtrace import tracer
@@ -32,7 +33,6 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-
 class Event:
     def __init__(
         self,
@@ -44,7 +44,6 @@ class Event:
         content: str,
         sig: str,
     ) -> None:
-
         self.event_id = event_id
         self.pubkey = pubkey
         self.kind = kind
@@ -57,7 +56,7 @@ class Event:
         return f"{self.event_id}, {self.pubkey}, {self.kind}, {self.created_at}, {self.tags}, {self.content}, {self.sig} "
 
 
-async def generate_query(tags):
+async def generate_query(tags) -> str:
     base_query = " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
     conditions = []
     for tag_pair in tags:
@@ -68,11 +67,12 @@ async def generate_query(tags):
     return complete_query
 
 
-async def sanitize_event_keys(raw_payload):
+async def sanitize_event_keys(filters) -> Dict:
     try:
-        subscription_dict = raw_payload.get("event_dict", {})
-        raw_payload.pop("limit")
-        filters = raw_payload
+        try:
+            filters.pop("limit")
+        except:
+            logger.debug(f"No limit")
         logger.debug(f"Filter variable is: {filters} and of length {len(filters)}")
 
         key_mappings = {
@@ -98,7 +98,7 @@ async def sanitize_event_keys(raw_payload):
         return updated_keys
 
 
-async def parse_sanitized_query(updated_keys):
+async def parse_sanitized_query(updated_keys) -> Tuple[List, List]:
     tag_values = []
     query_parts = []
 
@@ -142,8 +142,7 @@ async def parse_sanitized_query(updated_keys):
     return tag_values, query_parts
 
 
-
-def get_conn_str():
+def get_conn_str() -> str:
     return f"""
     dbname={os.getenv('PGDATABASE')}
     user={os.getenv('PGUSER')}
@@ -162,7 +161,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-def initialize_db():
+
+def initialize_db() -> None:
     """
     Initialize the database by creating the necessary table if it doesn't exist,
     and creating indexes on the pubkey and kind columns.
@@ -175,7 +175,7 @@ def initialize_db():
             cur.execute(
                 """
                 CREATE TABLE IF NOT EXISTS events (
-                    event_id VARCHAR(255) PRIMARY KEY,
+                    id VARCHAR(255) PRIMARY KEY,
                     pubkey VARCHAR(255),
                     kind INTEGER,
                     created_at INTEGER,
@@ -186,27 +186,19 @@ def initialize_db():
             """
             )
 
-            # Create an index on the pubkey column
-            cur.execute(
+            index_columns = ["pubkey", "kind"]
+            for column in index_columns:
+                cur.execute(
+                    f"""
+                    CREATE INDEX IF NOT EXISTS idx_{column}
+                    ON events ({column});
                 """
-                CREATE INDEX IF NOT EXISTS idx_pubkey
-                ON events (pubkey);
-            """
-            )
-
-            # Create an index on the kind column
-            cur.execute(
-                """
-                CREATE INDEX IF NOT EXISTS idx_kind
-                ON events (kind);
-            """
-            )
-
+                )
 
             conn.commit()
-        print("Database initialization complete.")
+        logger.info("Database initialization complete.")
     except psycopg.Error as caught_error:
-        print(f"Error occurred during database initialization: {caught_error}")
+        logger.info(f"Error occurred during database initialization: {caught_error}")
         return False
     finally:
         if conn:
@@ -229,17 +221,15 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
     logger.debug(f"Created event object {event_obj}")
 
-
     try:
         delete_message = None
         async with request.app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
                 if event_obj.kind in {0, 3}:
-
                     delete_message = (
                         f"Deleting existing metadata for pubkey {event_obj.pubkey}"
                     )
-                    
+
                     delete_query = """
                     DELETE FROM events
                     WHERE pubkey = %s AND kind = %s;
@@ -255,7 +245,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     await conn.commit()
                 await cur.execute(
                     """
-            INSERT INTO events (event_id,pubkey,kind,created_at,tags,content,sig) VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO events (id,pubkey,kind,created_at,tags,content,sig) VALUES (%s, %s, %s, %s, %s, %s, %s)
         """,
                     (
                         event_obj.event_id,
@@ -266,7 +256,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         event_obj.content,
                         event_obj.sig,
                     ),
-                )  # Add other event fields here
+                )
                 await conn.commit()
         response = {
             "event": "OK",
@@ -292,25 +282,33 @@ async def handle_new_event(request: Request) -> JSONResponse:
             logger.debug(delete_message.format(pubkey=event_obj.pubkey))
 
 
-async def generate_query(tags):
+async def generate_query(tags) -> str:
     base_query = "EXISTS (SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
     or_conditions = " OR ".join(f"elem @> '{tag}'" for tag in tags)
     complete_query = base_query.format(or_conditions)
     return complete_query
 
 
-async def query_result_parser(query_result):
+async def parser_worker(record, column_added) -> None:
     column_names = ["id", "pubkey", "kind", "created_at", "tags", "content", "sig"]
-    column_added = []
+    row_result = {}
+    i = 0
+    for item in record:
+        row_result[column_names[i]] = item
+        i += 1
+    column_added.append([row_result])
 
+
+async def query_result_parser(query_result) -> List:
+    column_added = []
+    tasks = []
     for record in query_result:
-        row_result = {}
-        i = 0
-        for item in record:
-            row_result[column_names[i]] = item
-            i += 1
-        column_added.append([row_result])
+        tasks.append(parser_worker(record, column_added))
+
+    await asyncio.gather(*tasks)
+
     return column_added
+
 
 @app.post("/subscription")
 async def handle_subscription(request: Request) -> JSONResponse:
@@ -332,7 +330,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                     tag_clause = await generate_query(tag_values)
                     where_clause = str(where_clause) + " OR " + str(tag_clause)
                     run_query = True
-                sql_query = f"SELECT * FROM events WHERE {where_clause} LIMIT 15;"
+                sql_query = f"SELECT * FROM events WHERE {where_clause};"
                 logger.debug(f"SQL query constructed: {sql_query}")
 
                 if run_query:
@@ -366,7 +364,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         except Exception as e:
             return JSONResponse(content={"error": str(e)}, status_code=500)
 
+
 if __name__ == "__main__":
     initialize_db()
     uvicorn.run(app, host="0.0.0.0", port=80)
-

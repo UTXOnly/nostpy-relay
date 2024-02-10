@@ -61,7 +61,7 @@ class TokenBucketRateLimiter:
         self.tokens = defaultdict(lambda: self.max_tokens)
         self.last_request_time = defaultdict(lambda: 0)
 
-    def _get_tokens(self, client_id: str) -> None:
+    async def _get_tokens(self, client_id: str) -> None:
         """
         Updates the number of tokens for a given client based on the time passed since the last request.
 
@@ -112,7 +112,7 @@ class TokenBucketRateLimiter:
         """
         return str(dict(self.tokens))
 
-    def check_request(self, client_id: str) -> bool:
+    async def check_request(self, client_id: str) -> bool:
         """
         Checks if a request from a client is allowed based on the available tokens.
 
@@ -123,7 +123,7 @@ class TokenBucketRateLimiter:
             bool: True if the request is allowed, False otherwise.
 
         """
-        self._get_tokens(client_id)
+        await self._get_tokens(client_id)
         if self.tokens[client_id] >= 1:
             self.tokens[client_id] -= 1
             return True
@@ -172,6 +172,18 @@ class ExtractedResponse:
             "duplicate: already have this event",
         )
 
+    async def _process_event(self, event_result, events_to_send):
+        stripped = str(event_result)[1:-1]
+        client_response = (
+            self.event_type,
+            self.subscription_id,
+            ast.literal_eval(stripped),
+        )
+        logger.debug(
+            f"Client response loop iter is {client_response} and of type {type(client_response)}"
+        )
+        events_to_send.append(client_response)
+
     async def format_response(self):
         """
         Formats the response based on the event type.
@@ -189,22 +201,12 @@ class ExtractedResponse:
             )
         elif self.event_type == "EVENT":
             events_to_send = []
-            logger.debug(
-                f"Self results are {self.results} and of type {type(self.results)}"
-            )
+            tasks = []
             for event_result in self.results:
-                logger.debug(f"Event result is {event_result}")
-                stripped = str(event_result)[1:-1]
-                logger.debug(f"Stripped = {stripped} and is type {type(stripped)}")
-                client_response: Tuple[str, Optional[str], Dict[str, Any]] = (
-                    self.event_type,
-                    self.subscription_id,
-                    ast.literal_eval(stripped),
-                )
-                logger.debug(
-                    f"Client response loop iter is {client_response} and of type {type(client_response)}"
-                )
-                events_to_send.append(client_response)
+                tasks.append(self._process_event(event_result, events_to_send))
+
+            await asyncio.gather(*tasks)
+
             return events_to_send
         else:
             # Return EOSE
@@ -294,7 +296,9 @@ async def handle_websocket_connection(
                     )
                     logger.debug(f"WS event payload is {ws_message.event_payload}")
 
-                    if not rate_limiter.check_request(ws_message.obfuscated_client_ip):
+                    if not await rate_limiter.check_request(
+                        ws_message.obfuscated_client_ip
+                    ):
                         logger.warning(
                             f"Rate limit exceeded for client: {ws_message.obfuscated_client_ip}"
                         )
@@ -380,6 +384,17 @@ async def send_event_to_handler(
         logger.error(f"An error occurred while sending the event to the handler: {e}")
 
 
+async def send_event_loop(response_list, websocket):
+    tasks = []
+
+    for event_item in response_list:
+        logger.debug(f"Final response from REQ to ws client: {event_item}")
+        task = asyncio.create_task(websocket.send(json.dumps(event_item)))
+        tasks.append(task)
+
+    await asyncio.gather(*tasks)
+
+
 async def send_subscription_to_handler(
     session: aiohttp.ClientSession,
     event_dict: Dict,
@@ -393,7 +408,7 @@ async def send_subscription_to_handler(
     }
 
     async with session.post(url, data=json.dumps(payload)) as response:
-        response_data: Dict[str, Any] = await response.json()
+        response_data = await response.json()
         response_object = ExtractedResponse(response_data=response_data)
         logger.debug(
             f"Data type of response_data: {type(response_data)}, Response Data: {response_data}"
@@ -405,10 +420,7 @@ async def send_subscription_to_handler(
         if response.status == 200 and response_object.event_type == "EVENT":
             response_list = await response_object.format_response()
             logger.debug(f"Response list is : {response_list}")
-            for event_item in response_list:
-                logger.debug(f"Final response from REQ to ws client: {event_item}")
-                await websocket.send(json.dumps(event_item))
-
+            await send_event_loop(response_list, websocket)
             await websocket.send(json.dumps(EOSE))
         else:
             await websocket.send(json.dumps(EOSE))
@@ -416,35 +428,10 @@ async def send_subscription_to_handler(
 
 
 if __name__ == "__main__":
-    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=300)
+    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=30000)
 
     try:
         start_server = websockets.serve(handle_websocket_connection, "0.0.0.0", 8008)
-
-        async def send_active_connections_metric():
-            global unique_sessions, client_ips
-            while True:
-                await asyncio.sleep(5)
-                try:
-                    token_count = str(rate_limiter._get_tokens("0.0.0.0"))
-                    dictionary = rate_limiter._parse_token_count(
-                        token_count=token_count
-                    )
-                    # logger.debug(f"Dictionary variable length is {len(dictionary)} and the value is: {dictionary} ")
-                    for key, value in dictionary.items():
-                        # logger.debug(f"Rate limiter tokens variable is: {value}, client IP is {key}")
-                        statsd.gauge(
-                            "nostr.websocket_tokens_avail.gauge",
-                            value,
-                            tags=[f"client_ip:{key}"],
-                        )
-
-                except Exception as e:
-                    logger.error(
-                        f"Error occurred while sending active connections metric: {e}"
-                    )
-
-        asyncio.get_event_loop().create_task(send_active_connections_metric())
         asyncio.get_event_loop().run_until_complete(start_server)
         asyncio.get_event_loop().run_forever()
 
