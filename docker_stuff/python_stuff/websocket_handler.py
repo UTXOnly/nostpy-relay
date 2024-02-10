@@ -192,14 +192,7 @@ class ExtractedResponse:
             Union[Tuple[str, Optional[str], str, Optional[str]], List[Tuple[str, Optional[str], Dict[str, Any]]], Tuple[str, Optional[str]]]: The formatted response.
 
         """
-        if self.event_type == "OK":
-            client_response: Tuple[str, Optional[str], str, Optional[str]] = (
-                self.event_type,
-                self.subscription_id,
-                self.results,
-                self.comment,
-            )
-        elif self.event_type == "EVENT":
+        if self.event_type == "EVENT":
             events_to_send = []
             tasks = []
             for event_result in self.results:
@@ -208,6 +201,14 @@ class ExtractedResponse:
             await asyncio.gather(*tasks)
 
             return events_to_send
+        elif self.event_type == "OK":
+            client_response: Tuple[str, Optional[str], str, Optional[str]] = (
+                self.event_type,
+                self.subscription_id,
+                self.results,
+                self.comment,
+            )
+
         else:
             # Return EOSE
             client_response: Tuple[str, Optional[str]] = (

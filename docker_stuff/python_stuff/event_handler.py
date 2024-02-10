@@ -186,12 +186,12 @@ def initialize_db() -> None:
             """
             )
 
-            index_columns = ["pubkey", "kind"]
+            index_columns = ["pubkey", "kind", ("kind", "pubkey")]
             for column in index_columns:
                 cur.execute(
                     f"""
-                    CREATE INDEX IF NOT EXISTS idx_{column}
-                    ON events ({column});
+                    CREATE INDEX IF NOT EXISTS idx_{str(column)}
+                    ON events ({str(column)});
                 """
                 )
 
