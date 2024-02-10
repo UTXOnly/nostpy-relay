@@ -33,7 +33,6 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-
 class Event:
     def __init__(
         self,
@@ -45,7 +44,6 @@ class Event:
         content: str,
         sig: str,
     ) -> None:
-
         self.event_id = event_id
         self.pubkey = pubkey
         self.kind = kind
@@ -73,7 +71,7 @@ async def sanitize_event_keys(filters) -> Dict:
     try:
         try:
             filters.pop("limit")
-        except: 
+        except:
             logger.debug(f"No limit")
         logger.debug(f"Filter variable is: {filters} and of length {len(filters)}")
 
@@ -144,7 +142,6 @@ async def parse_sanitized_query(updated_keys) -> Tuple[List, List]:
     return tag_values, query_parts
 
 
-
 def get_conn_str() -> str:
     return f"""
     dbname={os.getenv('PGDATABASE')}
@@ -163,6 +160,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
 
 def initialize_db() -> None:
     """
@@ -223,17 +221,15 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
     logger.debug(f"Created event object {event_obj}")
 
-
     try:
         delete_message = None
         async with request.app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
                 if event_obj.kind in {0, 3}:
-
                     delete_message = (
                         f"Deleting existing metadata for pubkey {event_obj.pubkey}"
                     )
-                    
+
                     delete_query = """
                     DELETE FROM events
                     WHERE pubkey = %s AND kind = %s;
@@ -260,7 +256,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         event_obj.content,
                         event_obj.sig,
                     ),
-                ) 
+                )
                 await conn.commit()
         response = {
             "event": "OK",
@@ -292,6 +288,7 @@ async def generate_query(tags) -> str:
     complete_query = base_query.format(or_conditions)
     return complete_query
 
+
 async def parser_worker(record, column_added) -> None:
     column_names = ["id", "pubkey", "kind", "created_at", "tags", "content", "sig"]
     row_result = {}
@@ -307,10 +304,11 @@ async def query_result_parser(query_result) -> List:
     tasks = []
     for record in query_result:
         tasks.append(parser_worker(record, column_added))
-    
+
     await asyncio.gather(*tasks)
 
     return column_added
+
 
 @app.post("/subscription")
 async def handle_subscription(request: Request) -> JSONResponse:
@@ -366,7 +364,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         except Exception as e:
             return JSONResponse(content={"error": str(e)}, status_code=500)
 
+
 if __name__ == "__main__":
     initialize_db()
     uvicorn.run(app, host="0.0.0.0", port=80)
-
