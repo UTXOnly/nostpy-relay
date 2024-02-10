@@ -205,7 +205,7 @@ class ExtractedResponse:
                     f"Client response loop iter is {client_response} and of type {type(client_response)}"
                 )
                 events_to_send.append(client_response)
-            return events_to_send
+            return json.dumps(events_to_send)
         else:
             # Return EOSE
             client_response: Tuple[str, Optional[str]] = (
@@ -410,11 +410,12 @@ async def send_subscription_to_handler(
             #    await websocket.send(json.dumps(event_item))
 #
             #        # Batch event items before sending
-            batched_response = [json.dumps(event_item) for event_item in response_list]
-            batched_response.append(json.dumps(EOSE))
+            #batched_response = [json.dumps(event_item) for event_item in response_list]
+            #batched_response.append(json.dumps(EOSE))
+
             
             # Send batched response to WebSocket client
-            await websocket.send('\n'.join(batched_response))
+            await websocket.send(response_list)
 
             #await websocket.send(json.dumps(EOSE))
         else:
@@ -428,30 +429,30 @@ if __name__ == "__main__":
     try:
         start_server = websockets.serve(handle_websocket_connection, "0.0.0.0", 8008, max_size=1000000)
 
-        async def send_active_connections_metric():
-            global unique_sessions, client_ips
-            while True:
-                await asyncio.sleep(5)
-                try:
-                    token_count = str(rate_limiter._get_tokens("0.0.0.0"))
-                    dictionary = rate_limiter._parse_token_count(
-                        token_count=token_count
-                    )
-                    # logger.debug(f"Dictionary variable length is {len(dictionary)} and the value is: {dictionary} ")
-                    for key, value in dictionary.items():
-                        # logger.debug(f"Rate limiter tokens variable is: {value}, client IP is {key}")
-                        statsd.gauge(
-                            "nostr.websocket_tokens_avail.gauge",
-                            value,
-                            tags=[f"client_ip:{key}"],
-                        )
-
-                except Exception as e:
-                    logger.error(
-                        f"Error occurred while sending active connections metric: {e}"
-                    )
-
-        asyncio.get_event_loop().create_task(send_active_connections_metric())
+        #async def send_active_connections_metric():
+        #    global unique_sessions, client_ips
+        #    while True:
+        #        await asyncio.sleep(5)
+        #        try:
+        #            token_count = str(rate_limiter._get_tokens("0.0.0.0"))
+        #            dictionary = rate_limiter._parse_token_count(
+        #                token_count=token_count
+        #            )
+        #            # logger.debug(f"Dictionary variable length is {len(dictionary)} and the value is: {dictionary} ")
+        #            for key, value in dictionary.items():
+        #                # logger.debug(f"Rate limiter tokens variable is: {value}, client IP is {key}")
+        #                statsd.gauge(
+        #                    "nostr.websocket_tokens_avail.gauge",
+        #                    value,
+        #                    tags=[f"client_ip:{key}"],
+        #                )
+#
+        #        except Exception as e:
+        #            logger.error(
+        #                f"Error occurred while sending active connections metric: {e}"
+        #            )
+#
+        #asyncio.get_event_loop().create_task(send_active_connections_metric())
         asyncio.get_event_loop().run_until_complete(start_server)
         asyncio.get_event_loop().run_forever()
 
