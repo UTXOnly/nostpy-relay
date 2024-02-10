@@ -324,11 +324,11 @@ async def handle_subscription(request: Request) -> JSONResponse:
             async with conn.cursor() as cur:
                 run_query = False
                 if len(query_parts) > 0:
-                    where_clause = " OR ".join(query_parts)
+                    where_clause = " AND ".join(query_parts)
                     run_query = True
                 if len(tag_values) > 0:
                     tag_clause = await generate_query(tag_values)
-                    where_clause = str(where_clause) + " OR " + str(tag_clause)
+                    where_clause = str(where_clause) + " AND " + str(tag_clause)
                     run_query = True
                 sql_query = f"SELECT * FROM events WHERE {where_clause};"
                 logger.debug(f"SQL query constructed: {sql_query}")
