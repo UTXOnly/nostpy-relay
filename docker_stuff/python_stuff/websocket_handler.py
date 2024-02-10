@@ -20,7 +20,7 @@ initialize(**options)
 tracer.configure(hostname="172.28.0.5", port=8126)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 log_file: str = "./logs/websocket_handler.log"
 handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
@@ -199,7 +199,8 @@ class ExtractedResponse:
                 client_response: Tuple[str, Optional[str], Dict[str, Any]] = (
                     self.event_type,
                     self.subscription_id,
-                    ast.literal_eval(stripped),
+                    #ast.literal_eval(stripped),
+                    json.loads("{" + stripped + "}")
                 )
                 logger.debug(
                     f"Client response loop iter is {client_response} and of type {type(client_response)}"
