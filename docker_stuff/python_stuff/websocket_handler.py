@@ -445,5 +445,4 @@ if __name__ == "__main__":
         asyncio.get_event_loop().run_forever()
     except KeyboardInterrupt:
         pass
-    finally:
-        asyncio.get_event_loop().run_until_complete(handler.session.close())
+
