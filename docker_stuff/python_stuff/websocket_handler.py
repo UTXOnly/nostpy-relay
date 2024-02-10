@@ -380,10 +380,22 @@ async def send_event_to_handler(
         logger.error(f"An error occurred while sending the event to the handler: {e}")
 
 
+#async def send_event_loop(response_list, websocket):
+    #for event_item in response_list:
+    #    logger.debug(f"Final response from REQ to ws client: {event_item}")
+    #    await websocket.send(json.dumps(event_item))
 async def send_event_loop(response_list, websocket):
+    # Define a list to store the tasks for sending events concurrently
+    tasks = []
+
+    # Iterate over the response_list and create a task for each event_item
     for event_item in response_list:
         logger.debug(f"Final response from REQ to ws client: {event_item}")
-        await websocket.send(json.dumps(event_item))
+        task = asyncio.create_task(websocket.send(json.dumps(event_item)))
+        tasks.append(task)
+
+    # Wait for all tasks to complete concurrently
+    await asyncio.gather(*tasks)
 
     
 
