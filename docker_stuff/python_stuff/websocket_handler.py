@@ -20,7 +20,7 @@ initialize(**options)
 tracer.configure(hostname="172.28.0.5", port=8126)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 log_file: str = "./logs/websocket_handler.log"
 handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
@@ -123,7 +123,7 @@ class TokenBucketRateLimiter:
             bool: True if the request is allowed, False otherwise.
 
         """
-        awaited_tokens = await self._get_tokens(client_id)
+        await self._get_tokens(client_id)
         if self.tokens[client_id] >= 1:
             self.tokens[client_id] -= 1
             return True
@@ -172,6 +172,18 @@ class ExtractedResponse:
             "duplicate: already have this event",
         )
 
+    async def _process_event(self,event_result, events_to_send):
+        stripped = str(event_result)[1:-1]
+        client_response: Tuple[str, Optional[str], Dict[str, Any]] = (
+            self.event_type,
+            self.subscription_id,
+            ast.literal_eval(stripped),
+        )
+        logger.debug(
+            f"Client response loop iter is {client_response} and of type {type(client_response)}"
+        )
+        events_to_send.append(client_response)
+
     async def format_response(self):
         """
         Formats the response based on the event type.
@@ -189,23 +201,13 @@ class ExtractedResponse:
             )
         elif self.event_type == "EVENT":
             events_to_send = []
-            logger.debug(
-                f"Self results are {self.results} and of type {type(self.results)}"
-            )
+            tasks = []
             for event_result in self.results:
-                logger.debug(f"Event result is {event_result}")
-                stripped = str(event_result)[1:-1]
-                logger.debug(f"Stripped = {stripped} and is type {type(stripped)}")
-                client_response: Tuple[str, Optional[str], Dict[str, Any]] = (
-                    self.event_type,
-                    self.subscription_id,
-                    #ast.literal_eval(stripped),
-                    json.loads("{" + stripped + "}")
-                )
-                logger.debug(
-                    f"Client response loop iter is {client_response} and of type {type(client_response)}"
-                )
-                events_to_send.append(client_response)
+                tasks.append(self._process_event(event_result,events_to_send))
+
+            await asyncio.gather(*tasks)
+                
+
             return events_to_send
         else:
             # Return EOSE
@@ -381,15 +383,9 @@ async def send_event_to_handler(
         logger.error(f"An error occurred while sending the event to the handler: {e}")
 
 
-#async def send_event_loop(response_list, websocket):
-    #for event_item in response_list:
-    #    logger.debug(f"Final response from REQ to ws client: {event_item}")
-    #    await websocket.send(json.dumps(event_item))
 async def send_event_loop(response_list, websocket):
-    # Define a list to store the tasks for sending events concurrently
     tasks = []
 
-    # Iterate over the response_list and create a task for each event_item
     for event_item in response_list:
         logger.debug(f"Final response from REQ to ws client: {event_item}")
         task = asyncio.create_task(websocket.send(json.dumps(event_item)))
