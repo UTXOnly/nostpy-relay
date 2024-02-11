@@ -157,7 +157,12 @@ class ExtractedResponse:
         """
         self.event_type = response_data["event"]
         self.subscription_id = response_data["subscription_id"]
-        self.results = json.loads(response_data["results_json"])
+        try:
+            self.results = json.loads(response_data["results_json"])
+        except json.JSONDecodeError as json_error:
+            logger.error(f"Error decoding JSON message in Extracted REsponse: {json_error}")
+            self.results = ""
+
         self.comment = ""
         self.rate_limit_response: Tuple[str, Optional[str], str, Optional[str]] = (
             "OK",
@@ -403,10 +408,11 @@ async def send_subscription_to_handler(
 
     async with session.post(url, data=json.dumps(payload)) as response:
         response_data = await response.json()
-        response_object = ExtractedResponse(response_data=response_data)
         logger.debug(
             f"Data type of response_data: {type(response_data)}, Response Data: {response_data}"
         )
+        response_object = ExtractedResponse(response_data=response_data)
+
 
         logger.debug(f"Response received as: {response_data}")
         EOSE: Tuple[str, Optional[str]] = "EOSE", response_object.subscription_id
