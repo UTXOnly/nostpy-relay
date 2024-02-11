@@ -28,7 +28,7 @@ tracer.configure(hostname="172.28.0.5", port=8126)
 redis_client: redis.Redis = redis.Redis(host="172.28.0.6", port=6379)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 log_file = "./logs/event_handler.log"
 handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
@@ -312,13 +312,14 @@ async def query_result_parser(query_result) -> List:
 
     return column_added
 
-async def fetch_data_from_cache_or_db(redis_key, fetch_data_func):
+async def fetch_data_from_cache_or_db(redis_key, cur, fetch_data_func):
     cached_data = redis_client.get(redis_key)
     logger.debug(f"Cached data is:{cached_data} and of type: {type(cached_data)}")
     if cached_data:
         return json.loads(cached_data)
 
     data = await fetch_data_func()
+    logger.debug(f"After fetch")
 
     redis_client.setex(redis_key, 240, json.dumps(data))
     return data
@@ -352,7 +353,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                     redis_key = f"query:{sql_query}"
                     
                     # Fetch data from cache or database
-                    fetched = await fetch_data_from_cache_or_db(redis_key, lambda: cur.execute(query=sql_query).fetchall())
+                    fetched = await fetch_data_from_cache_or_db(redis_key, cur,lambda: cur.execute(query=sql_query).fetchall())
                     #query = await cur.execute(query=sql_query)
                     #listed = await cur.fetchall()
                     parsed_results = await query_result_parser(fetched)
