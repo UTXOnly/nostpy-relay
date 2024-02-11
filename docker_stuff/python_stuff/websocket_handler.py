@@ -281,7 +281,6 @@ async def handle_websocket_connection(
     global unique_sessions, client_ips
 
     async with aiohttp.ClientSession() as session:
-        if websocket:
             try:
                 async for message in websocket:
                     try:
@@ -290,6 +289,7 @@ async def handle_websocket_connection(
                         )
                     except:
                         logger.debug(f"JSON is empty maybe?")
+                        ws_message = None
     
                     if ws_message:
                     
@@ -364,8 +364,6 @@ async def handle_websocket_connection(
     
             except Exception as e:
                 logger.error(f"Error occurred while starting the server: {e}")
-        else:
-            pass
 
 
 async def send_event_to_handler(
