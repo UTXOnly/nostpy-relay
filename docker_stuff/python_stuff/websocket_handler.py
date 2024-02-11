@@ -177,17 +177,13 @@ class ExtractedResponse:
             "duplicate: already have this event",
         )
 #
-    async def _process_event(self, event_result, events_to_send):
+    async def _process_event(self, event_result):
         stripped = str(event_result)[1:-1]
-        client_response = (
-            self.event_type,
-            self.subscription_id,
-            ast.literal_eval(stripped),
-        )
+        return ast.literal_eval(stripped)
         #logger.debug(
         #    f"Client response loop iter is {client_response} and of type {type(client_response)}"
         #)
-        events_to_send.append(client_response)
+        #events_to_send.append(client_response)
 
     async def format_response(self):
         """
@@ -198,13 +194,9 @@ class ExtractedResponse:
 
         """
         if self.event_type == "EVENT":
-            events_to_send = []
-            tasks = []
-            for event_result in self.results:
-                tasks.append(self._process_event(event_result, events_to_send))
-
-            await asyncio.gather(*tasks)
-
+            tasks = [self._process_event(event_result) for event_result in self.results]
+            parsed_results = await asyncio.gather(*tasks)
+            events_to_send = [(self.event_type, self.subscription_id, result) for result in parsed_results]
             return events_to_send
         elif self.event_type == "OK":
             client_response: Tuple[str, Optional[str], str, Optional[str]] = (
