@@ -359,6 +359,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                             serialized_events == None
                         cached_data_str = fetched.decode('utf-8')
                         serialized_events = json.loads(cached_data_str)
+                        columnized = await query_result_parser(serialized_events)
                         serialized_events = json.dumps(fetched)
                     else:
                         query = await cur.execute(query=sql_query)
