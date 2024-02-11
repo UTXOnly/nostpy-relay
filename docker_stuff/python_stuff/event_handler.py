@@ -363,7 +363,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                     fetched = await fetch_data_from_cache(redis_key)
                     if fetched:
                         if fetched == "b'[]'":
-                            serialized_events == None
+                            serialized_events == []
                         cached_data_str = fetched.decode('utf-8')
                         serialized_events = json.loads(cached_data_str)
                         columnized = await query_result_parser(serialized_events)
@@ -374,7 +374,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
     
                         logger.debug(f"Start parser")
                         parsed_results = await query_result_parser(listed)
-                        serialized_events = None
+                        serialized_events = []
                         logger.debug(f"Parsed results are: {parsed_results}")
                         if parsed_results:
                             logger.debug(f"Parsed results are: {parsed_results}")
