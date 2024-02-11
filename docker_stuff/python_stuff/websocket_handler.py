@@ -281,6 +281,7 @@ async def handle_websocket_connection(
     global unique_sessions, client_ips
 
     async with aiohttp.ClientSession() as session:
+        if websocket:
             try:
                 async for message in websocket:
                     try:
@@ -290,13 +291,11 @@ async def handle_websocket_connection(
                             ws_message = WebsocketMessages(
                                 message=json.loads(message), websocket=websocket
                             )
-                    except:
-                        logger.debug(f"JSON is empty maybe?")
-                        ws_message = None
-    
+                    except json.JSONDecodeError as json_error:
+                        logger.error(f"Error decoding JSON message: {json_error}")
+                        continue  # Skip processing this message
+
                     if ws_message:
-                    
-                        
                         logger.debug(f"UUID = {ws_message.uuid}")
                         statsd.increment(
                             "nostr.new_connection.count",
@@ -306,32 +305,7 @@ async def handle_websocket_connection(
                             ],
                         )
                         logger.debug(f"WS event payload is {ws_message.event_payload}")
-    
-                        #if not await rate_limiter.check_request(
-                        #    ws_message.obfuscated_client_ip
-                        #):
-                        #    logger.warning(
-                        #        f"Rate limit exceeded for client: {ws_message.obfuscated_client_ip}"
-                        #    )
-                        #    rate_limit_response: Tuple[
-                        #        str, Optional[str], str, Optional[str]
-                        #    ] = (
-                        #        "OK",
-                        #        "nostafarian419",
-                        #        "false",
-                        #        "rate-limited: slow your roll nostrich",
-                        #    )
-                        #    statsd.increment(
-                        #        "nostr.client.rate_limited.count",
-                        #        tags=[
-                        #            f"client_ip:{ws_message.obfuscated_client_ip}",
-                        #            f"nostr_client:{ws_message.origin}",
-                        #        ],
-                        #    )
-                        #    await websocket.send(json.dumps(rate_limit_response))
-                        #    await websocket.close()
-                        #    return
-                        
+
                         if ws_message.event_type == "EVENT":
                             logger.debug(
                                 f"Event to be sent payload is: {ws_message.event_payload} of type {type(ws_message.event_payload)}"
@@ -358,15 +332,16 @@ async def handle_websocket_connection(
                                 f"closing {ws_message.subscription_id}",
                             )
                             await websocket.send(json.dumps(response))
-    
-                        #except:
-                        #    logger.error(f"Inner loop error")
-    
+
             except aiohttp.ClientError as e:
                 logger.error(f"http client error {e}")
-    
+
             except Exception as e:
-                logger.error(f"Error occurred while starting the server: {e}")
+                logger.error(f"Error occurred while processing WebSocket message: {e}")
+                # Add any necessary handling for other exceptions here
+
+        else:
+            logger.warning("WebSocket connection is invalid or closed.")
 
 
 async def send_event_to_handler(
