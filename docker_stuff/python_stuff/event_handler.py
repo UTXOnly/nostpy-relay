@@ -324,9 +324,6 @@ async def fetch_data_from_cache(redis_key):
         return None
 
 
-    
-
-
 @app.post("/subscription")
 async def handle_subscription(request: Request) -> JSONResponse:
     try:
@@ -334,8 +331,16 @@ async def handle_subscription(request: Request) -> JSONResponse:
         payload = await request.json()
         filters = payload.get("event_dict", {})
         subscription_id = payload.get("subscription_id", "")
-        updated_keys = await sanitize_event_keys(filters)
-        tag_values, query_parts = await parse_sanitized_query(updated_keys)
+        if filters:
+            updated_keys = await sanitize_event_keys(filters)
+            tag_values, query_parts = await parse_sanitized_query(updated_keys)
+        else:
+            response = {
+                          "event": "EVENT",
+                          "subscription_id": subscription_id,
+                          "results_json": serialized_events,
+                      }
+            return response
 
         async with app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
