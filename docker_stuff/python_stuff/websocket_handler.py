@@ -290,7 +290,8 @@ async def handle_websocket_connection(
                 except:
                     logger.debug(f"JSON is empty maybe?")
 
-                finally:
+                if ws_message:
+                
                     
                     logger.debug(f"UUID = {ws_message.uuid}")
                     statsd.increment(
@@ -327,37 +328,35 @@ async def handle_websocket_connection(
                         await websocket.close()
                         return
                     
-                    try: 
+                    if ws_message.event_type == "EVENT":
+                        logger.debug(
+                            f"Event to be sent payload is: {ws_message.event_payload} of type {type(ws_message.event_payload)}"
+                        )
+                        await send_event_to_handler(
+                            session=session,
+                            event_dict=dict(ws_message.event_payload),
+                            websocket=websocket,
+                        )
+                    elif ws_message.event_type == "REQ":
+                        logger.debug(f"Entering REQ branch")
+                        logger.debug(
+                            f"Payload is {ws_message.event_payload} and of type: {type(ws_message.event_payload)}"
+                        )
+                        await send_subscription_to_handler(
+                            session=session,
+                            event_dict=ws_message.event_payload,
+                            subscription_id=ws_message.subscription_id,
+                            websocket=websocket,
+                        )
+                    elif ws_message.event_type == "CLOSE":
+                        response: Tuple[str, str] = (
+                            "NOTICE",
+                            f"closing {ws_message.subscription_id}",
+                        )
+                        await websocket.send(json.dumps(response))
 
-                        if ws_message.event_type == "EVENT":
-                            logger.debug(
-                                f"Event to be sent payload is: {ws_message.event_payload} of type {type(ws_message.event_payload)}"
-                            )
-                            await send_event_to_handler(
-                                session=session,
-                                event_dict=dict(ws_message.event_payload),
-                                websocket=websocket,
-                            )
-                        elif ws_message.event_type == "REQ":
-                            logger.debug(f"Entering REQ branch")
-                            logger.debug(
-                                f"Payload is {ws_message.event_payload} and of type: {type(ws_message.event_payload)}"
-                            )
-                            await send_subscription_to_handler(
-                                session=session,
-                                event_dict=ws_message.event_payload,
-                                subscription_id=ws_message.subscription_id,
-                                websocket=websocket,
-                            )
-                        elif ws_message.event_type == "CLOSE":
-                            response: Tuple[str, str] = (
-                                "NOTICE",
-                                f"closing {ws_message.subscription_id}",
-                            )
-                            await websocket.send(json.dumps(response))
-
-                    except:
-                        logger.error(f"Inner loop error")
+                    #except:
+                    #    logger.error(f"Inner loop error")
 
         except aiohttp.ClientError as e:
             logger.error(f"http client error {e}")
