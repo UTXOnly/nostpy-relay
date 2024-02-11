@@ -184,9 +184,9 @@ class ExtractedResponse:
             self.subscription_id,
             ast.literal_eval(stripped),
         )
-        logger.debug(
-            f"Client response loop iter is {client_response} and of type {type(client_response)}"
-        )
+        #logger.debug(
+        #    f"Client response loop iter is {client_response} and of type {type(client_response)}"
+        #)
         events_to_send.append(client_response)
 
     async def format_response(self):
