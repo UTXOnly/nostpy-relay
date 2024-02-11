@@ -131,6 +131,15 @@ services:
       my_network:
         ipv4_address: 172.28.0.5
 
+  redis:
+    image: redis:latest
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
+    networks:
+      my_network:
+        ipv4_address: 172.28.0.6
+
 volumes:
   postgres_data:
 
