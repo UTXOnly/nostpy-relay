@@ -355,6 +355,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
                     fetched = await fetch_data_from_cache(redis_key)
                     if fetched:
+                        if fetched == "b'[]'":
+                            return serialized_events == None
                         cached_data_str = fetched.decode('utf-8')
                         serialized_events = json.loads(cached_data_str)
                         serialized_events = json.dumps(fetched)
