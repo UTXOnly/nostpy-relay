@@ -369,18 +369,30 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 async with conn.cursor() as cur:
                     await cur.execute(query=sql_query)
                     listed = await cur.fetchall()
-                    parsed_results = await query_result_parser(listed)
-                    serialized_events = json.dumps(parsed_results)
-                    redis_client.setex(redis_key, 240, serialized_events)
-                    return JSONResponse(
-                        content={
-                            "event": "EVENT",
-                            "subscription_id": subscription_id,
-                            "results_json": serialized_events,
-                        },
-                        status_code=200)
+                    if listed:
 
-        if cached_results:
+                        parsed_results = await query_result_parser(listed)
+                        serialized_events = json.dumps(parsed_results)
+                        
+                        redis_client.setex(redis_key, 240, serialized_events)
+                        return JSONResponse(
+                            content={
+                                "event": "EVENT",
+                                "subscription_id": subscription_id,
+                                "results_json": serialized_events,
+                            },
+                            status_code=200)
+                    else:
+                        JSONResponse(
+                            content={
+                                "event": "EOSE",
+                                "subscription_id": subscription_id,
+                                "results_json": None,
+                            },
+                            status_code=200)
+
+
+        elif cached_results:
             event_type = "EVENT"
             parse_var = json.loads(cached_results.decode('utf-8'))
             logger.debug(f" parsed var is : {parse_var}")
