@@ -362,9 +362,9 @@ async def handle_subscription(request: Request) -> JSONResponse:
         logger.debug(f"SQL query constructed: {sql_query}")
 
         redis_key = f"{sql_query}"
-        serialized_events = await fetch_data_from_cache(redis_key)
+        cached_results = await fetch_data_from_cache(redis_key)
 
-        if serialized_events is None:
+        if cached_results is None:
             async with app.async_pool.connection() as conn:
                 async with conn.cursor() as cur:
                     await cur.execute(query=sql_query)
@@ -372,13 +372,22 @@ async def handle_subscription(request: Request) -> JSONResponse:
                     parsed_results = await query_result_parser(listed)
                     serialized_events = json.dumps(parsed_results)
                     redis_client.setex(redis_key, 240, serialized_events)
+                    return JSONResponse(
+                        content={
+                            "event": "EVENT",
+                            "subscription_id": subscription_id,
+                            "results_json": serialized_events,
+                        },
+                        status_code=200)
 
-        if serialized_events:
+        if cached_results:
+            parse_var = json.loads(serialized_events.decode('utf-8'))
+            column_added = await query_result_parser(parse_var)
             return JSONResponse(
                 content={
                     "event": "EVENT",
                     "subscription_id": subscription_id,
-                    "results_json": serialized_events,
+                    "results_json": json.dumps(column_added),
                 },
                 status_code=200
             )
