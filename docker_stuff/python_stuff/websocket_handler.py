@@ -275,68 +275,81 @@ unique_sessions = []
 client_ips = []
 
 
+import websockets.exceptions
+from aiohttp.client_exceptions import ClientConnectionError
+
 async def handle_websocket_connection(
     websocket: websockets.WebSocketServerProtocol,
 ) -> None:
     global unique_sessions, client_ips
 
+    # Create a single aiohttp session per WebSocket connection
     async with aiohttp.ClientSession() as session:
-            try:
-                async for message in websocket:
-                    try:
-                        logger.debug(f"message in loop is {message}")
-                        ws_message = message
-                        if len(ws_message) > 0:
-                            ws_message = WebsocketMessages(
-                                message=json.loads(message), websocket=websocket
-                            )
-                    except json.JSONDecodeError as json_error:
-                        logger.error(f"Error decoding JSON message: {json_error}")
-                        continue  # Skip processing this message
-
-                    
-                    logger.debug(f"UUID = {ws_message.uuid}")
-                    statsd.increment(
-                        "nostr.new_connection.count",
-                        tags=[
-                            f"client_ip:{ws_message.obfuscated_client_ip}",
-                            f"nostr_client:{ws_message.origin}",
-                        ],
+        try:
+            async for message in websocket:
+                try:
+                    logger.debug(f"message in loop is {message}")
+                    ws_message = message
+                    if len(ws_message) > 0:
+                        ws_message = WebsocketMessages(
+                            message=json.loads(message), websocket=websocket
+                        )
+                except json.JSONDecodeError as json_error:
+                    logger.error(f"Error decoding JSON message: {json_error}")
+                    continue  # Skip processing this message
+                
+                logger.debug(f"UUID = {ws_message.uuid}")
+                statsd.increment(
+                    "nostr.new_connection.count",
+                    tags=[
+                        f"client_ip:{ws_message.obfuscated_client_ip}",
+                        f"nostr_client:{ws_message.origin}",
+                    ],
+                )
+                logger.debug(f"WS event payload is {ws_message.event_payload}")
+                if ws_message.event_type == "EVENT":
+                    logger.debug(
+                        f"Event to be sent payload is: {ws_message.event_payload} of type {type(ws_message.event_payload)}"
                     )
-                    logger.debug(f"WS event payload is {ws_message.event_payload}")
-                    if ws_message.event_type == "EVENT":
-                        logger.debug(
-                            f"Event to be sent payload is: {ws_message.event_payload} of type {type(ws_message.event_payload)}"
-                        )
-                        await send_event_to_handler(
-                            session=session,
-                            event_dict=dict(ws_message.event_payload),
-                            websocket=websocket,
-                        )
-                    elif ws_message.event_type == "REQ":
-                        logger.debug(f"Entering REQ branch")
-                        logger.debug(
-                            f"Payload is {ws_message.event_payload} and of type: {type(ws_message.event_payload)}"
-                        )
-                        await send_subscription_to_handler(
-                            session=session,
-                            event_dict=ws_message.event_payload,
-                            subscription_id=ws_message.subscription_id,
-                            websocket=websocket,
-                        )
-                    elif ws_message.event_type == "CLOSE":
-                        response: Tuple[str, str] = (
-                            "NOTICE",
-                            f"closing {ws_message.subscription_id}",
-                        )
-                        await websocket.send(json.dumps(response))
+                    await send_event_to_handler(
+                        session=session,
+                        event_dict=dict(ws_message.event_payload),
+                        websocket=websocket,
+                    )
+                elif ws_message.event_type == "REQ":
+                    logger.debug(f"Entering REQ branch")
+                    logger.debug(
+                        f"Payload is {ws_message.event_payload} and of type: {type(ws_message.event_payload)}"
+                    )
+                    await send_subscription_to_handler(
+                        session=session,
+                        event_dict=ws_message.event_payload,
+                        subscription_id=ws_message.subscription_id,
+                        websocket=websocket,
+                    )
+                elif ws_message.event_type == "CLOSE":
+                    response: Tuple[str, str] = (
+                        "NOTICE",
+                        f"closing {ws_message.subscription_id}",
+                    )
+                    await websocket.send(json.dumps(response))
 
-            except aiohttp.ClientError as e:
-                logger.error(f"http client error {e}")
+        except websockets.exceptions.ConnectionClosedError as close_error:
+            logger.error(f"WebSocket connection closed unexpectedly: {close_error}")
+            # Optionally retry the connection or handle the closure gracefully
 
-            except Exception as e:
-                logger.error(f"Error occurred while processing WebSocket message: {e}")
-                # Add any necessary handling for other exceptions here
+        except ClientConnectionError as connection_error:
+            logger.error(f"Connection error occurred: {connection_error}")
+            # Optionally retry the connection or handle the error gracefully
+            
+        except aiohttp.ClientError as client_error:
+            logger.error(f"HTTP client error occurred: {client_error}")
+            # Handle HTTP client errors as needed
+
+        except Exception as e:
+            logger.error(f"Error occurred while processing WebSocket message: {e}")
+            # Add any necessary handling for other exceptions here
+
 
 
 async def send_event_to_handler(
