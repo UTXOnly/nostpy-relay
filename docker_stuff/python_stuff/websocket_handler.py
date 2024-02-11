@@ -279,9 +279,9 @@ async def handle_websocket_connection(
     websocket: websockets.WebSocketServerProtocol,
 ) -> None:
     global unique_sessions, client_ips
-
+    conn = aiohttp.TCPConnector(limit=500)
     # Create a single aiohttp session per WebSocket connection
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(connector=conn) as session:
         try:
             async for message in websocket:
                 try:
