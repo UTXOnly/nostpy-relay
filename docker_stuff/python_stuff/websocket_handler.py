@@ -20,7 +20,7 @@ initialize(**options)
 tracer.configure(hostname="172.28.0.5", port=8126)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 log_file: str = "./logs/websocket_handler.log"
 handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
@@ -411,6 +411,10 @@ async def send_subscription_to_handler(
         logger.debug(
             f"Data type of response_data: {type(response_data)}, Response Data: {response_data}"
         )
+        if not response_data:
+            logger.debug("Response data none, returning")
+            await websocket.send(json.dumps(EOSE))
+            return
         response_object = ExtractedResponse(response_data=response_data)
 
 
