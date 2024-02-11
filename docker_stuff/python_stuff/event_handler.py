@@ -336,11 +336,11 @@ async def handle_subscription(request: Request) -> JSONResponse:
             tag_values, query_parts = await parse_sanitized_query(updated_keys)
         else:
             response = {
-                          "event": "EVENT",
+                          "event": "EOSE",
                           "subscription_id": subscription_id,
-                          "results_json": serialized_events,
+                          "results_json": "None",
                       }
-            return response
+            return JSONResponse(content=response, status_code=200)
 
         async with app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
