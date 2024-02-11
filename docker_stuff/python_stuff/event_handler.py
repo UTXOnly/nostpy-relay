@@ -186,7 +186,7 @@ def initialize_db() -> None:
             """
             )
 
-            index_columns = ["pubkey", "kind", ("kind", "pubkey")]
+            index_columns = ["pubkey", "kind"]
             for column in index_columns:
                 cur.execute(
                     f"""
