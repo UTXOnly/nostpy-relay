@@ -305,12 +305,15 @@ async def parser_worker(record, column_added) -> None:
 async def query_result_parser(query_result) -> List:
     column_added = []
     tasks = []
-    for record in query_result:
-        tasks.append(parser_worker(record, column_added))
-
-    await asyncio.gather(*tasks)
-
-    return column_added
+    if query_result:
+        for record in query_result:
+            tasks.append(parser_worker(record, column_added))
+    
+        await asyncio.gather(*tasks)
+    
+        return column_added
+    else:
+        return None
 
 async def fetch_data_from_cache(redis_key):
     cached_data = redis_client.get(redis_key)
@@ -359,8 +362,11 @@ async def handle_subscription(request: Request) -> JSONResponse:
     
                         logger.debug(f"Start parser")
                         parsed_results = await query_result_parser(fetched)
-                        serialized_events = json.dumps(parsed_results)
-                        redis_client.setex(redis_key, 240, json.dumps(listed))
+                        if parsed_results:
+                            serialized_events = json.dumps(parsed_results)
+                            logger.debug(f"Serialized results are {serialized_events}")
+                            redis_client.setex(redis_key, 240, json.dumps(listed))
+                            logger.debug(f"Line after redis")
                     if len(serialized_events) < 2:
                         response = None
                     else:
