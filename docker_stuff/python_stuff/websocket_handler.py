@@ -179,11 +179,8 @@ class ExtractedResponse:
 #
     async def _process_event(self, event_result):
         stripped = str(event_result)[1:-1]
-        return ast.literal_eval(stripped)
-        #logger.debug(
-        #    f"Client response loop iter is {client_response} and of type {type(client_response)}"
-        #)
-        #events_to_send.append(client_response)
+        return json.loads(stripped)
+        #return ast.literal_eval(stripped)
 
     async def format_response(self):
         """
