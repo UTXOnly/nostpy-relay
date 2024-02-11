@@ -384,10 +384,9 @@ async def handle_subscription(request: Request) -> JSONResponse:
             event_type = "EVENT"
             parse_var = json.loads(cached_results.decode('utf-8'))
             logger.debug(f" parsed var is : {parse_var}")
-            column_added = await query_result_parser(parse_var)
-            results_json = json.dumps(column_added)
-            logger.debug(f"Column added var is {column_added} and of type {type(column_added)}")
-            if not column_added:
+            results_json = json.dumps(parse_var)
+            logger.debug(f"parse_var var is {parse_var} and of type {type(parse_var)}")
+            if not parse_var:
                 event_type = "EOSE"
                 results_json = None
             return JSONResponse(
