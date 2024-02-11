@@ -284,9 +284,11 @@ async def handle_websocket_connection(
             try:
                 async for message in websocket:
                     try:
-                        ws_message = WebsocketMessages(
-                            message=json.loads(message), websocket=websocket
-                        )
+                        ws_message = message
+                        if ws_message:
+                            ws_message = WebsocketMessages(
+                                message=json.loads(message), websocket=websocket
+                            )
                     except:
                         logger.debug(f"JSON is empty maybe?")
                         ws_message = None

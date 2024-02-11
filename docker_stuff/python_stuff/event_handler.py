@@ -391,6 +391,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
     except psycopg.Error as exc:
         logger.error(f"Error occurred: {str(exc)}")
+        return JSONResponse(content="None", status_code=500)
 
     except Exception as exc:
         logger.error(f"General exception occured: {exc}")
