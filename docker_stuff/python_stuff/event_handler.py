@@ -381,7 +381,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         status_code=200)
 
         if cached_results:
-            parse_var = json.loads(serialized_events.decode('utf-8'))
+            parse_var = json.loads(cached_results.decode('utf-8'))
             column_added = await query_result_parser(parse_var)
             return JSONResponse(
                 content={
