@@ -398,7 +398,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         return JSONResponse(content="None", status_code=500)
 
     except Exception as exc:
-        logger.error(f"General exception occured: {exc}")
+        logger.error(f"General exception occured: {exc}", exc_info=True)
     finally:
         try:
             if response is None:
