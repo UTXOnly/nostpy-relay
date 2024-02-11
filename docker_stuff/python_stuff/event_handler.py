@@ -348,7 +348,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 logger.debug(f"SQL query constructed: {sql_query}")
 
                 if run_query:
-                    redis_key = f"query:{sql_query}"
+                    redis_key = f"{sql_query}"
 
                     fetched = await fetch_data_from_cache(redis_key)
                     if fetched:
