@@ -335,19 +335,19 @@ async def handle_websocket_connection(
                     await websocket.send(json.dumps(response))
 
         except websockets.exceptions.ConnectionClosedError as close_error:
-            logger.error(f"WebSocket connection closed unexpectedly: {close_error}")
+            logger.error(f"WebSocket connection closed unexpectedly: {close_error}", exc_info=True)
             # Optionally retry the connection or handle the closure gracefully
 
         except ClientConnectionError as connection_error:
-            logger.error(f"Connection error occurred: {connection_error}")
+            logger.error(f"Connection error occurred: {connection_error}", exc_info=True)
             # Optionally retry the connection or handle the error gracefully
             
         except aiohttp.ClientError as client_error:
-            logger.error(f"HTTP client error occurred: {client_error}")
+            logger.error(f"HTTP client error occurred: {client_error}", exc_info=True)
             # Handle HTTP client errors as needed
 
         except Exception as e:
-            logger.error(f"Error occurred while processing WebSocket message: {e}")
+            logger.error(f"Error occurred while processing WebSocket message: {e}", exc_info=True)
             # Add any necessary handling for other exceptions here
 
 
