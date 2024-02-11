@@ -176,7 +176,7 @@ class ExtractedResponse:
             "false",
             "duplicate: already have this event",
         )
-
+#
     async def _process_event(self, event_result, events_to_send):
         stripped = str(event_result)[1:-1]
         client_response = (

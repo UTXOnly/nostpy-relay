@@ -324,7 +324,7 @@ async def fetch_data_from_cache(redis_key):
     else:
         return None
 
-
+#
 @app.post("/subscription")
 async def handle_subscription(request: Request) -> JSONResponse:
     try:
