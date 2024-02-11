@@ -284,6 +284,7 @@ async def handle_websocket_connection(
             try:
                 async for message in websocket:
                     try:
+                        logger.debug(f"message in loop is {message}")
                         ws_message = message
                         if ws_message:
                             ws_message = WebsocketMessages(
@@ -306,30 +307,30 @@ async def handle_websocket_connection(
                         )
                         logger.debug(f"WS event payload is {ws_message.event_payload}")
     
-                        if not await rate_limiter.check_request(
-                            ws_message.obfuscated_client_ip
-                        ):
-                            logger.warning(
-                                f"Rate limit exceeded for client: {ws_message.obfuscated_client_ip}"
-                            )
-                            rate_limit_response: Tuple[
-                                str, Optional[str], str, Optional[str]
-                            ] = (
-                                "OK",
-                                "nostafarian419",
-                                "false",
-                                "rate-limited: slow your roll nostrich",
-                            )
-                            statsd.increment(
-                                "nostr.client.rate_limited.count",
-                                tags=[
-                                    f"client_ip:{ws_message.obfuscated_client_ip}",
-                                    f"nostr_client:{ws_message.origin}",
-                                ],
-                            )
-                            await websocket.send(json.dumps(rate_limit_response))
-                            await websocket.close()
-                            return
+                        #if not await rate_limiter.check_request(
+                        #    ws_message.obfuscated_client_ip
+                        #):
+                        #    logger.warning(
+                        #        f"Rate limit exceeded for client: {ws_message.obfuscated_client_ip}"
+                        #    )
+                        #    rate_limit_response: Tuple[
+                        #        str, Optional[str], str, Optional[str]
+                        #    ] = (
+                        #        "OK",
+                        #        "nostafarian419",
+                        #        "false",
+                        #        "rate-limited: slow your roll nostrich",
+                        #    )
+                        #    statsd.increment(
+                        #        "nostr.client.rate_limited.count",
+                        #        tags=[
+                        #            f"client_ip:{ws_message.obfuscated_client_ip}",
+                        #            f"nostr_client:{ws_message.origin}",
+                        #        ],
+                        #    )
+                        #    await websocket.send(json.dumps(rate_limit_response))
+                        #    await websocket.close()
+                        #    return
                         
                         if ws_message.event_type == "EVENT":
                             logger.debug(
