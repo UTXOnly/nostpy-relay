@@ -84,18 +84,19 @@ async def sanitize_event_keys(filters) -> Dict:
             "ids": "id",
         }
         updated_keys = {}
-        for key in filters:
-            logger.debug(f"Key value is: {key}, {filters[key]}")
-
-            new_key = key_mappings.get(key, key)
-            if new_key != key:
-                stored_val = filters[key]
-                updated_keys[new_key] = stored_val
-                logger.debug(f"Adding new key {new_key} with value {stored_val}")
-            else:
-                updated_keys[key] = filters[key]
-
-        return updated_keys
+        if len(filters) > 0:
+            for key in filters:
+                logger.debug(f"Key value is: {key}, {filters[key]}")
+    
+                new_key = key_mappings.get(key, key)
+                if new_key != key:
+                    stored_val = filters[key]
+                    updated_keys[new_key] = stored_val
+                    logger.debug(f"Adding new key {new_key} with value {stored_val}")
+                else:
+                    updated_keys[key] = filters[key]
+    
+            return updated_keys
     except Exception as e:
         logger.error(f"An unexpected error occurred: {e}")
         return updated_keys
@@ -104,6 +105,9 @@ async def sanitize_event_keys(filters) -> Dict:
 async def parse_sanitized_query(updated_keys) -> Tuple[List, List]:
     tag_values = []
     query_parts = []
+    if len(updated_keys) < 0:
+        return {}, {}
+
 
     for item in updated_keys:
         outer_break = False
