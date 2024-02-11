@@ -319,7 +319,7 @@ async def fetch_data_from_cache(redis_key):
     cached_data = redis_client.get(redis_key)
     logger.debug(f"Cached data is:{cached_data} and of type: {type(cached_data)}")
     if cached_data:
-        return json.loads(cached_data)
+        return cached_data
     else:
         return None
 
