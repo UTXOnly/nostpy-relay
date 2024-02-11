@@ -203,10 +203,7 @@ def initialize_db() -> None:
     except psycopg.Error as caught_error:
         logger.info(f"Error occurred during database initialization: {caught_error}")
         return False
-    finally:
-        if conn:
-            conn.close()
-        return True
+
 
 
 @app.post("/new_event")
