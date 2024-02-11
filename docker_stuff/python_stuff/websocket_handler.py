@@ -281,11 +281,15 @@ async def handle_websocket_connection(websocket: websockets.WebSocketServerProto
     async with aiohttp.ClientSession() as session:
         try:
             async for message in websocket:
+                # Skip processing empty messages
+                if not message.strip():
+                    continue
+
                 try:
                     ws_message = WebsocketMessages(message=json.loads(message), websocket=websocket)
                 except json.JSONDecodeError:
-                    logger.debug("Received empty JSON message")
-                    continue  # Skip processing empty JSON messages
+                    logger.debug("Received invalid JSON message")
+                    continue  # Skip processing invalid JSON messages
 
                 if not hasattr(ws_message, 'websocket') or not websocket.open:
                     logger.debug("WebSocket object does not exist or is closed")
