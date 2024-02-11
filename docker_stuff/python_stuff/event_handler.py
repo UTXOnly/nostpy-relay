@@ -331,7 +331,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
         payload = await request.json()
         filters = payload.get("event_dict", {})
         subscription_id = payload.get("subscription_id", "")
-        if filters:
+        logger.debug(f"Filters are {filters}")
+        if filters != {}:
             updated_keys = await sanitize_event_keys(filters)
             tag_values, query_parts = await parse_sanitized_query(updated_keys)
         else:
