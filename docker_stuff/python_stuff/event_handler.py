@@ -361,8 +361,9 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         listed = await cur.fetchall()
     
                         logger.debug(f"Start parser")
-                        parsed_results = await query_result_parser(fetched)
+                        parsed_results = await query_result_parser(listed)
                         if parsed_results:
+                            logger.debug(f"Parsed results are: {parsed_results}")
                             serialized_events = json.dumps(parsed_results)
                             logger.debug(f"Serialized results are {serialized_events}")
                             redis_client.setex(redis_key, 240, json.dumps(listed))
