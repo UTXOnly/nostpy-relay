@@ -360,13 +360,14 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         cached_data_str = fetched.decode('utf-8')
                         serialized_events = json.loads(cached_data_str)
                         columnized = await query_result_parser(serialized_events)
-                        serialized_events = json.dumps(fetched)
+                        serialized_events = json.dumps(columnized)
                     else:
                         query = await cur.execute(query=sql_query)
                         listed = await cur.fetchall()
     
                         logger.debug(f"Start parser")
                         parsed_results = await query_result_parser(listed)
+                        serialized_events = None
                         logger.debug(f"Parsed results are: {parsed_results}")
                         if parsed_results:
                             logger.debug(f"Parsed results are: {parsed_results}")
