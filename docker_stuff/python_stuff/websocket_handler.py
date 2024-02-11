@@ -179,7 +179,7 @@ class ExtractedResponse:
 #
     async def _process_event(self, event_result):
         stripped = str(event_result)[1:-1]
-        logger.debug(f"Stripped var is {stripped} and of type : {type(stripped)}")
+        logger.info(f"Stripped var is {stripped} and of type : {type(stripped)}")
         #return json.loads(stripped)
         return ast.literal_eval(stripped)
 
