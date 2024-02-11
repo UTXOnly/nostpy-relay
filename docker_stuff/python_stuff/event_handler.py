@@ -325,92 +325,80 @@ async def fetch_data_from_cache(redis_key):
         return None
 
 #
+async def parse_filters(filters: dict) -> tuple:
+    updated_keys = await sanitize_event_keys(filters)
+    tag_values = {}
+    query_parts = []
+    if updated_keys:
+        tag_values, query_parts = await parse_sanitized_query(updated_keys)
+    return tag_values, query_parts
+
+
 @app.post("/subscription")
 async def handle_subscription(request: Request) -> JSONResponse:
     try:
-        response = None
         payload = await request.json()
         filters = payload.get("event_dict", {})
         subscription_id = payload.get("subscription_id", "")
-        logger.debug(f"Filters are {filters}")
-        query_parts = {}
-        tag_values = {}
-        if filters != {}:
-            updated_keys = await sanitize_event_keys(filters)
-            tag_values, query_parts = await parse_sanitized_query(updated_keys)
-        else:
-            response = {
-                          "event": "EOSE",
-                          "subscription_id": subscription_id,
-                          "results_json": "None",
-                      }
-            return JSONResponse(content=response, status_code=200)
 
-        async with app.async_pool.connection() as conn:
-            async with conn.cursor() as cur:
-                run_query = False
-                if len(query_parts) > 0:
-                    where_clause = " AND ".join(query_parts)
-                    run_query = True
-                if len(tag_values) > 0:
-                    tag_clause = await generate_query(tag_values)
-                    where_clause = str(where_clause) + " AND " + str(tag_clause)
-                    run_query = True
-                sql_query = f"SELECT * FROM events WHERE {where_clause};"
-                logger.debug(f"SQL query constructed: {sql_query}")
-
-                if run_query:
-                    redis_key = f"{sql_query}"
-
-                    fetched = await fetch_data_from_cache(redis_key)
-                    if fetched:
-                        if fetched == "b'[]'":
-                            serialized_events == []
-                        cached_data_str = fetched.decode('utf-8')
-                        serialized_events = json.loads(cached_data_str)
-                        columnized = await query_result_parser(serialized_events)
-                        serialized_events = json.dumps(columnized)
-                    else:
-                        query = await cur.execute(query=sql_query)
-                        listed = await cur.fetchall()
-    
-                        logger.debug(f"Start parser")
-                        parsed_results = await query_result_parser(listed)
-                        serialized_events = []
-                        logger.debug(f"Parsed results are: {parsed_results}")
-                        if parsed_results:
-                            logger.debug(f"Parsed results are: {parsed_results}")
-                            serialized_events = json.dumps(parsed_results)
-                            logger.debug(f"Serialized results are {serialized_events}")
-                            redis_client.setex(redis_key, 240, json.dumps(listed))
-                            logger.debug(f"Line after redis")
-                    if len(serialized_events) < 2:
-                        response = None
-                    else:
-                        response = {
-                            "event": "EVENT",
-                            "subscription_id": subscription_id,
-                            "results_json": serialized_events,
-                        }
-                        return JSONResponse(content=response, status_code=200)
-
-    except psycopg.Error as exc:
-        logger.error(f"Error occurred: {str(exc)}")
-        return JSONResponse(content="None", status_code=500)
-
-    except Exception as exc:
-        logger.error(f"General exception occured: {exc}", exc_info=True)
-    finally:
-        try:
-            if response is None:
-                response = {
+        if not filters:
+            return JSONResponse(
+                content={
                     "event": "EOSE",
                     "subscription_id": subscription_id,
                     "results_json": "None",
-                }
-            return JSONResponse(content=response, status_code=200)
-        except Exception as e:
-            return JSONResponse(content={"error": str(e)}, status_code=500)
+                },
+                status_code=204
+            )
+
+        tag_values, query_parts = await parse_filters(filters)
+        where_clause = " AND ".join(query_parts)
+
+        if tag_values:
+            tag_clause = await generate_query(tag_values)
+            where_clause += f" AND {tag_clause}"
+
+        sql_query = f"SELECT * FROM events WHERE {where_clause};"
+        logger.debug(f"SQL query constructed: {sql_query}")
+
+        redis_key = f"{sql_query}"
+        serialized_events = await fetch_data_from_cache(redis_key)
+
+        if serialized_events is None:
+            async with app.async_pool.connection() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute(query=sql_query)
+                    listed = await cur.fetchall()
+                    parsed_results = await query_result_parser(listed)
+                    serialized_events = json.dumps(parsed_results)
+                    redis_client.setex(redis_key, 240, serialized_events)
+
+        if serialized_events:
+            return JSONResponse(
+                content={
+                    "event": "EVENT",
+                    "subscription_id": subscription_id,
+                    "results_json": serialized_events,
+                },
+                status_code=200
+            )
+        else:
+            return JSONResponse(
+                content={
+                    "event": "EOSE",
+                    "subscription_id": subscription_id,
+                    "results_json": "None",
+                },
+                status_code=200
+            )
+
+    except psycopg.Error as exc:
+        logger.error(f"Error occurred: {str(exc)}", exc_info=True)
+        return JSONResponse(content="None", status_code=500)
+
+    except Exception as exc:
+        logger.error(f"General exception occurred: {exc}", exc_info=True)
+        return JSONResponse(content={"error": str(exc)}, status_code=500)
 
 
 if __name__ == "__main__":
