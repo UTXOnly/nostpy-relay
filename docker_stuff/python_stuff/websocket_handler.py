@@ -411,9 +411,9 @@ async def send_subscription_to_handler(
         logger.debug(
             f"Data type of response_data: {type(response_data)}, Response Data: {response_data}"
         )
-        if not response_data:
+        if not response_data['results_json']:
             logger.debug("Response data none, returning")
-            await websocket.send(json.dumps(EOSE))
+            await websocket.send(json.dumps(["EOSE", subscription_id]))
             return
         response_object = ExtractedResponse(response_data=response_data)
 
