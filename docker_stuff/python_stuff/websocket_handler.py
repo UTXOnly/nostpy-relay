@@ -181,7 +181,9 @@ class ExtractedResponse:
         stripped = str(event_result)[1:-1]
         logger.info(f"Stripped var is {stripped} and of type : {type(stripped)}")
         #return json.loads(stripped)
-        return ast.literal_eval(stripped)
+        stripped = stripped.replace("'", '"')
+        return json.loads(stripped)
+        #return ast.literal_eval(stripped)
 
     async def format_response(self):
         """
