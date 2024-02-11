@@ -312,17 +312,16 @@ async def query_result_parser(query_result) -> List:
 
     return column_added
 
-async def fetch_data_from_cache_or_db(redis_key, cur, fetch_data_func):
+async def fetch_data_from_cache(redis_key):
     cached_data = redis_client.get(redis_key)
     logger.debug(f"Cached data is:{cached_data} and of type: {type(cached_data)}")
     if cached_data:
         return json.loads(cached_data)
+    else:
+        return None
 
-    data = await fetch_data_func()
-    logger.debug(f"After fetch")
 
-    redis_client.setex(redis_key, 240, json.dumps(data))
-    return data
+    
 
 
 @app.post("/subscription")
@@ -349,15 +348,19 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 logger.debug(f"SQL query constructed: {sql_query}")
 
                 if run_query:
-
                     redis_key = f"query:{sql_query}"
-                    
-                    # Fetch data from cache or database
-                    fetched = await fetch_data_from_cache_or_db(redis_key, cur,lambda: cur.execute(query=sql_query).fetchall())
-                    #query = await cur.execute(query=sql_query)
-                    #listed = await cur.fetchall()
-                    parsed_results = await query_result_parser(fetched)
-                    serialized_events = json.dumps(parsed_results)
+
+                    fetched = await fetch_data_from_cache(redis_key)
+                    if fetched:
+                        serialized_events = fetched
+                    else:
+                        query = await cur.execute(query=sql_query)
+                        listed = await cur.fetchall()
+    
+                        logger.debug(f"Start parser")
+                        parsed_results = await query_result_parser(fetched)
+                        serialized_events = json.dumps(parsed_results)
+                        redis_client.setex(redis_key, 240, json.dumps(listed))
                     if len(serialized_events) < 2:
                         response = None
                     else:
