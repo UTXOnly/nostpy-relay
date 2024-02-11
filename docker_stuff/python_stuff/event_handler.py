@@ -96,7 +96,7 @@ async def sanitize_event_keys(filters) -> Dict:
                 else:
                     updated_keys[key] = filters[key]
     
-            return updated_keys
+        return updated_keys
     except Exception as e:
         logger.error(f"An unexpected error occurred: {e}")
         return updated_keys
@@ -392,6 +392,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                             "subscription_id": subscription_id,
                             "results_json": serialized_events,
                         }
+                        return JSONResponse(content=response, status_code=200)
 
     except psycopg.Error as exc:
         logger.error(f"Error occurred: {str(exc)}")
