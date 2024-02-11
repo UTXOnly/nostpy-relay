@@ -355,13 +355,14 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
                     fetched = await fetch_data_from_cache(redis_key)
                     if fetched:
-                        serialized_events = fetched
+                        serialized_events = json.dumps(fetched)
                     else:
                         query = await cur.execute(query=sql_query)
                         listed = await cur.fetchall()
     
                         logger.debug(f"Start parser")
                         parsed_results = await query_result_parser(listed)
+                        logger.debug(f"Parsed results are: {parsed_results}")
                         if parsed_results:
                             logger.debug(f"Parsed results are: {parsed_results}")
                             serialized_events = json.dumps(parsed_results)
