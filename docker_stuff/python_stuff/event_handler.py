@@ -381,15 +381,20 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         status_code=200)
 
         if cached_results:
+            event_type = "EVENT"
             parse_var = json.loads(cached_results.decode('utf-8'))
             logger.debug(f" parsed var is : {parse_var}")
             column_added = await query_result_parser(parse_var)
+            results_json = json.dumps(column_added)
             logger.debug(f"Column added var is {column_added} and of type {type(column_added)}")
+            if not column_added:
+                event_type = "EOSE"
+                results_json = None
             return JSONResponse(
                 content={
-                    "event": "EVENT",
+                    "event": event_type,
                     "subscription_id": subscription_id,
-                    "results_json": json.dumps(column_added),
+                    "results_json": results_json,
                 },
                 status_code=200
             )
