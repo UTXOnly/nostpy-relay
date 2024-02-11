@@ -287,6 +287,8 @@ async def handle_websocket_connection(
                     ws_message = WebsocketMessages(
                         message=json.loads(message), websocket=websocket
                     )
+                except aiohttp.ContentTypeError as exc:
+                    logger.deub(f"JSON is empty maybe?")
                     logger.debug(f"UUID = {ws_message.uuid}")
                     statsd.increment(
                         "nostr.new_connection.count",
