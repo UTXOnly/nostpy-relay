@@ -382,7 +382,9 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
         if cached_results:
             parse_var = json.loads(cached_results.decode('utf-8'))
+            logger.debug(f" parsed var is : {parse_var}")
             column_added = await query_result_parser(parse_var)
+            logger.debug(f"Column added var is {column_added} and of type {type(column_added)}")
             return JSONResponse(
                 content={
                     "event": "EVENT",
