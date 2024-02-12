@@ -358,7 +358,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
             tag_clause = await generate_query(tag_values)
             where_clause += f" AND {tag_clause}"
 
-        sql_query = f"SELECT * FROM events WHERE {where_clause};"
+        sql_query = f"SELECT * FROM events WHERE {where_clause} LIMIT 100;"
         logger.debug(f"SQL query constructed: {sql_query}")
 
         redis_key = f"{sql_query}"
