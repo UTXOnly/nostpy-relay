@@ -15,6 +15,7 @@ import psycopg
 import redis
 import uvicorn
 from psycopg_pool import AsyncConnectionPool
+from docker_stuff.python_stuff.event_classes import Event, Subscription
 
 load_dotenv()
 
@@ -34,119 +35,6 @@ handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-
-
-class Event:
-    def __init__(
-        self,
-        event_id: str,
-        pubkey: str,
-        kind: int,
-        created_at: int,
-        tags: List,
-        content: str,
-        sig: str,
-    ) -> None:
-        self.event_id = event_id
-        self.pubkey = pubkey
-        self.kind = kind
-        self.created_at = created_at
-        self.tags = tags
-        self.content = content
-        self.sig = sig
-
-    def __str__(self) -> str:
-        return f"{self.event_id}, {self.pubkey}, {self.kind}, {self.created_at}, {self.tags}, {self.content}, {self.sig} "
-
-
-async def generate_query(tags) -> str:
-    base_query = " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
-    conditions = []
-    for tag_pair in tags:
-        condition = f"elem @> '{json.dumps(tag_pair)}'"
-        conditions.append(condition)
-
-    complete_query = base_query.format(" OR ".join(conditions))
-    return complete_query
-
-
-async def sanitize_event_keys(filters) -> Dict:
-    try:
-        try:
-            filters.pop("limit")
-        except:
-            logger.debug(f"No limit")
-        logger.debug(f"Filter variable is: {filters} and of length {len(filters)}")
-
-        key_mappings = {
-            "authors": "pubkey",
-            "kinds": "kind",
-            "ids": "id",
-        }
-        updated_keys = {}
-        if len(filters) > 0:
-            for key in filters:
-                logger.debug(f"Key value is: {key}, {filters[key]}")
-    
-                new_key = key_mappings.get(key, key)
-                if new_key != key:
-                    stored_val = filters[key]
-                    updated_keys[new_key] = stored_val
-                    logger.debug(f"Adding new key {new_key} with value {stored_val}")
-                else:
-                    updated_keys[key] = filters[key]
-    
-        return updated_keys
-    except Exception as e:
-        logger.error(f"An unexpected error occurred: {e}")
-        return updated_keys
-
-
-async def parse_sanitized_query(updated_keys) -> Tuple[List, List]:
-    tag_values = []
-    query_parts = []
-    if len(updated_keys) < 0:
-        return {}, {}
-
-
-    for item in updated_keys:
-        outer_break = False
-
-        if item.startswith("#"):
-            logger.debug(
-                f"Tag key is: {item}, value is {updated_keys[item]} and of type: {type(updated_keys[item])}"
-            )
-
-            try:
-                for tags in updated_keys[item]:
-                    tag_value_pair = json.dumps([item[1], tags])
-                    logger.debug(f"Adding tag key value pair: {tag_value_pair}")
-                    tag_values.append(tag_value_pair)
-                    outer_break = True
-                    continue
-            except TypeError as e:
-                logger.error(f"Error processing tags for key {item}: {e}")
-
-        elif item in ["since", "until"]:
-            if item == "since":
-                q_part = f'created_at > {updated_keys["since"]}'
-                query_parts.append(q_part)
-                outer_break = True
-                continue
-            elif item == "until":
-                q_part = f'created_at < {updated_keys["until"]}'
-                query_parts.append(q_part)
-                outer_break = True
-                continue
-
-        if outer_break:
-            continue
-
-        q_part = f"{item} = ANY(ARRAY {updated_keys[item]})"
-        logger.debug(f"q_part is {q_part}")
-        query_parts.append(q_part)
-
-    return tag_values, query_parts
 
 
 def get_conn_str() -> str:
@@ -209,21 +97,18 @@ def initialize_db() -> None:
         return False
 
 
-
 @app.post("/new_event")
 async def handle_new_event(request: Request) -> JSONResponse:
     event_dict = await request.json()
     event_obj = Event(
-        event_id=event_dict.get("id", ""),
-        pubkey=event_dict.get("pubkey", ""),
-        kind=event_dict.get("kind", 0),
-        created_at=event_dict.get("created_at", 0),
-        tags=event_dict.get("tags", {}),
-        content=event_dict.get("content", ""),
-        sig=event_dict.get("sig", ""),
+        event_id=event_dict['id'],
+        pubkey=event_dict['pubkey'],
+        kind=event_dict['kind'],
+        created_at=event_dict['created_at'],
+        tags=event_dict['tags'],
+        content=event_dict['content'],
+        sig=event_dict.get['sig'],
     )
-
-    logger.debug(f"Created event object {event_obj}")
 
     try:
         delete_message = None
@@ -286,83 +171,34 @@ async def handle_new_event(request: Request) -> JSONResponse:
             logger.debug(delete_message.format(pubkey=event_obj.pubkey))
 
 
-async def generate_query(tags) -> str:
-    base_query = "EXISTS (SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
-    or_conditions = " OR ".join(f"elem @> '{tag}'" for tag in tags)
-    complete_query = base_query.format(or_conditions)
-    return complete_query
-
-
-async def parser_worker(record, column_added) -> None:
-    column_names = ["id", "pubkey", "kind", "created_at", "tags", "content", "sig"]
-    row_result = {}
-    i = 0
-    for item in record:
-        row_result[column_names[i]] = item
-        i += 1
-    column_added.append([row_result])
-
-
-async def query_result_parser(query_result) -> List:
-    column_added = []
-    tasks = []
-    if query_result:
-        for record in query_result:
-            tasks.append(parser_worker(record, column_added))
-    
-        await asyncio.gather(*tasks)
-    
-        return column_added
-    else:
-        return None
-
-async def fetch_data_from_cache(redis_key):
-    cached_data = redis_client.get(redis_key)
-    logger.debug(f"Cached data is:{cached_data} and of type: {type(cached_data)}")
-    if cached_data:
-        return cached_data
-    else:
-        return None
-
-#
-async def parse_filters(filters: dict) -> tuple:
-    updated_keys = await sanitize_event_keys(filters)
-    tag_values = {}
-    query_parts = []
-    if updated_keys:
-        tag_values, query_parts = await parse_sanitized_query(updated_keys)
-    return tag_values, query_parts
-
-
 @app.post("/subscription")
 async def handle_subscription(request: Request) -> JSONResponse:
     try:
-        payload = await request.json()
-        filters = payload.get("event_dict", {})
-        subscription_id = payload.get("subscription_id", "")
+        request_payload = await request.json()
+        subscription_obj = Subscription(request_payload)
 
-        if not filters:
+        if not subscription_obj.filters:
             return JSONResponse(
                 content={
                     "event": "EOSE",
-                    "subscription_id": subscription_id,
+                    "subscription_id": subscription_obj.subscription_id,
                     "results_json": "None",
                 },
-                status_code=204
+                status_code=204,
             )
 
-        tag_values, query_parts = await parse_filters(filters)
+        tag_values, query_parts = await subscription_obj.parse_filters(subscription_obj.filters)
         where_clause = " AND ".join(query_parts)
 
         if tag_values:
-            tag_clause = await generate_query(tag_values)
+            tag_clause = await subscription_obj.generate_query(tag_values)
             where_clause += f" AND {tag_clause}"
 
         sql_query = f"SELECT * FROM events WHERE {where_clause} LIMIT 100;"
         logger.debug(f"SQL query constructed: {sql_query}")
 
-        redis_key = f"{sql_query}"
-        cached_results = await fetch_data_from_cache(redis_key)
+        redis_key = f"{subscription_obj.filters}"
+        cached_results = await subscription_obj.fetch_data_from_cache(redis_key)
 
         if cached_results is None:
             async with app.async_pool.connection() as conn:
@@ -370,31 +206,31 @@ async def handle_subscription(request: Request) -> JSONResponse:
                     await cur.execute(query=sql_query)
                     listed = await cur.fetchall()
                     if listed:
-
-                        parsed_results = await query_result_parser(listed)
+                        parsed_results = await subscription_obj.query_result_parser(listed)
                         serialized_events = json.dumps(parsed_results)
-                        
+
                         redis_client.setex(redis_key, 240, serialized_events)
                         return JSONResponse(
                             content={
                                 "event": "EVENT",
-                                "subscription_id": subscription_id,
+                                "subscription_id": subscription_obj.subscription_id,
                                 "results_json": serialized_events,
                             },
-                            status_code=200)
+                            status_code=200,
+                        )
                     else:
                         JSONResponse(
                             content={
                                 "event": "EOSE",
-                                "subscription_id": subscription_id,
+                                "subscription_id": subscription_obj.subscription_id,
                                 "results_json": None,
                             },
-                            status_code=200)
-
+                            status_code=200,
+                        )
 
         elif cached_results:
             event_type = "EVENT"
-            parse_var = json.loads(cached_results.decode('utf-8'))
+            parse_var = json.loads(cached_results.decode("utf-8"))
             logger.debug(f" parsed var is : {parse_var}")
             results_json = json.dumps(parse_var)
             logger.debug(f"parse_var var is {parse_var} and of type {type(parse_var)}")
@@ -404,19 +240,19 @@ async def handle_subscription(request: Request) -> JSONResponse:
             return JSONResponse(
                 content={
                     "event": event_type,
-                    "subscription_id": subscription_id,
+                    "subscription_id": subscription_obj.subscription_id,
                     "results_json": results_json,
                 },
-                status_code=200
+                status_code=200,
             )
         else:
             return JSONResponse(
                 content={
                     "event": "EOSE",
-                    "subscription_id": subscription_id,
+                    "subscription_id": subscription_obj.subscription_id,
                     "results_json": "None",
                 },
-                status_code=200
+                status_code=200,
             )
 
     except psycopg.Error as exc:

@@ -160,7 +160,9 @@ class ExtractedResponse:
         try:
             self.results = json.loads(response_data["results_json"])
         except json.JSONDecodeError as json_error:
-            logger.error(f"Error decoding JSON message in Extracted REsponse: {json_error}")
+            logger.error(
+                f"Error decoding JSON message in Extracted REsponse: {json_error}"
+            )
             self.results = ""
 
         self.comment = ""
@@ -176,14 +178,15 @@ class ExtractedResponse:
             "false",
             "duplicate: already have this event",
         )
-#
+
+    #
     async def _process_event(self, event_result):
         stripped = str(event_result)[1:-1]
-        #logger.info(f"Stripped var is {stripped} and of type : {type(stripped)}")
-        #return json.loads(stripped)
+        # logger.info(f"Stripped var is {stripped} and of type : {type(stripped)}")
+        # return json.loads(stripped)
         stripped = stripped.replace("'", '"')
         return json.loads(stripped)
-        #return ast.literal_eval(stripped)
+        # return ast.literal_eval(stripped)
 
     async def format_response(self):
         """
@@ -196,7 +199,10 @@ class ExtractedResponse:
         if self.event_type == "EVENT":
             tasks = [self._process_event(event_result) for event_result in self.results]
             parsed_results = await asyncio.gather(*tasks)
-            events_to_send = [(self.event_type, self.subscription_id, result) for result in parsed_results]
+            events_to_send = [
+                (self.event_type, self.subscription_id, result)
+                for result in parsed_results
+            ]
             return events_to_send
         elif self.event_type == "OK":
             client_response: Tuple[str, Optional[str], str, Optional[str]] = (
@@ -275,6 +281,7 @@ client_ips = []
 import websockets.exceptions
 from aiohttp.client_exceptions import ClientConnectionError
 
+
 async def handle_websocket_connection(
     websocket: websockets.WebSocketServerProtocol,
 ) -> None:
@@ -294,7 +301,7 @@ async def handle_websocket_connection(
                 except json.JSONDecodeError as json_error:
                     logger.error(f"Error decoding JSON message: {json_error}")
                     continue  # Skip processing this message
-                
+
                 logger.debug(f"UUID = {ws_message.uuid}")
                 statsd.increment(
                     "nostr.new_connection.count",
@@ -332,21 +339,27 @@ async def handle_websocket_connection(
                     await websocket.send(json.dumps(response))
 
         except websockets.exceptions.ConnectionClosedError as close_error:
-            logger.error(f"WebSocket connection closed unexpectedly: {close_error}", exc_info=True)
+            logger.error(
+                f"WebSocket connection closed unexpectedly: {close_error}",
+                exc_info=True,
+            )
             # Optionally retry the connection or handle the closure gracefully
 
         except ClientConnectionError as connection_error:
-            logger.error(f"Connection error occurred: {connection_error}", exc_info=True)
+            logger.error(
+                f"Connection error occurred: {connection_error}", exc_info=True
+            )
             # Optionally retry the connection or handle the error gracefully
-            
+
         except aiohttp.ClientError as client_error:
             logger.error(f"HTTP client error occurred: {client_error}", exc_info=True)
             # Handle HTTP client errors as needed
 
         except Exception as e:
-            logger.error(f"Error occurred while processing WebSocket message: {e}", exc_info=True)
+            logger.error(
+                f"Error occurred while processing WebSocket message: {e}", exc_info=True
+            )
             # Add any necessary handling for other exceptions here
-
 
 
 async def send_event_to_handler(
@@ -409,7 +422,6 @@ async def send_subscription_to_handler(
             return
         response_object = ExtractedResponse(response_data=response_data)
 
-
         logger.debug(f"Response received as: {response_data}")
         EOSE: Tuple[str, Optional[str]] = "EOSE", response_object.subscription_id
 
@@ -424,7 +436,7 @@ async def send_subscription_to_handler(
 
 
 if __name__ == "__main__":
-    #gitrate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=30000)
+    # gitrate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=30000)
 
     try:
         start_server = websockets.serve(handle_websocket_connection, "0.0.0.0", 8008)
