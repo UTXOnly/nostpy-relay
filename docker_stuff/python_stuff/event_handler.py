@@ -15,7 +15,7 @@ import psycopg
 import redis
 import uvicorn
 from psycopg_pool import AsyncConnectionPool
-from docker_stuff.python_stuff.event_classes import Event, Subscription
+from event_classes import Event, Subscription
 
 load_dotenv()
 
