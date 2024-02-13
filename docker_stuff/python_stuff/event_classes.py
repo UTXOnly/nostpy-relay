@@ -42,10 +42,10 @@ class Subscription:
             "sig",
         ]
 
-    async def generate_query(self):
-        base_query = f"SELECT * FROM events WHERE {self.where_clause};"
+    #async def generate_query(self):
+    #    base_query = f"SELECT * FROM events WHERE {self.where_clause};"
 
-    async def generate_tag_clause(self, tags, logger) -> str:
+    async def generate_tag_clause(self, tags) -> str:
         tag_clause = (
             " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
         )
@@ -61,7 +61,7 @@ class Subscription:
                 filters.pop("limit")
             except:
                 logger.debug(f"No limit")
-            filters["limit"] = min(200, limit_var)
+            #filters["limit"] = min(200, limit_var)
 
             key_mappings = {
                 "authors": "pubkey",
@@ -124,7 +124,7 @@ class Subscription:
             logger.warning(f"query not sanitized (maybe empty value)")
             return {}, {}
 
-    async def generate_query(self, tags, logger) -> str:
+    async def generate_query(self, tags) -> str:
         base_query = (
             "EXISTS (SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
         )
@@ -158,8 +158,8 @@ class Subscription:
         else:
             return None
 
-    async def parse_filters(self, filters: dict) -> tuple:
+    async def parse_filters(self, filters: dict, logger) -> tuple:
         updated_keys = await self.sanitize_event_keys(filters)
         if updated_keys:
-            tag_values, query_parts = await self.parse_sanitized_keys(updated_keys)
+            tag_values, query_parts = await self.parse_sanitized_keys(updated_keys, logger)
         return tag_values, query_parts

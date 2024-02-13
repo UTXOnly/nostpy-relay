@@ -187,7 +187,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 status_code=204,
             )
 
-        tag_values, query_parts = await subscription_obj.parse_filters(subscription_obj.filters)
+        tag_values, query_parts = await subscription_obj.parse_filters(subscription_obj.filters, logger)
         where_clause = " AND ".join(query_parts)
 
         if tag_values:
