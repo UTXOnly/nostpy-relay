@@ -113,11 +113,11 @@ async def handle_new_event(request: Request) -> JSONResponse:
     try:
         async with request.app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
-                event_obj.delete_check
+                
                 if event_obj.kind in {0, 3}:
-                    event_obj.delete_check(conn, cur, statsd)
+                    await event_obj.delete_check(conn, cur, statsd)
 
-                event_obj.add_event(conn, cur)
+                await event_obj.add_event(conn, cur)
                 statsd.increment("nostr.event.added.count", tags=["func:new_event"])
                 return await event_obj.evt_response("true", 200)
 
