@@ -26,6 +26,46 @@ class Event:
     def __str__(self) -> str:
         return f"{self.event_id}, {self.pubkey}, {self.kind}, {self.created_at}, {self.tags}, {self.content}, {self.sig} "
 
+    async def delete_check(self, conn, cur, statsd) -> None:
+        if self.kind in {0, 3}:
+
+            delete_query = """
+            DELETE FROM events
+            WHERE pubkey = %s AND kind = %s;
+            """
+
+            await cur.execute(delete_query, (self.pubkey, self.kind))
+            statsd.decrement("nostr.event.added.count", tags=["func:new_event"])
+            statsd.increment(
+                "nostr.event.deleted.count", tags=["func:new_event"]
+            )
+
+            await conn.commit()
+
+    async def add_event(self, conn, cur) -> None:
+            await cur.execute(
+            """
+            INSERT INTO events (id,pubkey,kind,created_at,tags,content,sig) VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+                    (
+                        self.event_id,
+                        self.pubkey,
+                        self.kind,
+                        self.created_at,
+                        json.dumps(self.tags),
+                        self.content,
+                        self.sig,
+                    ),
+                )
+            await conn.commit()
+
+    async def evt_response(self, results_json, http_status_code):
+            response = {
+            "event": "OK",
+            "subscription_id": "n0stafarian419",
+            "results_json": results_json,
+        }
+            return JSONResponse(content=response, status_code=http_status_code)
 
 class Subscription:
     def __init__(self, request_payload: dict) -> None:

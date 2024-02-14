@@ -111,64 +111,23 @@ async def handle_new_event(request: Request) -> JSONResponse:
     )
 
     try:
-        delete_message = None
         async with request.app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
+                event_obj.delete_check
                 if event_obj.kind in {0, 3}:
-                    delete_message = (
-                        f"Deleting existing metadata for pubkey {event_obj.pubkey}"
-                    )
+                    event_obj.delete_check(conn, cur, statsd)
 
-                    delete_query = """
-                    DELETE FROM events
-                    WHERE pubkey = %s AND kind = %s;
-                    """
-
-                    await cur.execute(delete_query, (event_obj.pubkey, event_obj.kind))
-
-                    statsd.decrement("nostr.event.added.count", tags=["func:new_event"])
-                    statsd.increment(
-                        "nostr.event.deleted.count", tags=["func:new_event"]
-                    )
-
-                    await conn.commit()
-                await cur.execute(
-                    """
-            INSERT INTO events (id,pubkey,kind,created_at,tags,content,sig) VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """,
-                    (
-                        event_obj.event_id,
-                        event_obj.pubkey,
-                        event_obj.kind,
-                        event_obj.created_at,
-                        json.dumps(event_obj.tags),
-                        event_obj.content,
-                        event_obj.sig,
-                    ),
-                )
-                await conn.commit()
-        response = {
-            "event": "OK",
-            "subscription_id": "n0stafarian419",
-            "results_json": "true",
-        }
-        statsd.increment("nostr.event.added.count", tags=["func:new_event"])
-        return JSONResponse(content=response, status_code=200)
+                event_obj.add_event(conn, cur)
+                statsd.increment("nostr.event.added.count", tags=["func:new_event"])
+                return await event_obj.evt_response("true", 200)
 
     except psycopg.IntegrityError as e:
         conn.rollback()
-        raise HTTPException(
-            status_code=409, detail=f"Event with ID {event_obj.event_id} already exists"
-        ) from e
+        return event_obj.evt_response(f"Event with ID {event_obj.event_id} already exists", 409)
     except Exception as e:
         conn.rollback()
-        raise HTTPException(
-            status_code=409, detail=f"Error occured adding event {event_obj.event_id}"
-        ) from e
+        return event_obj.evt_response(f"Error:{e} occured adding event {event_obj.event_id}", 409)
 
-    finally:
-        if delete_message:
-            logger.debug(delete_message.format(pubkey=event_obj.pubkey))
 
 
 @app.post("/subscription")
@@ -192,7 +151,6 @@ async def handle_subscription(request: Request) -> JSONResponse:
         sql_query = f"SELECT * FROM events WHERE {where_clause} LIMIT 100;"
         logger.debug(f"SQL query constructed: {sql_query}")
 
-        #redis_key = f"{subscription_obj.filters}"
         cached_results = await subscription_obj.fetch_data_from_cache(str(subscription_obj.filters), redis_client)
 
         if cached_results is None:
