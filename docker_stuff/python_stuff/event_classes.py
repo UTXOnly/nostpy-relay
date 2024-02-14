@@ -120,9 +120,11 @@ class Subscription:
                 array_search = f"{item} = ANY(ARRAY {updated_keys[item]})"
                 query_parts.append(array_search)
 
+            logger.debug(f"Returning parse san key {tag_values} and qp: {query_parts}")
+
             return tag_values, query_parts
         except Exception as exc:
-            logger.warning(f"query not sanitized (maybe empty value)")
+            logger.warning(f"query not sanitized (maybe empty value), error is: {exc}")
             return {}, {}
 
     async def generate_query(self, tags) -> str:

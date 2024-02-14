@@ -188,6 +188,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
             )
         logger.debug(f"Fiters are: {subscription_obj.filters}")
         tag_values, query_parts = await subscription_obj.parse_filters(subscription_obj.filters, logger)
+        logger.debug(f"Tag values: {tag_values} and query parts {query_parts} are: ")
         where_clause = " AND ".join(query_parts)
 
         if tag_values:
