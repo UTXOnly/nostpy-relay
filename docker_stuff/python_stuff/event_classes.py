@@ -86,6 +86,7 @@ class Subscription:
 
     async def parse_sanitized_keys(self, updated_keys, logger) -> Tuple[List, List]:
         query_parts = []
+        tag_values = []
 
         try:
             for item in updated_keys:
@@ -93,9 +94,10 @@ class Subscription:
 
                 if item.startswith("#"):
                     try:
-                        tag_values = [
-                            ([item[1], tags]) for tags in updated_keys[item]
-                        ]
+
+                        for tags in updated_keys[item]:
+                            tag_values.append(json.dumps([item[1], tags]))
+
 
                         outer_break = True
                         continue
@@ -121,11 +123,10 @@ class Subscription:
                 query_parts.append(array_search)
 
             logger.debug(f"Returning parse san key {tag_values} and qp: {query_parts}")
-
             return tag_values, query_parts
         except Exception as exc:
             logger.warning(f"query not sanitized (maybe empty value), error is: {exc}")
-            return {}, {}
+            return [], []
 
     async def generate_query(self, tags) -> str:
         base_query = (
