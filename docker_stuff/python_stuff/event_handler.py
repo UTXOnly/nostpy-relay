@@ -1,21 +1,21 @@
-import asyncio
 import json
 import logging
 import os
 from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
-from typing import List, Tuple, Dict
 
-from datadog import initialize, statsd
-from ddtrace import tracer
-from dotenv import load_dotenv
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse
 import psycopg
 import redis
 import uvicorn
-from psycopg_pool import AsyncConnectionPool
+from datadog import initialize, statsd
+from ddtrace import tracer
+from dotenv import load_dotenv
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+
 from event_classes import Event, Subscription
+from psycopg_pool import AsyncConnectionPool
+
 
 load_dotenv()
 
@@ -101,13 +101,13 @@ def initialize_db() -> None:
 async def handle_new_event(request: Request) -> JSONResponse:
     event_dict = await request.json()
     event_obj = Event(
-        event_id=event_dict['id'],
-        pubkey=event_dict['pubkey'],
-        kind=event_dict['kind'],
-        created_at=event_dict['created_at'],
-        tags=event_dict['tags'],
-        content=event_dict['content'],
-        sig=event_dict.get['sig'],
+        event_id=event_dict["id"],
+        pubkey=event_dict["pubkey"],
+        kind=event_dict["kind"],
+        created_at=event_dict["created_at"],
+        tags=event_dict["tags"],
+        content=event_dict["content"],
+        sig=event_dict.get["sig"],
     )
 
     try:
@@ -123,11 +123,14 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
     except psycopg.IntegrityError as e:
         conn.rollback()
-        return event_obj.evt_response(f"Event with ID {event_obj.event_id} already exists", 409)
+        return event_obj.evt_response(
+            f"Event with ID {event_obj.event_id} already exists", 409
+        )
     except Exception as e:
         conn.rollback()
-        return event_obj.evt_response(f"Error:{e} occured adding event {event_obj.event_id}", 409)
-
+        return event_obj.evt_response(
+            f"Error:{e} occured adding event {event_obj.event_id}", 409
+        )
 
 
 @app.post("/subscription")
@@ -137,10 +140,14 @@ async def handle_subscription(request: Request) -> JSONResponse:
         subscription_obj = Subscription(request_payload)
 
         if not subscription_obj.filters:
-            return subscription_obj.sub_response_builder("EOSE", subscription_obj.subscription_id, "", 204)
+            return subscription_obj.sub_response_builder(
+                "EOSE", subscription_obj.subscription_id, "", 204
+            )
 
         logger.debug(f"Fiters are: {subscription_obj.filters}")
-        tag_values, query_parts = await subscription_obj.parse_filters(subscription_obj.filters, logger)
+        tag_values, query_parts = await subscription_obj.parse_filters(
+            subscription_obj.filters, logger
+        )
         logger.debug(f"Tag values: {tag_values} and query parts {query_parts} are: ")
         where_clause = " AND ".join(query_parts)
 
@@ -151,7 +158,9 @@ async def handle_subscription(request: Request) -> JSONResponse:
         sql_query = f"SELECT * FROM events WHERE {where_clause} LIMIT 100;"
         logger.debug(f"SQL query constructed: {sql_query}")
 
-        cached_results = await subscription_obj.fetch_data_from_cache(str(subscription_obj.filters), redis_client)
+        cached_results = await subscription_obj.fetch_data_from_cache(
+            str(subscription_obj.filters), redis_client
+        )
 
         if cached_results is None:
             async with app.async_pool.connection() as conn:
@@ -159,30 +168,41 @@ async def handle_subscription(request: Request) -> JSONResponse:
                     await cur.execute(query=sql_query)
                     listed = await cur.fetchall()
                     if listed:
-                        parsed_results = await subscription_obj.query_result_parser(listed)
+                        parsed_results = await subscription_obj.query_result_parser(
+                            listed
+                        )
                         serialized_events = json.dumps(parsed_results)
-
-                        redis_client.setex(str(subscription_obj.filters), 240, serialized_events)
-                        return_response = await subscription_obj.sub_response_builder("EVENT", subscription_obj.subscription_id, serialized_events, 200)
-                        logger.debug(f"return response is {return_response} of type: {type({return_response})}, stringified is : {str(return_response)}")
+                        redis_client.setex(
+                            str(subscription_obj.filters), 240, serialized_events
+                        )
+                        return_response = await subscription_obj.sub_response_builder(
+                            "EVENT",
+                            subscription_obj.subscription_id,
+                            serialized_events,
+                            200,
+                        )
                         return return_response
 
                     else:
-                        return await subscription_obj.sub_response_builder("EOSE", subscription_obj.subscription_id, "", 200)
+                        return await subscription_obj.sub_response_builder(
+                            "EOSE", subscription_obj.subscription_id, "", 200
+                        )
 
         elif cached_results:
             event_type = "EVENT"
             parse_var = json.loads(cached_results.decode("utf-8"))
-            logger.debug(f" parsed var is : {parse_var}")
             results_json = json.dumps(parse_var)
-            logger.debug(f"parse_var var is {parse_var} and of type {type(parse_var)}")
             if not parse_var:
                 event_type = "EOSE"
                 results_json = ""
-            return await subscription_obj.sub_response_builder(event_type, subscription_obj.subscription_id, results_json, 200)
+            return await subscription_obj.sub_response_builder(
+                event_type, subscription_obj.subscription_id, results_json, 200
+            )
 
         else:
-            return await subscription_obj.sub_response_builder("EOSE", subscription_obj.subscription_id, "", 200)
+            return await subscription_obj.sub_response_builder(
+                "EOSE", subscription_obj.subscription_id, "", 200
+            )
 
     except psycopg.Error as exc:
         logger.error(f"Error occurred: {str(exc)}", exc_info=True)

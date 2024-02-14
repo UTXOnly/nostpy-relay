@@ -27,45 +27,40 @@ class Event:
         return f"{self.event_id}, {self.pubkey}, {self.kind}, {self.created_at}, {self.tags}, {self.content}, {self.sig} "
 
     async def delete_check(self, conn, cur, statsd) -> None:
-        if self.kind in {0, 3}:
-
-            delete_query = """
-            DELETE FROM events
-            WHERE pubkey = %s AND kind = %s;
-            """
-
-            await cur.execute(delete_query, (self.pubkey, self.kind))
-            statsd.decrement("nostr.event.added.count", tags=["func:new_event"])
-            statsd.increment(
-                "nostr.event.deleted.count", tags=["func:new_event"]
-            )
-
-            await conn.commit()
+        delete_query = """
+        DELETE FROM events
+        WHERE pubkey = %s AND kind = %s;
+        """
+        await cur.execute(delete_query, (self.pubkey, self.kind))
+        statsd.decrement("nostr.event.added.count", tags=["func:new_event"])
+        statsd.increment("nostr.event.deleted.count", tags=["func:new_event"])
+        await conn.commit()
 
     async def add_event(self, conn, cur) -> None:
-            await cur.execute(
+        await cur.execute(
             """
             INSERT INTO events (id,pubkey,kind,created_at,tags,content,sig) VALUES (%s, %s, %s, %s, %s, %s, %s)
             """,
-                    (
-                        self.event_id,
-                        self.pubkey,
-                        self.kind,
-                        self.created_at,
-                        json.dumps(self.tags),
-                        self.content,
-                        self.sig,
-                    ),
-                )
-            await conn.commit()
+            (
+                self.event_id,
+                self.pubkey,
+                self.kind,
+                self.created_at,
+                json.dumps(self.tags),
+                self.content,
+                self.sig,
+            ),
+        )
+        await conn.commit()
 
     async def evt_response(self, results_json, http_status_code):
-            response = {
+        response = {
             "event": "OK",
             "subscription_id": "n0stafarian419",
             "results_json": results_json,
         }
-            return JSONResponse(content=response, status_code=http_status_code)
+        return JSONResponse(content=response, status_code=http_status_code)
+
 
 class Subscription:
     def __init__(self, request_payload: dict) -> None:
@@ -83,7 +78,6 @@ class Subscription:
             "sig",
         ]
 
-
     async def generate_tag_clause(self, tags) -> str:
         tag_clause = (
             " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
@@ -96,11 +90,11 @@ class Subscription:
     async def sanitize_event_keys(self, filters, logger) -> Dict:
         try:
             try:
-                #limit_var = filters.get("limit")
+                # limit_var = filters.get("limit")
                 filters.pop("limit")
             except:
                 logger.debug(f"No limit")
-            #filters["limit"] = min(200, limit_var)
+            # filters["limit"] = min(200, limit_var)
             logger.debug(f"Filters are: {filters}")
 
             key_mappings = {
@@ -133,10 +127,8 @@ class Subscription:
 
                 if item.startswith("#"):
                     try:
-
                         for tags in updated_keys[item]:
                             tag_values.append(json.dumps([item[1], tags]))
-
 
                         outer_break = True
                         continue
@@ -205,16 +197,19 @@ class Subscription:
         updated_keys = await self.sanitize_event_keys(filters, logger)
         logger.debug(f"Updated keys is: {updated_keys}")
         if updated_keys:
-            tag_values, query_parts = await self.parse_sanitized_keys(updated_keys, logger)
-        return tag_values, query_parts
-    
-    async def sub_response_builder(self, event_type, subscription_id, results_json, http_status_code):
-        return JSONResponse(
-                content={
-                    "event": event_type,
-                    "subscription_id": subscription_id,
-                    "results_json": results_json,
-                },
-                status_code= http_status_code,
+            tag_values, query_parts = await self.parse_sanitized_keys(
+                updated_keys, logger
             )
+        return tag_values, query_parts
 
+    async def sub_response_builder(
+        self, event_type, subscription_id, results_json, http_status_code
+    ):
+        return JSONResponse(
+            content={
+                "event": event_type,
+                "subscription_id": subscription_id,
+                "results_json": results_json,
+            },
+            status_code=http_status_code,
+        )
