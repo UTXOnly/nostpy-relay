@@ -178,7 +178,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         subscription_obj = Subscription(request_payload)
 
         if not subscription_obj.filters:
-            return subscription_obj.sub_response_builder("EOSE", subscription_obj.subscription_id, None, 204)
+            return subscription_obj.sub_response_builder("EOSE", subscription_obj.subscription_id, "", 204)
 
         logger.debug(f"Fiters are: {subscription_obj.filters}")
         tag_values, query_parts = await subscription_obj.parse_filters(subscription_obj.filters, logger)
@@ -220,11 +220,11 @@ async def handle_subscription(request: Request) -> JSONResponse:
             logger.debug(f"parse_var var is {parse_var} and of type {type(parse_var)}")
             if not parse_var:
                 event_type = "EOSE"
-                results_json = None
+                results_json = ""
             return await subscription_obj.sub_response_builder(event_type, subscription_obj.subscription_id, results_json, 200)
 
         else:
-            return await subscription_obj.sub_response_builder("EOSE", subscription_obj.subscription_id, None, 200)
+            return await subscription_obj.sub_response_builder("EOSE", subscription_obj.subscription_id, "", 200)
 
     except psycopg.Error as exc:
         logger.error(f"Error occurred: {str(exc)}", exc_info=True)
