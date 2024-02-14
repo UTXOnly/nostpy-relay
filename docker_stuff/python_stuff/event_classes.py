@@ -159,7 +159,7 @@ class Subscription:
             return None
 
     async def parse_filters(self, filters: dict, logger) -> tuple:
-        updated_keys = await self.sanitize_event_keys(filters)
+        updated_keys = await self.sanitize_event_keys(filters, logger)
         if updated_keys:
             tag_values, query_parts = await self.parse_sanitized_keys(updated_keys, logger)
         return tag_values, query_parts
