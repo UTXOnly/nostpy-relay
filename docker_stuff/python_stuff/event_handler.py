@@ -205,10 +205,10 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         serialized_events = json.dumps(parsed_results)
 
                         redis_client.setex(subscription_obj.filters, 240, serialized_events)
-                        return subscription_obj.sub_response_builder("EVENT", subscription_obj.subscription_id, serialized_events, 200)
+                        return await subscription_obj.sub_response_builder("EVENT", subscription_obj.subscription_id, serialized_events, 200)
 
                     else:
-                        return subscription_obj.sub_response_builder("EOSE", subscription_obj.subscription_id, None, 200)
+                        return await subscription_obj.sub_response_builder("EOSE", subscription_obj.subscription_id, None, 200)
 
         elif cached_results:
             event_type = "EVENT"
@@ -219,10 +219,10 @@ async def handle_subscription(request: Request) -> JSONResponse:
             if not parse_var:
                 event_type = "EOSE"
                 results_json = None
-            return subscription_obj.sub_response_builder(event_type, subscription_obj.subscription_id, results_json, 200)
+            return await subscription_obj.sub_response_builder(event_type, subscription_obj.subscription_id, results_json, 200)
 
         else:
-            return subscription_obj.sub_response_builder("EOSE", subscription_obj.subscription_id, None, 200)
+            return await subscription_obj.sub_response_builder("EOSE", subscription_obj.subscription_id, None, 200)
 
     except psycopg.Error as exc:
         logger.error(f"Error occurred: {str(exc)}", exc_info=True)
