@@ -168,7 +168,7 @@ class Subscription:
             tag_values, query_parts = await self.parse_sanitized_keys(updated_keys, logger)
         return tag_values, query_parts
     
-    def sub_response_builder(self, event_type, subscription_id, results_json, http_status_code):
+    async def sub_response_builder(self, event_type, subscription_id, results_json, http_status_code):
         return JSONResponse(
                 content={
                     "event": event_type,
