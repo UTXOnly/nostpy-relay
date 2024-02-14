@@ -210,7 +210,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         return return_response
 
                     else:
-                        return await subscription_obj.sub_response_builder("EOSE", subscription_obj.subscription_id, None, 200)
+                        return await subscription_obj.sub_response_builder("EOSE", subscription_obj.subscription_id, "", 200)
 
         elif cached_results:
             event_type = "EVENT"
