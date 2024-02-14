@@ -178,14 +178,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
         subscription_obj = Subscription(request_payload)
 
         if not subscription_obj.filters:
-            return JSONResponse(
-                content={
-                    "event": "EOSE",
-                    "subscription_id": subscription_obj.subscription_id,
-                    "results_json": "None",
-                },
-                status_code=204,
-            )
+            return subscription_obj.sub_response_builder("EOSE", subscription_obj.subscription_id, None, 204)
+
         logger.debug(f"Fiters are: {subscription_obj.filters}")
         tag_values, query_parts = await subscription_obj.parse_filters(subscription_obj.filters, logger)
         logger.debug(f"Tag values: {tag_values} and query parts {query_parts} are: ")
@@ -198,8 +192,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
         sql_query = f"SELECT * FROM events WHERE {where_clause} LIMIT 100;"
         logger.debug(f"SQL query constructed: {sql_query}")
 
-        redis_key = f"{subscription_obj.filters}"
-        cached_results = await subscription_obj.fetch_data_from_cache(redis_key, redis_client)
+        #redis_key = f"{subscription_obj.filters}"
+        cached_results = await subscription_obj.fetch_data_from_cache(subscription_obj.filters, redis_client)
 
         if cached_results is None:
             async with app.async_pool.connection() as conn:
@@ -210,24 +204,11 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         parsed_results = await subscription_obj.query_result_parser(listed)
                         serialized_events = json.dumps(parsed_results)
 
-                        redis_client.setex(redis_key, 240, serialized_events)
-                        return JSONResponse(
-                            content={
-                                "event": "EVENT",
-                                "subscription_id": subscription_obj.subscription_id,
-                                "results_json": serialized_events,
-                            },
-                            status_code=200,
-                        )
+                        redis_client.setex(subscription_obj.filters, 240, serialized_events)
+                        return subscription_obj.sub_response_builder("EVENT", subscription_obj.subscription_id, serialized_events, 200)
+
                     else:
-                        JSONResponse(
-                            content={
-                                "event": "EOSE",
-                                "subscription_id": subscription_obj.subscription_id,
-                                "results_json": None,
-                            },
-                            status_code=200,
-                        )
+                        return subscription_obj.sub_response_builder("EOSE", subscription_obj.subscription_id, None, 200)
 
         elif cached_results:
             event_type = "EVENT"
@@ -238,23 +219,10 @@ async def handle_subscription(request: Request) -> JSONResponse:
             if not parse_var:
                 event_type = "EOSE"
                 results_json = None
-            return JSONResponse(
-                content={
-                    "event": event_type,
-                    "subscription_id": subscription_obj.subscription_id,
-                    "results_json": results_json,
-                },
-                status_code=200,
-            )
+            return subscription_obj.sub_response_builder(event_type, subscription_obj.subscription_id, results_json, 200)
+
         else:
-            return JSONResponse(
-                content={
-                    "event": "EOSE",
-                    "subscription_id": subscription_obj.subscription_id,
-                    "results_json": "None",
-                },
-                status_code=200,
-            )
+            return subscription_obj.sub_response_builder("EOSE", subscription_obj.subscription_id, None, 200)
 
     except psycopg.Error as exc:
         logger.error(f"Error occurred: {str(exc)}", exc_info=True)

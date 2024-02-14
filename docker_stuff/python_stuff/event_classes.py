@@ -1,6 +1,7 @@
 import asyncio
 import json
 from typing import List, Tuple, Dict
+from fastapi.responses import JSONResponse
 
 
 class Event:
@@ -42,8 +43,6 @@ class Subscription:
             "sig",
         ]
 
-    #async def generate_query(self):
-    #    base_query = f"SELECT * FROM events WHERE {self.where_clause};"
 
     async def generate_tag_clause(self, tags) -> str:
         tag_clause = (
@@ -168,3 +167,14 @@ class Subscription:
         if updated_keys:
             tag_values, query_parts = await self.parse_sanitized_keys(updated_keys, logger)
         return tag_values, query_parts
+    
+    def sub_response_builder(self, event_type, subscription_id, results_json, http_status_code):
+        return JSONResponse(
+                content={
+                    "event": event_type,
+                    "subscription_id": subscription_id,
+                    "results_json": results_json,
+                },
+                status_code= http_status_code,
+            )
+
