@@ -29,7 +29,7 @@ tracer.configure(hostname="172.28.0.5", port=8126)
 redis_client: redis.Redis = redis.Redis(host="172.28.0.6", port=6379)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 log_file = "./logs/event_handler.log"
 handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
@@ -186,12 +186,12 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 },
                 status_code=204,
             )
-
+        logger.debug(f"Fiters are: {subscription_obj.filters}")
         tag_values, query_parts = await subscription_obj.parse_filters(subscription_obj.filters, logger)
         where_clause = " AND ".join(query_parts)
 
         if tag_values:
-            tag_clause = await subscription_obj.generate_query(tag_values)
+            tag_clause = await subscription_obj.generate_tag_clause(tag_values)
             where_clause += f" AND {tag_clause}"
 
         sql_query = f"SELECT * FROM events WHERE {where_clause} LIMIT 100;"

@@ -57,11 +57,12 @@ class Subscription:
     async def sanitize_event_keys(self, filters, logger) -> Dict:
         try:
             try:
-                limit_var = filters.get("limit")
+                #limit_var = filters.get("limit")
                 filters.pop("limit")
             except:
                 logger.debug(f"No limit")
             #filters["limit"] = min(200, limit_var)
+            logger.debug(f"Filters are: {filters}")
 
             key_mappings = {
                 "authors": "pubkey",
@@ -160,6 +161,7 @@ class Subscription:
 
     async def parse_filters(self, filters: dict, logger) -> tuple:
         updated_keys = await self.sanitize_event_keys(filters, logger)
+        logger.debug(f"Updated keys is: {updated_keys}")
         if updated_keys:
             tag_values, query_parts = await self.parse_sanitized_keys(updated_keys, logger)
         return tag_values, query_parts
