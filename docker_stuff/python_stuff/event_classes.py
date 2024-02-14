@@ -5,6 +5,24 @@ from fastapi.responses import JSONResponse
 
 
 class Event:
+    """
+       Represents an event object with attributes such as event ID, public key, kind, created timestamp, tags, content, and signature.
+   
+       Attributes:
+           event_id (str): The ID of the event.
+           pubkey (str): The public key associated with the event.
+           kind (int): The type or kind of the event.
+           created_at (int): The timestamp when the event was created.
+           tags (List): A list of tags associated with the event.
+           content (str): The content of the event.
+           sig (str): The signature of the event.
+   
+       Methods:
+           delete_check: Checks and deletes the event from the database.
+           add_event: Adds the event to the database.
+           evt_response: Builds and returns the JSON response for the event.
+    """
+
     def __init__(
         self,
         event_id: str,
@@ -63,6 +81,28 @@ class Event:
 
 
 class Subscription:
+    """
+    Represents a subscription object with attributes and methods for handling subscription-related operations.
+
+    Attributes:
+        filters (dict): Dictionary containing filters for the subscription.
+        subscription_id (str): The ID of the subscription.
+        where_clause (str): The WHERE clause of the base SQL query.
+        base_query (str): The base SQL query for fetching events.
+        column_names (List): List of column names for event attributes.
+
+    Methods:
+        generate_tag_clause: Generates the tag clause for SQL query based on given tags.
+        sanitize_event_keys: Sanitizes the event keys by mapping and filtering the filters.
+        parse_sanitized_keys: Parses and sanitizes the updated keys to generate tag values and query parts.
+        generate_query: Generates the SQL query based on provided tags.
+        _parser_worker: Worker function to parse and add records to the column.
+        query_result_parser: Parses the query result and adds columns accordingly.
+        fetch_data_from_cache: Fetches data from cache based on the provided Redis key.
+        parse_filters: Parses and sanitizes filters to generate tag values and query parts.
+        sub_response_builder: Builds and returns the JSON response for the subscription.
+    """
+
     def __init__(self, request_payload: dict) -> None:
         self.filters = request_payload.get("event_dict", {})
         self.subscription_id = request_payload.get("subscription_id")

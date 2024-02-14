@@ -107,7 +107,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
         created_at=event_dict["created_at"],
         tags=event_dict["tags"],
         content=event_dict["content"],
-        sig=event_dict.get["sig"],
+        sig=event_dict["sig"],
     )
 
     try:
