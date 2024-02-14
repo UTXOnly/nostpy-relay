@@ -94,7 +94,7 @@ class Subscription:
                 if item.startswith("#"):
                     try:
                         tag_values = [
-                            json.dumps([item[1], tags]) for tags in updated_keys[item]
+                            ([item[1], tags]) for tags in updated_keys[item]
                         ]
 
                         outer_break = True
