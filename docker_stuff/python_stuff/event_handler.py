@@ -198,7 +198,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         logger.debug(f"SQL query constructed: {sql_query}")
 
         redis_key = f"{subscription_obj.filters}"
-        cached_results = await subscription_obj.fetch_data_from_cache(redis_key)
+        cached_results = await subscription_obj.fetch_data_from_cache(redis_key, redis_client)
 
         if cached_results is None:
             async with app.async_pool.connection() as conn:
