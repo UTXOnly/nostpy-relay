@@ -205,7 +205,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         serialized_events = json.dumps(parsed_results)
 
                         redis_client.setex(subscription_obj.filters, 240, serialized_events)
-                        return await subscription_obj.sub_response_builder("EVENT", subscription_obj.subscription_id, serialized_events, 200)
+                        return_response = await subscription_obj.sub_response_builder("EVENT", subscription_obj.subscription_id, serialized_events, 200)
+                        logger.debug(f"return response is {return_response} of type: {type({return_response})}, stringified is : {str(return_response)}")
 
                     else:
                         return await subscription_obj.sub_response_builder("EOSE", subscription_obj.subscription_id, None, 200)
