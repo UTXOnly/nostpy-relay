@@ -148,16 +148,18 @@ async def handle_subscription(request: Request) -> JSONResponse:
         tag_values, query_parts = await subscription_obj.parse_filters(
             subscription_obj.filters, logger
         )
-        logger.debug(f"Tag values: {tag_values} and query parts {query_parts} are: ")
-        if query_parts:
-            where_clause = " AND ".join(query_parts)
 
-        if tag_values:
-            tag_clause = await subscription_obj.generate_tag_clause(tag_values)
-            where_clause += f" AND {tag_clause}"
-
-        sql_query = f"SELECT * FROM events WHERE {where_clause} LIMIT 100;"
-        logger.debug(f"SQL query constructed: {sql_query}")
+        sql_query = await subscription_obj.base_query_builder(tag_values, query_parts)
+        #logger.debug(f"Tag values: {tag_values} and query parts {query_parts} are: ")
+        #if query_parts:
+        #    where_clause = " AND ".join(query_parts)
+#
+        #if tag_values:
+        #    tag_clause = await subscription_obj.generate_tag_clause(tag_values)
+        #    where_clause += f" AND {tag_clause}"
+#
+        #sql_query = f"SELECT * FROM events WHERE {where_clause} LIMIT 100;"
+        #logger.debug(f"SQL query constructed: {sql_query}")
 
         cached_results = await subscription_obj.fetch_data_from_cache(
             str(subscription_obj.filters), redis_client
@@ -207,19 +209,17 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
     except psycopg.Error as exc:
         logger.error(f"Error occurred: {str(exc)}", exc_info=True)
-        return JSONResponse(content="None", status_code=500)
+        #return JSONResponse(content="None", status_code=500)
+        return await subscription_obj.sub_response_builder(
+                "EOSE", subscription_obj.subscription_id, "", 500
+            )
 
     except Exception as exc:
         logger.error(f"General exception occurred: {exc}", exc_info=True)
         #return JSONResponse(content={"error": str(exc)}, status_code=500)
-        return JSONResponse(
-            content={
-                "event": event_type,
-                "subscription_id": subscription_obj.subscription_id,
-                "results_json": results_json,
-            },
-            status_code=500,
-        )
+        return await subscription_obj.sub_response_builder(
+                "EOSE", subscription_obj.subscription_id, "", 500
+            )
 
 
 if __name__ == "__main__":

@@ -107,7 +107,7 @@ class Subscription:
         self.filters = request_payload.get("event_dict", {})
         self.subscription_id = request_payload.get("subscription_id")
         self.where_clause = None
-        self.base_query = f"SELECT * FROM events WHERE {self.where_clause};"
+        self.base_query = f"SELECT * FROM events WHERE {self.where_clause} LIMIT 100;"
         self.column_names = [
             "id",
             "pubkey",
@@ -246,6 +246,21 @@ class Subscription:
             return tag_values, query_parts
         else:
             return {}, {}
+        
+    async def base_query_builder(self, tag_values, query_parts, logger):
+        try:
+            if query_parts:
+                self.where_clause = " AND ".join(query_parts)
+    
+            if tag_values:
+                tag_clause = await self.generate_tag_clause(tag_values)
+                self.where_clause += f" AND {tag_clause}"
+            logger.debug(f"SQL query constructed: {self.base_query}")
+            return self.base_query
+        except Exception as exc:
+            logger.error(f"Error building query: {exc}", exc_info=True)
+            return None
+
 
     async def sub_response_builder(
         self, event_type, subscription_id, results_json, http_status_code
