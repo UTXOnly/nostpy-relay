@@ -106,8 +106,8 @@ class Subscription:
     def __init__(self, request_payload: dict) -> None:
         self.filters = request_payload.get("event_dict", {})
         self.subscription_id = request_payload.get("subscription_id")
-        self.where_clause = None
-        self.base_query = f"SELECT * FROM events WHERE {self.where_clause} LIMIT 100;"
+        #@self.where_clause = None
+        #@self.base_query = f"SELECT * FROM events WHERE {self.where_clause} LIMIT 100;"
         self.column_names = [
             "id",
             "pubkey",
@@ -256,6 +256,8 @@ class Subscription:
             if tag_values:
                 tag_clause = await self.generate_tag_clause(tag_values)
                 self.where_clause += f" AND {tag_clause}"
+
+            self.base_query = f"SELECT * FROM events WHERE {self.where_clause} LIMIT 100;"
             logger.debug(f"SQL query constructed: {self.base_query}")
             return self.base_query
         except Exception as exc:
