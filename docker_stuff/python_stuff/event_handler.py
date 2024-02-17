@@ -149,7 +149,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
             subscription_obj.filters, logger
         )
         logger.debug(f"Tag values: {tag_values} and query parts {query_parts} are: ")
-        where_clause = " AND ".join(query_parts)
+        if query_parts:
+            where_clause = " AND ".join(query_parts)
 
         if tag_values:
             tag_clause = await subscription_obj.generate_tag_clause(tag_values)
