@@ -339,8 +339,9 @@ async def handle_websocket_connection(
                     )
                 elif ws_message.event_type == "CLOSE":
                     response: Tuple[str, str] = (
-                        "NOTICE",
-                        f"closing {ws_message.subscription_id}",
+                        "CLOSED",
+                        ws_message.subscription_id
+                        #f"closing {ws_message.subscription_id}",
                     )
                     await websocket.send(json.dumps(response))
 
