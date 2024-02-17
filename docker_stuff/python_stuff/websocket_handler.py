@@ -1,5 +1,6 @@
 import hashlib
 import json
+import ast
 import logging
 from collections import defaultdict
 from logging.handlers import RotatingFileHandler
@@ -191,12 +192,12 @@ class ExtractedResponse:
             # return json.loads(stripped)
             stripped = stripped.replace("'", '"')
             logger.debug(f"Returning stripped {stripped}")
-            return json.loads(stripped)
+            #return json.loads(stripped)
+            return ast.literal_eval(stripped)
         except Exception as exc:
             logger.error(f"Process events exc is {exc}", exc_info=True )
             return ""
-        # return ast.literal_eval(stripped)
-
+        # 
     async def format_response(self):
         """
         Formats the response based on the event type.
