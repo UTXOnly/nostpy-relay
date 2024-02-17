@@ -128,7 +128,9 @@ class Subscription:
         return complete_query
 
     async def sanitize_event_keys(self, filters, logger) -> Dict:
+        updated_keys = {}
         try:
+            
             try:
                 # limit_var = filters.get("limit")
                 filters.pop("limit")
@@ -142,7 +144,7 @@ class Subscription:
                 "kinds": "kind",
                 "ids": "id",
             }
-            updated_keys = {}
+            
             if len(filters) > 0:
                 for key in filters:
                     new_key = key_mappings.get(key, key)
