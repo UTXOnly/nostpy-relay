@@ -184,11 +184,16 @@ class ExtractedResponse:
 
     #
     async def _process_event(self, event_result):
-        stripped = str(event_result)[1:-1]
-        # logger.info(f"Stripped var is {stripped} and of type : {type(stripped)}")
-        # return json.loads(stripped)
-        stripped = stripped.replace("'", '"')
-        return json.loads(stripped)
+        try:
+            stripped = str(event_result)[1:-1]
+            logger.info(f"Stripped var is {stripped} and of type : {type(stripped)}")
+            # return json.loads(stripped)
+            stripped = stripped.replace("'", '"')
+            logger.debug(f"Returning stripped {stripped}")
+            return json.loads(stripped)
+        except Exception as exc:
+            logger.error(f"Process events exc is {exc}", exc_info=True )
+            return ""
         # return ast.literal_eval(stripped)
 
     async def format_response(self):
