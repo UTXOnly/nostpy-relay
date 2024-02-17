@@ -438,6 +438,7 @@ async def send_subscription_to_handler(
             await websocket.send(json.dumps(EOSE))
         else:
             await websocket.send(json.dumps(EOSE))
+            await websocket.send(json.dumps("CLOSED", subscription_id, "I don't have any response"))
             logger.debug(f"Response data is {response_data} but it failed")
 
 
