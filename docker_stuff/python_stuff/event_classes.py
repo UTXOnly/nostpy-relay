@@ -157,7 +157,7 @@ class Subscription:
             return updated_keys
         except Exception as e:
             logger.error(f"An unexpected error occurred: {e}")
-            return updated_keys
+            return None
 
     async def parse_sanitized_keys(self, updated_keys, logger) -> Tuple[List, List]:
         query_parts = []
@@ -199,7 +199,7 @@ class Subscription:
             return tag_values, query_parts
         except Exception as exc:
             logger.warning(f"query not sanitized (maybe empty value), error is: {exc}")
-            return [], []
+            return tag_values, query_parts
 
     async def generate_query(self, tags) -> str:
         base_query = (
@@ -242,7 +242,9 @@ class Subscription:
             tag_values, query_parts = await self.parse_sanitized_keys(
                 updated_keys, logger
             )
-        return tag_values, query_parts
+            return tag_values, query_parts
+        else:
+            return None, {}
 
     async def sub_response_builder(
         self, event_type, subscription_id, results_json, http_status_code
