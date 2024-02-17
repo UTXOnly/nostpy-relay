@@ -164,7 +164,7 @@ class ExtractedResponse:
             self.results = json.loads(response_data["results_json"])
         except json.JSONDecodeError as json_error:
             logger.error(
-                f"Error decoding JSON message in Extracted REsponse: {json_error}. The json results were {response_data["results_json"]} of troy {type(response_data["results_json"])})} "
+                f"Error decoding JSON message in Extracted REsponse: {json_error}. The json results were {response_data["results_json"]} of troy {type(response_data["results_json"])}) "
             )
             self.results = ""
 
