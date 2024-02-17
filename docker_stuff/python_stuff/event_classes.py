@@ -249,6 +249,7 @@ class Subscription:
         
     async def base_query_builder(self, tag_values, query_parts, logger):
         try:
+            logger.debug(f"Base q builder, tg is {tag_values}, qp is {query_parts}")
             if query_parts:
                 self.where_clause = " AND ".join(query_parts)
     
