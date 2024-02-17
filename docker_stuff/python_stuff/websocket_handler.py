@@ -12,6 +12,10 @@ import websockets
 from datadog import initialize, statsd
 from ddtrace import tracer
 
+
+import websockets.exceptions
+from aiohttp.client_exceptions import ClientConnectionError
+
 options: Dict[str, Any] = {"statsd_host": "172.28.0.5", "statsd_port": 8125}
 
 initialize(**options)
@@ -19,7 +23,7 @@ initialize(**options)
 tracer.configure(hostname="172.28.0.5", port=8126)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 log_file: str = "./logs/websocket_handler.log"
 handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
@@ -277,8 +281,6 @@ unique_sessions = []
 client_ips = []
 
 
-import websockets.exceptions
-from aiohttp.client_exceptions import ClientConnectionError
 
 
 async def handle_websocket_connection(
@@ -342,23 +344,23 @@ async def handle_websocket_connection(
                 f"WebSocket connection closed unexpectedly: {close_error}",
                 exc_info=True,
             )
-            # Optionally retry the connection or handle the closure gracefully
+
 
         except ClientConnectionError as connection_error:
             logger.error(
                 f"Connection error occurred: {connection_error}", exc_info=True
             )
-            # Optionally retry the connection or handle the error gracefully
+
 
         except aiohttp.ClientError as client_error:
             logger.error(f"HTTP client error occurred: {client_error}", exc_info=True)
-            # Handle HTTP client errors as needed
+
 
         except Exception as e:
             logger.error(
                 f"Error occurred while processing WebSocket message: {e}", exc_info=True
             )
-            # Add any necessary handling for other exceptions here
+
 
 
 async def send_event_to_handler(
