@@ -340,7 +340,8 @@ async def handle_websocket_connection(
                 elif ws_message.event_type == "CLOSE":
                     response: Tuple[str, str] = (
                         "CLOSED",
-                        ws_message.subscription_id
+                        ws_message.subscription_id,
+                        f"Closing {ws_message.subscription_id}"
                         #f"closing {ws_message.subscription_id}",
                     )
                     await websocket.send(json.dumps(response))
@@ -439,7 +440,7 @@ async def send_subscription_to_handler(
             await websocket.send(json.dumps(EOSE))
         else:
             await websocket.send(json.dumps(EOSE))
-            await websocket.send(json.dumps("CLOSED", subscription_id, "I don't have any response"))
+            await websocket.send(json.dumps(("CLOSED", subscription_id, "I don't have any response")))
             logger.debug(f"Response data is {response_data} but it failed")
 
 
