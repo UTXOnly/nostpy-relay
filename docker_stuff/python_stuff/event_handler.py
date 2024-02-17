@@ -211,7 +211,15 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
     except Exception as exc:
         logger.error(f"General exception occurred: {exc}", exc_info=True)
-        return JSONResponse(content={"error": str(exc)}, status_code=500)
+        #return JSONResponse(content={"error": str(exc)}, status_code=500)
+        return JSONResponse(
+            content={
+                "event": event_type,
+                "subscription_id": subscription_obj.subscription_id,
+                "results_json": results_json,
+            },
+            status_code=500,
+        )
 
 
 if __name__ == "__main__":
