@@ -127,7 +127,6 @@ class Subscription:
         return complete_cluase
     
     def generate_search_clause(self, search_item):
-        if search_item:
             search_clause = (
                 " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
             )
@@ -135,8 +134,7 @@ class Subscription:
     
             complete_cluase = search_clause.format(" OR ".join(conditions))
             return complete_cluase
-        else: 
-            return None
+
 
 
     async def sanitize_event_keys(self, filters, logger) -> Dict:
@@ -257,7 +255,7 @@ class Subscription:
         else:
             return {}, {}, None, {}
 
-    def base_query_builder(self, tag_values, query_parts, limit, search_clause, logger):
+    def base_query_builder(self, tag_values, query_parts, limit, global_search, logger):
         try:
             if query_parts:
                 self.where_clause = " AND ".join(query_parts)
@@ -266,7 +264,8 @@ class Subscription:
                 tag_clause = self.generate_tag_clause(tag_values)
                 self.where_clause += f" AND {tag_clause}"
 
-            if search_clause:
+            if global_search:
+                search_clause = self.generate_search_clause(global_search)
                 self.where_clause += f" AND {search_clause}"
 
             if not limit:
