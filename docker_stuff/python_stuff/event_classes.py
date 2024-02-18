@@ -242,15 +242,15 @@ class Subscription:
             return None
 
     async def parse_filters(self, filters: dict, logger) -> tuple:
-        updated_keys, limit = await self.sanitize_event_keys(filters, logger)
+        updated_keys, limit, global_search = await self.sanitize_event_keys(filters, logger)
         logger.debug(f"Updated keys is: {updated_keys}")
         if updated_keys:
             tag_values, query_parts = await self.parse_sanitized_keys(
                 updated_keys, logger
             )
-            return tag_values, query_parts, limit
+            return tag_values, query_parts, limit, global_search
         else:
-            return {}, {}, None
+            return {}, {}, None, {}
 
     def base_query_builder(self, tag_values, query_parts, limit, search_clause, logger):
         try:
