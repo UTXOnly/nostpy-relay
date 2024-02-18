@@ -118,7 +118,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
                 await event_obj.add_event(conn, cur)
                 statsd.increment("nostr.event.added.count", tags=["func:new_event"])
-                return await event_obj.evt_response("true", 200)
+                return event_obj.evt_response("true", 200)
 
     except psycopg.IntegrityError as e:
         conn.rollback()
@@ -148,11 +148,11 @@ async def handle_subscription(request: Request) -> JSONResponse:
             subscription_obj.filters, logger
         )
 
-        sql_query = await subscription_obj.base_query_builder(
+        sql_query = subscription_obj.base_query_builder(
             tag_values, query_parts, limit, logger
         )
 
-        cached_results = await subscription_obj.fetch_data_from_cache(
+        cached_results = subscription_obj.fetch_data_from_cache(
             str(subscription_obj.filters), redis_client
         )
 
@@ -169,7 +169,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         redis_client.setex(
                             str(subscription_obj.filters), 240, serialized_events
                         )
-                        return_response = await subscription_obj.sub_response_builder(
+                        return_response = subscription_obj.sub_response_builder(
                             "EVENT",
                             subscription_obj.subscription_id,
                             serialized_events,
@@ -178,7 +178,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         return return_response
 
                     else:
-                        return await subscription_obj.sub_response_builder(
+                        return subscription_obj.sub_response_builder(
                             "EOSE", subscription_obj.subscription_id, "", 200
                         )
 
@@ -189,24 +189,24 @@ async def handle_subscription(request: Request) -> JSONResponse:
             if not parse_var:
                 event_type = "EOSE"
                 results_json = ""
-            return await subscription_obj.sub_response_builder(
+            return subscription_obj.sub_response_builder(
                 event_type, subscription_obj.subscription_id, results_json, 200
             )
 
         else:
-            return await subscription_obj.sub_response_builder(
+            return subscription_obj.sub_response_builder(
                 "EOSE", subscription_obj.subscription_id, "", 200
             )
 
     except psycopg.Error as exc:
         logger.error(f"Error occurred: {str(exc)}", exc_info=True)
-        return await subscription_obj.sub_response_builder(
+        return subscription_obj.sub_response_builder(
             "EOSE", subscription_obj.subscription_id, "", 500
         )
 
     except Exception as exc:
         logger.error(f"General exception occurred: {exc}", exc_info=True)
-        return await subscription_obj.sub_response_builder(
+        return subscription_obj.sub_response_builder(
             "EOSE", subscription_obj.subscription_id, "", 500
         )
 

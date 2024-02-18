@@ -71,7 +71,7 @@ class Event:
         )
         await conn.commit()
 
-    async def evt_response(self, results_json, http_status_code):
+    def evt_response(self, results_json, http_status_code):
         response = {
             "event": "OK",
             "subscription_id": "n0stafarian419",
@@ -118,7 +118,7 @@ class Subscription:
             "sig",
         ]
 
-    async def generate_tag_clause(self, tags) -> str:
+    def generate_tag_clause(self, tags) -> str:
         tag_clause = (
             " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
         )
@@ -207,14 +207,6 @@ class Subscription:
             )
             return tag_values, query_parts
 
-    async def generate_query(self, tags) -> str:
-        base_query = (
-            "EXISTS (SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
-        )
-        or_conditions = " OR ".join(f"elem @> '{tag}'" for tag in tags)
-        complete_query = base_query.format(or_conditions)
-        return complete_query
-
     async def _parser_worker(self, record, column_added) -> None:
         row_result = {}
         i = 0
@@ -234,7 +226,7 @@ class Subscription:
         except:
             return None
 
-    async def fetch_data_from_cache(self, redis_key, redis_client) -> bytes:
+    def fetch_data_from_cache(self, redis_key, redis_client) -> bytes:
         cached_data = redis_client.get(redis_key)
         if cached_data:
             return cached_data
@@ -252,14 +244,14 @@ class Subscription:
         else:
             return {}, {}, None
 
-    async def base_query_builder(self, tag_values, query_parts, limit, logger):
+    def base_query_builder(self, tag_values, query_parts, limit, logger):
         try:
             logger.debug(f"Base q builder, tg is {tag_values}, qp is {query_parts}")
             if query_parts:
                 self.where_clause = " AND ".join(query_parts)
 
             if tag_values:
-                tag_clause = await self.generate_tag_clause(tag_values)
+                tag_clause = self.generate_tag_clause(tag_values)
                 self.where_clause += f" AND {tag_clause}"
 
             if not limit:
@@ -272,7 +264,7 @@ class Subscription:
             logger.error(f"Error building query: {exc}", exc_info=True)
             return None
 
-    async def sub_response_builder(
+    def sub_response_builder(
         self, event_type, subscription_id, results_json, http_status_code
     ):
         return JSONResponse(
