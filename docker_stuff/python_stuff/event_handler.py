@@ -179,7 +179,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
                     else:
                         redis_client.setex(
-                            str(subscription_obj.filters), 240, {}
+                            str(subscription_obj.filters), 240, ""
                         )
                         return subscription_obj.sub_response_builder(
                             "EOSE", subscription_obj.subscription_id, "", 200
