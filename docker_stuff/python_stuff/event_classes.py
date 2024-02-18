@@ -106,8 +106,6 @@ class Subscription:
     def __init__(self, request_payload: dict) -> None:
         self.filters = request_payload.get("event_dict", {})
         self.subscription_id = request_payload.get("subscription_id")
-        # @self.where_clause = None
-        # @self.base_query = f"SELECT * FROM events WHERE {self.where_clause} LIMIT 100;"
         self.column_names = [
             "id",
             "pubkey",
@@ -124,8 +122,18 @@ class Subscription:
         )
         conditions = [f"elem @> '{json.dumps(tag_pair)}'" for tag_pair in tags]
 
-        complete_query = tag_clause.format(" OR ".join(conditions))
-        return complete_query
+        complete_cluase = tag_clause.format(" OR ".join(conditions))
+        return complete_cluase
+    
+    def generate_search_clause(self, search_item):
+        search_clause = (
+            " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
+        )
+        conditions = [f"elem::text LIKE '%{search_item}%"]
+
+        complete_cluase = search_clause.format(" OR ".join(conditions))
+        return complete_cluase
+
 
     async def sanitize_event_keys(self, filters, logger) -> Dict:
         updated_keys = {}
@@ -136,6 +144,12 @@ class Subscription:
                 filters.pop("limit")
             except:
                 logger.debug(f"No limit")
+
+            try:
+                global_search = filters.get("search", {})
+                filters.pop("search")
+            except:
+                logger.debug(f"No search item")
 
             key_mappings = {
                 "authors": "pubkey",
@@ -152,10 +166,10 @@ class Subscription:
                     else:
                         updated_keys[key] = filters[key]
 
-            return updated_keys, limit
+            return updated_keys, limit, global_search
         except Exception as e:
             logger.error(f"An unexpected error occurred: {e}", exc_info=True)
-            return updated_keys, limit
+            return updated_keys, limit, global_search
 
     async def parse_sanitized_keys(self, updated_keys, logger) -> Tuple[List, List]:
         query_parts = []
@@ -238,7 +252,7 @@ class Subscription:
         else:
             return {}, {}, None
 
-    def base_query_builder(self, tag_values, query_parts, limit, logger):
+    def base_query_builder(self, tag_values, query_parts, limit, search_clause, logger):
         try:
             if query_parts:
                 self.where_clause = " AND ".join(query_parts)
@@ -246,6 +260,9 @@ class Subscription:
             if tag_values:
                 tag_clause = self.generate_tag_clause(tag_values)
                 self.where_clause += f" AND {tag_clause}"
+
+            if search_clause:
+                self.where_clause += f" AND {search_clause}"
 
             if not limit:
                 limit = 100

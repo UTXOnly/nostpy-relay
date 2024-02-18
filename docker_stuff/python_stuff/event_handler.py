@@ -144,12 +144,14 @@ async def handle_subscription(request: Request) -> JSONResponse:
             )
 
         logger.debug(f"Fiters are: {subscription_obj.filters}")
-        tag_values, query_parts, limit = await subscription_obj.parse_filters(
+        tag_values, query_parts, limit, global_search = await subscription_obj.parse_filters(
             subscription_obj.filters, logger
         )
 
+        search_clause = subscription_obj.generate_search_clause(global_search)
+
         sql_query = subscription_obj.base_query_builder(
-            tag_values, query_parts, limit, logger
+            tag_values, query_parts, limit, search_clause, logger
         )
 
         cached_results = subscription_obj.fetch_data_from_cache(
