@@ -178,14 +178,20 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         return return_response
 
                     else:
+                        redis_client.setex(
+                            str(subscription_obj.filters), 240, {}
+                        )
                         return subscription_obj.sub_response_builder(
                             "EOSE", subscription_obj.subscription_id, "", 200
                         )
 
         elif cached_results:
             event_type = "EVENT"
-            parse_var = json.loads(cached_results.decode("utf-8"))
-            results_json = json.dumps(parse_var)
+            try:
+                parse_var = json.loads(cached_results.decode("utf-8"))
+                results_json = json.dumps(parse_var)
+            except:
+                logger.warning("Empty cache results, sending EOSE")
             if not parse_var:
                 event_type = "EOSE"
                 results_json = ""
