@@ -265,7 +265,7 @@ class Subscription:
             if not limit:
                 limit = 100
 
-            self.base_query = f"SELECT * FROM events WHERE {self.where_clause} LIMIT {limit} ORDER BY created_at;"
+            self.base_query = f"SELECT * FROM events WHERE {self.where_clause} ORDER BY created_at LIMIT {limit} ;"
             logger.debug(f"SQL query constructed: {self.base_query}")
             return self.base_query
         except Exception as exc:
