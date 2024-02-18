@@ -134,7 +134,7 @@ class Subscription:
             try:
                 limit = filters.get("limit", 100)
                 filters.pop("limit")
-                #filters["limit"]
+                # filters["limit"]
             except:
                 logger.debug(f"No limit")
             # filters["limit"] = min(200, limit_var)
@@ -154,8 +154,7 @@ class Subscription:
                         updated_keys[new_key] = stored_val
                     else:
                         updated_keys[key] = filters[key]
-            
-            
+
             return updated_keys, limit
         except Exception as e:
             logger.error(f"An unexpected error occurred: {e}", exc_info=True)
@@ -240,7 +239,7 @@ class Subscription:
             tag_values, query_parts = await self.parse_sanitized_keys(
                 updated_keys, logger
             )
-            return tag_values, query_parts , limit
+            return tag_values, query_parts, limit
         else:
             return {}, {}, None
 

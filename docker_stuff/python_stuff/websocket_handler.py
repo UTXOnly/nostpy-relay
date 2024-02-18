@@ -165,9 +165,8 @@ class ExtractedResponse:
             self.results = json.loads(response_data["results_json"])
         except json.JSONDecodeError as json_error:
             logger.error(
-                f"Error decoding JSON message in Extracted REsponse: {json_error}."
-            )  # The json results were {response_data["results_json"]} of troy {type(response_data["results_json"])}) "
-
+                f"Error decoding JSON message in Extracted Response: {json_error}."
+            )
             self.results = ""
 
         self.comment = ""
@@ -189,11 +188,6 @@ class ExtractedResponse:
         try:
             logger.debug(f"event_result var is {event_result}")
             stripped = str(event_result)[1:-1]
-            logger.info(f"Stripped var is {stripped} and of type : {type(stripped)}")
-            # return json.loads(stripped)
-            # stripped = stripped.replace("'", '"')
-            logger.debug(f"Returning stripped {stripped}")
-            # return json.loads(stripped)
             return ast.literal_eval(stripped)
         except Exception as exc:
             logger.error(f"Process events exc is {exc}", exc_info=True)
@@ -307,9 +301,8 @@ async def handle_websocket_connection(
                         )
                 except json.JSONDecodeError as json_error:
                     logger.error(f"Error decoding JSON message: {json_error}")
-                    continue  # Skip processing this message
+                    continue
 
-                logger.debug(f"UUID = {ws_message.uuid}")
                 statsd.increment(
                     "nostr.new_connection.count",
                     tags=[
@@ -317,7 +310,30 @@ async def handle_websocket_connection(
                         f"nostr_client:{ws_message.origin}",
                     ],
                 )
-                logger.debug(f"WS event payload is {ws_message.event_payload}")
+
+                if not await rate_limiter.check_request(
+                    ws_message.obfuscated_client_ip
+                ):
+                    logger.warning(
+                        f"Rate limit exceeded for client: {ws_message.obfuscated_client_ip}"
+                    )
+                    rate_limit_response = (
+                        "OK",
+                        "nostafarian419",
+                        "false",
+                        "rate-limited: slow your roll nostrich",
+                    )
+                    statsd.increment(
+                        "nostr.client.rate_limited.count",
+                        tags=[
+                            f"client_ip:{ws_message.obfuscated_client_ip}",
+                            f"nostr_client:{ws_message.origin}",
+                        ],
+                    )
+                    await websocket.send(json.dumps(rate_limit_response))
+                    await websocket.close()
+                    return
+
                 if ws_message.event_type == "EVENT":
                     logger.debug(
                         f"Event to be sent payload is: {ws_message.event_payload} of type {type(ws_message.event_payload)}"
@@ -342,7 +358,7 @@ async def handle_websocket_connection(
                     response: Tuple[str, str] = (
                         "CLOSED",
                         ws_message.subscription_id,
-                        "error: shutting down idle subscription"
+                        "error: shutting down idle subscription",
                     )
                     await websocket.send(json.dumps(response))
 
@@ -374,7 +390,6 @@ async def send_event_to_handler(
     url: str = "http://event_handler/new_event"
     try:
         async with session.post(url, data=json.dumps(event_dict)) as response:
-            logger.debug(f"Response event handler variable is {response}")
             response_data: Dict[str, Any] = await response.json()
             logger.debug(
                 f"Received response from Event Handler {response_data}, data types is {type(response_data)}"
@@ -396,7 +411,6 @@ async def send_event_loop(response_list, websocket):
     tasks = []
 
     for event_item in response_list:
-        logger.debug(f"Final response from REQ to ws client: {event_item}")
         task = asyncio.create_task(websocket.send(json.dumps(event_item)))
         tasks.append(task)
 
@@ -425,13 +439,10 @@ async def send_subscription_to_handler(
             await websocket.send(json.dumps(["EOSE", subscription_id]))
             return
         response_object = ExtractedResponse(response_data=response_data)
-
-        logger.debug(f"Response received as: {response_data}")
         EOSE = "EOSE", response_object.subscription_id
 
         if response.status == 200 and response_object.event_type == "EVENT":
             response_list = await response_object.format_response()
-            logger.debug(f"Response list is : {response_list}")
             await send_event_loop(response_list, websocket)
             await websocket.send(json.dumps(EOSE))
         else:
@@ -440,7 +451,7 @@ async def send_subscription_to_handler(
 
 
 if __name__ == "__main__":
-    # gitrate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=30000)
+    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=30000)
 
     try:
         start_server = websockets.serve(handle_websocket_connection, "0.0.0.0", 8008)
