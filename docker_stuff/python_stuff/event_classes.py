@@ -144,7 +144,7 @@ class Subscription:
         return complete_cluase
 
 
-    async def sanitize_event_keys(self, filters, logger) -> Dict:
+    async def _sanitize_event_keys(self, filters, logger) -> Dict:
         updated_keys = {}
         limit = ""
         global_search = {}
@@ -181,7 +181,7 @@ class Subscription:
             logger.error(f"An unexpected error occurred: {e}", exc_info=True)
             return updated_keys, limit, global_search
 
-    async def parse_sanitized_keys(self, updated_keys, logger) -> Tuple[List, List]:
+    async def _parse_sanitized_keys(self, updated_keys, logger) -> Tuple[List, List]:
         query_parts = []
         tag_values = []
 
@@ -252,10 +252,10 @@ class Subscription:
             return None
 
     async def parse_filters(self, filters: dict, logger) -> tuple:
-        updated_keys, limit, global_search = await self.sanitize_event_keys(filters, logger)
+        updated_keys, limit, global_search = await self._sanitize_event_keys(filters, logger)
         logger.debug(f"Updated keys is: {updated_keys}")
         if updated_keys:
-            tag_values, query_parts = await self.parse_sanitized_keys(
+            tag_values, query_parts = await self._parse_sanitized_keys(
                 updated_keys, logger
             )
             return tag_values, query_parts, limit, global_search
@@ -275,7 +275,7 @@ class Subscription:
                 search_clause = self._generate_search_clause(global_search)
                 search_content = self._search_content(global_search)
                 self.where_clause += f" AND {search_clause}"
-                self.where_clause += f" AND {search_content}"
+                self.where_clause += f" OR {search_content}"
 
             if not limit:
                 limit = 100
