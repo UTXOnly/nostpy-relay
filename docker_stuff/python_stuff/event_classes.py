@@ -117,7 +117,7 @@ class Subscription:
             "sig",
         ]
 
-    def generate_tag_clause(self, tags) -> str:
+    def _generate_tag_clause(self, tags) -> str:
         tag_clause = (
             " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
         )
@@ -126,7 +126,7 @@ class Subscription:
         complete_cluase = tag_clause.format(" OR ".join(conditions))
         return complete_cluase
     
-    def generate_search_clause(self, search_item):
+    def _generate_search_clause(self, search_item):
             search_clause = (
                 " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
             )
@@ -134,7 +134,14 @@ class Subscription:
     
             complete_cluase = search_clause.format(" OR ".join(conditions))
             return complete_cluase
-
+    
+    def _search_content(self, search_item):
+        search_clause = (
+            f"content "
+        )
+        conditions = [f"LIKE '%{search_item}%'"]
+        complete_cluase = search_clause.format(" OR ".join(conditions))
+        return complete_cluase
 
 
     async def sanitize_event_keys(self, filters, logger) -> Dict:
@@ -261,12 +268,14 @@ class Subscription:
                 self.where_clause = " AND ".join(query_parts)
 
             if tag_values:
-                tag_clause = self.generate_tag_clause(tag_values)
+                tag_clause = self._generate_tag_clause(tag_values)
                 self.where_clause += f" AND {tag_clause}"
 
             if global_search:
-                search_clause = self.generate_search_clause(global_search)
+                search_clause = self._generate_search_clause(global_search)
+                search_content = self._search_content(global_search)
                 self.where_clause += f" AND {search_clause}"
+                self.where_clause += f"AND {search_content}"
 
             if not limit:
                 limit = 100
