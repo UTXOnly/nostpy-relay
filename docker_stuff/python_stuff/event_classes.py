@@ -6,21 +6,21 @@ from fastapi.responses import JSONResponse
 
 class Event:
     """
-       Represents an event object with attributes such as event ID, public key, kind, created timestamp, tags, content, and signature.
-   
-       Attributes:
-           event_id (str): The ID of the event.
-           pubkey (str): The public key associated with the event.
-           kind (int): The type or kind of the event.
-           created_at (int): The timestamp when the event was created.
-           tags (List): A list of tags associated with the event.
-           content (str): The content of the event.
-           sig (str): The signature of the event.
-   
-       Methods:
-           delete_check: Checks and deletes the event from the database.
-           add_event: Adds the event to the database.
-           evt_response: Builds and returns the JSON response for the event.
+    Represents an event object with attributes such as event ID, public key, kind, created timestamp, tags, content, and signature.
+
+    Attributes:
+        event_id (str): The ID of the event.
+        pubkey (str): The public key associated with the event.
+        kind (int): The type or kind of the event.
+        created_at (int): The timestamp when the event was created.
+        tags (List): A list of tags associated with the event.
+        content (str): The content of the event.
+        sig (str): The signature of the event.
+
+    Methods:
+        delete_check: Checks and deletes the event from the database.
+        add_event: Adds the event to the database.
+        evt_response: Builds and returns the JSON response for the event.
     """
 
     def __init__(
@@ -106,8 +106,8 @@ class Subscription:
     def __init__(self, request_payload: dict) -> None:
         self.filters = request_payload.get("event_dict", {})
         self.subscription_id = request_payload.get("subscription_id")
-        #@self.where_clause = None
-        #@self.base_query = f"SELECT * FROM events WHERE {self.where_clause} LIMIT 100;"
+        # @self.where_clause = None
+        # @self.base_query = f"SELECT * FROM events WHERE {self.where_clause} LIMIT 100;"
         self.column_names = [
             "id",
             "pubkey",
@@ -129,11 +129,12 @@ class Subscription:
 
     async def sanitize_event_keys(self, filters, logger) -> Dict:
         updated_keys = {}
+        limit = ""
         try:
-            
             try:
-                # limit_var = filters.get("limit")
+                limit = filters.get("limit", 100)
                 filters.pop("limit")
+                #filters["limit"]
             except:
                 logger.debug(f"No limit")
             # filters["limit"] = min(200, limit_var)
@@ -144,7 +145,7 @@ class Subscription:
                 "kinds": "kind",
                 "ids": "id",
             }
-            
+
             if len(filters) > 0:
                 for key in filters:
                     new_key = key_mappings.get(key, key)
@@ -153,11 +154,12 @@ class Subscription:
                         updated_keys[new_key] = stored_val
                     else:
                         updated_keys[key] = filters[key]
-
-            return updated_keys
+            
+            
+            return updated_keys, limit
         except Exception as e:
             logger.error(f"An unexpected error occurred: {e}", exc_info=True)
-            return updated_keys
+            return updated_keys, limit
 
     async def parse_sanitized_keys(self, updated_keys, logger) -> Tuple[List, List]:
         query_parts = []
@@ -199,7 +201,10 @@ class Subscription:
             logger.debug(f"Returning parse san key {tag_values} and qp: {query_parts}")
             return tag_values, query_parts
         except Exception as exc:
-            logger.warning(f"query not sanitized (maybe empty value) tv is {tag_values}, qp is {query_parts}, error is: {exc}", exc_info=True)
+            logger.warning(
+                f"query not sanitized (maybe empty value) tv is {tag_values}, qp is {query_parts}, error is: {exc}",
+                exc_info=True,
+            )
             return tag_values, query_parts
 
     async def generate_query(self, tags) -> str:
@@ -237,33 +242,35 @@ class Subscription:
             return None
 
     async def parse_filters(self, filters: dict, logger) -> tuple:
-        updated_keys = await self.sanitize_event_keys(filters, logger)
+        updated_keys, limit = await self.sanitize_event_keys(filters, logger)
         logger.debug(f"Updated keys is: {updated_keys}")
         if updated_keys:
             tag_values, query_parts = await self.parse_sanitized_keys(
                 updated_keys, logger
             )
-            return tag_values, query_parts
+            return tag_values, query_parts , limit
         else:
-            return {}, {}
-        
-    async def base_query_builder(self, tag_values, query_parts, logger):
+            return {}, {}, None
+
+    async def base_query_builder(self, tag_values, query_parts, limit, logger):
         try:
             logger.debug(f"Base q builder, tg is {tag_values}, qp is {query_parts}")
             if query_parts:
                 self.where_clause = " AND ".join(query_parts)
-    
+
             if tag_values:
                 tag_clause = await self.generate_tag_clause(tag_values)
                 self.where_clause += f" AND {tag_clause}"
 
-            self.base_query = f"SELECT * FROM events WHERE {self.where_clause} LIMIT 100;"
+            if not limit:
+                limit = 100
+
+            self.base_query = f"SELECT * FROM events WHERE {self.where_clause} LIMIT {limit} ORDER BY created_at;"
             logger.debug(f"SQL query constructed: {self.base_query}")
             return self.base_query
         except Exception as exc:
             logger.error(f"Error building query: {exc}", exc_info=True)
             return None
-
 
     async def sub_response_builder(
         self, event_type, subscription_id, results_json, http_status_code

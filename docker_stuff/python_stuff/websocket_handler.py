@@ -165,7 +165,8 @@ class ExtractedResponse:
             self.results = json.loads(response_data["results_json"])
         except json.JSONDecodeError as json_error:
             logger.error(
-                f"Error decoding JSON message in Extracted REsponse: {json_error}.")# The json results were {response_data["results_json"]} of troy {type(response_data["results_json"])}) "
+                f"Error decoding JSON message in Extracted REsponse: {json_error}."
+            )  # The json results were {response_data["results_json"]} of troy {type(response_data["results_json"])}) "
 
             self.results = ""
 
@@ -190,14 +191,15 @@ class ExtractedResponse:
             stripped = str(event_result)[1:-1]
             logger.info(f"Stripped var is {stripped} and of type : {type(stripped)}")
             # return json.loads(stripped)
-            #stripped = stripped.replace("'", '"')
+            # stripped = stripped.replace("'", '"')
             logger.debug(f"Returning stripped {stripped}")
-            #return json.loads(stripped)
+            # return json.loads(stripped)
             return ast.literal_eval(stripped)
         except Exception as exc:
-            logger.error(f"Process events exc is {exc}", exc_info=True )
+            logger.error(f"Process events exc is {exc}", exc_info=True)
             return ""
-        # 
+        #
+
     async def format_response(self):
         """
         Formats the response based on the event type.
@@ -288,8 +290,6 @@ unique_sessions = []
 client_ips = []
 
 
-
-
 async def handle_websocket_connection(
     websocket: websockets.WebSocketServerProtocol,
 ) -> None:
@@ -344,7 +344,7 @@ async def handle_websocket_connection(
                         "CLOSED",
                         ws_message.subscription_id,
                         "error: shutting down idle subscription"
-                        #f"closing {ws_message.subscription_id}",
+                        # f"closing {ws_message.subscription_id}",
                     )
                     await websocket.send(json.dumps(response))
 
@@ -354,22 +354,18 @@ async def handle_websocket_connection(
                 exc_info=True,
             )
 
-
         except ClientConnectionError as connection_error:
             logger.error(
                 f"Connection error occurred: {connection_error}", exc_info=True
             )
 
-
         except aiohttp.ClientError as client_error:
             logger.error(f"HTTP client error occurred: {client_error}", exc_info=True)
-
 
         except Exception as e:
             logger.error(
                 f"Error occurred while processing WebSocket message: {e}", exc_info=True
             )
-
 
 
 async def send_event_to_handler(
@@ -442,7 +438,15 @@ async def send_subscription_to_handler(
             await websocket.send(json.dumps(EOSE))
         else:
             await websocket.send(json.dumps(EOSE))
-            await websocket.send(json.dumps(("CLOSED", subscription_id, "unsupported: filter contains unknown elements")))
+            await websocket.send(
+                json.dumps(
+                    (
+                        "CLOSED",
+                        subscription_id,
+                        "unsupported: filter contains unknown elements",
+                    )
+                )
+            )
             logger.debug(f"Response data is {response_data} but it failed")
 
 

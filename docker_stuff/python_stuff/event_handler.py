@@ -113,7 +113,6 @@ async def handle_new_event(request: Request) -> JSONResponse:
     try:
         async with request.app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
-                
                 if event_obj.kind in {0, 3}:
                     await event_obj.delete_check(conn, cur, statsd)
 
@@ -145,21 +144,13 @@ async def handle_subscription(request: Request) -> JSONResponse:
             )
 
         logger.debug(f"Fiters are: {subscription_obj.filters}")
-        tag_values, query_parts = await subscription_obj.parse_filters(
+        tag_values, query_parts, limit = await subscription_obj.parse_filters(
             subscription_obj.filters, logger
         )
 
-        sql_query = await subscription_obj.base_query_builder(tag_values, query_parts, logger)
-        #logger.debug(f"Tag values: {tag_values} and query parts {query_parts} are: ")
-        #if query_parts:
-        #    where_clause = " AND ".join(query_parts)
-#
-        #if tag_values:
-        #    tag_clause = await subscription_obj.generate_tag_clause(tag_values)
-        #    where_clause += f" AND {tag_clause}"
-#
-        #sql_query = f"SELECT * FROM events WHERE {where_clause} LIMIT 100;"
-        #logger.debug(f"SQL query constructed: {sql_query}")
+        sql_query = await subscription_obj.base_query_builder(
+            tag_values, query_parts, limit, logger
+        )
 
         cached_results = await subscription_obj.fetch_data_from_cache(
             str(subscription_obj.filters), redis_client
@@ -209,17 +200,15 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
     except psycopg.Error as exc:
         logger.error(f"Error occurred: {str(exc)}", exc_info=True)
-        #return JSONResponse(content="None", status_code=500)
         return await subscription_obj.sub_response_builder(
-                "EOSE", subscription_obj.subscription_id, "", 500
-            )
+            "EOSE", subscription_obj.subscription_id, "", 500
+        )
 
     except Exception as exc:
         logger.error(f"General exception occurred: {exc}", exc_info=True)
-        #return JSONResponse(content={"error": str(exc)}, status_code=500)
         return await subscription_obj.sub_response_builder(
-                "EOSE", subscription_obj.subscription_id, "", 500
-            )
+            "EOSE", subscription_obj.subscription_id, "", 500
+        )
 
 
 if __name__ == "__main__":
