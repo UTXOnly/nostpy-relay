@@ -138,6 +138,7 @@ class Subscription:
     async def sanitize_event_keys(self, filters, logger) -> Dict:
         updated_keys = {}
         limit = ""
+        global_search = {}
         try:
             try:
                 limit = filters.get("limit", 100)
