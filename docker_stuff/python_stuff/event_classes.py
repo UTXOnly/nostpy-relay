@@ -129,7 +129,7 @@ class Subscription:
         search_clause = (
             " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
         )
-        conditions = [f"elem::text LIKE '%{search_item}%"]
+        conditions = [f"elem::text LIKE '%{search_item}%'"]
 
         complete_cluase = search_clause.format(" OR ".join(conditions))
         return complete_cluase
