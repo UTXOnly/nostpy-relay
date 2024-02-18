@@ -295,7 +295,6 @@ async def handle_websocket_connection(
 ) -> None:
     global unique_sessions, client_ips
     conn = aiohttp.TCPConnector(limit=500)
-    # Create a single aiohttp session per WebSocket connection
     async with aiohttp.ClientSession(connector=conn) as session:
         try:
             async for message in websocket:
@@ -344,7 +343,6 @@ async def handle_websocket_connection(
                         "CLOSED",
                         ws_message.subscription_id,
                         "error: shutting down idle subscription"
-                        # f"closing {ws_message.subscription_id}",
                     )
                     await websocket.send(json.dumps(response))
 
@@ -429,7 +427,7 @@ async def send_subscription_to_handler(
         response_object = ExtractedResponse(response_data=response_data)
 
         logger.debug(f"Response received as: {response_data}")
-        EOSE: Tuple[str, Optional[str]] = "EOSE", response_object.subscription_id
+        EOSE = "EOSE", response_object.subscription_id
 
         if response.status == 200 and response_object.event_type == "EVENT":
             response_list = await response_object.format_response()
@@ -438,15 +436,6 @@ async def send_subscription_to_handler(
             await websocket.send(json.dumps(EOSE))
         else:
             await websocket.send(json.dumps(EOSE))
-            await websocket.send(
-                json.dumps(
-                    (
-                        "CLOSED",
-                        subscription_id,
-                        "unsupported: filter contains unknown elements",
-                    )
-                )
-            )
             logger.debug(f"Response data is {response_data} but it failed")
 
 
