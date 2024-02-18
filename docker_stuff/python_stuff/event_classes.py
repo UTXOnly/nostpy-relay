@@ -137,7 +137,7 @@ class Subscription:
     
     def _search_content(self, search_item):
         search_clause = (
-            f"content "
+            "content {}"
         )
         conditions = [f"LIKE '%{search_item}%'"]
         complete_cluase = search_clause.format(" OR ".join(conditions))
@@ -275,7 +275,7 @@ class Subscription:
                 search_clause = self._generate_search_clause(global_search)
                 search_content = self._search_content(global_search)
                 self.where_clause += f" AND {search_clause}"
-                self.where_clause += f"AND {search_content}"
+                self.where_clause += f" AND {search_content}"
 
             if not limit:
                 limit = 100
