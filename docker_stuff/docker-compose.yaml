@@ -106,6 +106,7 @@ services:
       - DD_CONTAINER_EXCLUDE="image:datadog/agent:latest"
       - DD_LOG_LEVEL=info
       - DD_REMOTE_CONFIGURATION_ENABLED=true
+      - DD_LOGS_CONFIG_AUTO_MULTI_LINE_DETECTION=true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
@@ -130,6 +131,15 @@ services:
     networks:
       my_network:
         ipv4_address: 172.28.0.5
+
+  redis:
+    image: redis:latest
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
+    networks:
+      my_network:
+        ipv4_address: 172.28.0.6
 
 volumes:
   postgres_data:
