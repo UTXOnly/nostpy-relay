@@ -2,7 +2,7 @@
 **Enhancements**
 * Re-added redis cache to serve frequent queries faster
 * Added event classes to `event_handler` service for readability and portability
-* More efficent use of coroutines
+* More efficient  use of coroutines
   * Use `asyncio.gather` to prepare and send responses to websocket client
   * Converted async methods to sync methods where appropriate to reduce overhead
 * Added auto-multiline log detection for Datadog agent to more easily read stack traces
@@ -10,7 +10,7 @@
 * Better error handling for empty responses
 
 **Bug Fixes**
-* Fixed `websocket_handler` JSON loads error that occured when loading empty payloads to no longer restart the websocket server
+* Fixed `websocket_handler` JSON loads error that occurred when loading empty payloads to no longer restart the websocket server
   * Server continues and maintains the websocket connection
 
 ## v0.6
