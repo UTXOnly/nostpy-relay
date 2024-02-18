@@ -7,6 +7,7 @@ from logging.handlers import RotatingFileHandler
 import psycopg
 import redis
 import uvicorn
+
 from datadog import initialize, statsd
 from ddtrace import tracer
 from dotenv import load_dotenv
@@ -23,7 +24,6 @@ options = {"statsd_host": "172.28.0.5", "statsd_port": 8125}
 initialize(**options)
 
 redis_client = redis.Redis(host="172.28.0.6", port=6379)
-
 
 tracer.configure(hostname="172.28.0.5", port=8126)
 redis_client: redis.Redis = redis.Redis(host="172.28.0.6", port=6379)
@@ -178,9 +178,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         return return_response
 
                     else:
-                        redis_client.setex(
-                            str(subscription_obj.filters), 240, ""
-                        )
+                        redis_client.setex(str(subscription_obj.filters), 240, "")
                         return subscription_obj.sub_response_builder(
                             "EOSE", subscription_obj.subscription_id, "", 200
                         )

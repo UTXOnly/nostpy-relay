@@ -134,11 +134,8 @@ class Subscription:
             try:
                 limit = filters.get("limit", 100)
                 filters.pop("limit")
-                # filters["limit"]
             except:
                 logger.debug(f"No limit")
-            # filters["limit"] = min(200, limit_var)
-            logger.debug(f"Filters are: {filters}")
 
             key_mappings = {
                 "authors": "pubkey",
@@ -163,7 +160,6 @@ class Subscription:
     async def parse_sanitized_keys(self, updated_keys, logger) -> Tuple[List, List]:
         query_parts = []
         tag_values = []
-        logger.debug(f"parse san keys rec updatred keys = {updated_keys}")
 
         try:
             for item in updated_keys:
@@ -197,7 +193,6 @@ class Subscription:
                 array_search = f"{item} = ANY(ARRAY {updated_keys[item]})"
                 query_parts.append(array_search)
 
-            logger.debug(f"Returning parse san key {tag_values} and qp: {query_parts}")
             return tag_values, query_parts
         except Exception as exc:
             logger.warning(
@@ -245,7 +240,6 @@ class Subscription:
 
     def base_query_builder(self, tag_values, query_parts, limit, logger):
         try:
-            logger.debug(f"Base q builder, tg is {tag_values}, qp is {query_parts}")
             if query_parts:
                 self.where_clause = " AND ".join(query_parts)
 
