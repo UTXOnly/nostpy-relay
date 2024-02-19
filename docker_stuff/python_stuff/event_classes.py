@@ -58,6 +58,7 @@ class Event:
         event_values = []
         extracted_events = [event for event in self.tags]
         for array in extracted_events:
+            logger.info(f"Array is {array}")
             if array[0].startswith(("#e", "#a")):
                 event_values.append(array[1])
         logger.info(f"Returning ev : {event_values}")
