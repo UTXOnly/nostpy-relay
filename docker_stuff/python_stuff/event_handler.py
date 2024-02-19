@@ -118,10 +118,11 @@ async def handle_new_event(request: Request) -> JSONResponse:
                 elif event_obj.kind == 5:
                     logger.info(f" event obj kind is {event_obj.kind}")
                     logger.info(f"ev tags is {event_obj.tags}")
-                    if event_obj.verify_signature(logger):
+                    if await event_obj.verify_signature(logger):
                         events_to_delete = await event_obj.parse_kind5(logger)
                         logger.info(f"ev to del is {events_to_delete}")
                         await event_obj.delete_event(conn, cur, events_to_delete, logger)
+                        return event_obj.evt_response("true", 200)
                     else:
                         return event_obj.evt_response("flase", 200)
 
