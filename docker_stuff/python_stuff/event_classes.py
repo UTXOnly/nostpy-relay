@@ -121,7 +121,7 @@ class Subscription:
         tag_clause = (
             " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
         )
-        conditions = [f"elem @> '{json.dumps(tag_pair)}'" for tag_pair in tags]
+        conditions = [f"elem @> '{tag_pair}'" for tag_pair in tags]
 
         complete_cluase = tag_clause.format(" OR ".join(conditions))
         return complete_cluase
@@ -274,8 +274,9 @@ class Subscription:
             if global_search:
                 search_clause = self._generate_search_clause(global_search)
                 search_content = self._search_content(global_search)
-                self.where_clause += f" AND {search_clause}"
-                self.where_clause += f" OR {search_content}"
+                self.where_clause += f" AND {search_content}"
+                self.where_clause += f" OR {search_clause}"
+                
 
             if not limit:
                 limit = 100
