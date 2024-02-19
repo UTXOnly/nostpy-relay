@@ -120,7 +120,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     logger.info(f"ev tags is {event_obj.tags}")
                     events_to_delete = await event_obj.parse_kind5(logger)
                     logger.info(f"ev to del is {events_to_delete}")
-                    await event_obj.delete_event(conn, cur, events_to_delete)
+                    await event_obj.delete_event(conn, cur, events_to_delete, logger)
                 else:
                     await event_obj.add_event(conn, cur)
                     statsd.increment("nostr.event.added.count", tags=["func:new_event"])
