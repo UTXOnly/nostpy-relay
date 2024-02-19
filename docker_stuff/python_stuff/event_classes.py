@@ -276,12 +276,10 @@ class Subscription:
                 search_content = self._search_content(global_search)
                 self.where_clause += f" AND ({search_content} OR {search_clause})"
 
-                
-
             if not limit:
                 limit = 100
 
-            self.base_query = f"SELECT * FROM events WHERE {self.where_clause} ORDER BY created_at LIMIT {limit} ;"
+            self.base_query = f"SELECT * FROM events WHERE {self.where_clause} ORDER BY created_at DESC LIMIT {limit} ;"
             logger.debug(f"SQL query constructed: {self.base_query}")
             return self.base_query
         except Exception as exc:
