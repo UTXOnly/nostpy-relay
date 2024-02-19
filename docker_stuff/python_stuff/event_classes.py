@@ -56,7 +56,8 @@ class Event:
 
     async def parse_kind5(self, logger) -> None:
         event_values = []
-        extracted_events = [[key, value] for key, value in self.tags]
+        extracted_events = [key for key in self.tags]
+        logger.info(f"ex events is {extracted_events} of type {type(extracted_events)}")
         for array in extracted_events:
             logger.info(f"Array is {array}")
             if array[0].startswith(("#e", "#a")):
