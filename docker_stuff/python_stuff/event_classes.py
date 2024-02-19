@@ -80,16 +80,14 @@ class Event:
         return event_values
 
     async def delete_event(self, conn, cur, delete_events, logger) -> bool:
-        logger.info(f" delete_events var is {delete_events}")
+        logger.info(f"delete_events var is {delete_events}")
         delete_statement = """
         DELETE FROM events
-        WHERE id = {};
+        WHERE id = ANY(%s) AND pubkey = %s;
         """
-        conditions = [f"'{event_id}'" for event_id in delete_events]
-        logger.info(f"conditions is {conditions}")
-        complete_clause = delete_statement.format(" OR ".join(conditions))
-        logger.info(f"complete cluase is {complete_clause}")
-        await cur.execute(complete_clause)
+        event_ids = [event_id for event_id in delete_events]
+        logger.info(f"event_ids is {event_ids}")
+        await cur.execute(delete_statement, (event_ids, self.pubkey))
         await conn.commit()
 
         
