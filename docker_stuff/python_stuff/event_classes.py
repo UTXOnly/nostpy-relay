@@ -2,6 +2,7 @@ import asyncio
 import json
 from typing import List, Tuple, Dict
 from fastapi.responses import JSONResponse
+import secp256k1
 
 
 class Event:
@@ -44,6 +45,19 @@ class Event:
     def __str__(self) -> str:
         return f"{self.event_id}, {self.pubkey}, {self.kind}, {self.created_at}, {self.tags}, {self.content}, {self.sig} "
 
+    async def verify_signature(self, logger) -> bool:
+        try:
+            pub_key: secp256k1.PublicKey = secp256k1.PublicKey(bytes.fromhex("02" + self.pubkey), True)
+            result: bool = pub_key.schnorr_verify(bytes.fromhex(self.event_id), bytes.fromhex(self.sig), None, raw=True)
+            if result:
+                logger.info(f"Verification successful for event: {self.event_id}")
+            else:
+                logger.error(f"Verification failed for event: {self.event_id}")
+            return result
+        except (ValueError, TypeError, secp256k1.Error) as e:
+            logger.error(f"Error verifying signature for event {self.event_id}: {e}")
+            return False
+        
     async def delete_check(self, conn, cur, statsd) -> None:
         delete_query = """
         DELETE FROM events
