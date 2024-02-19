@@ -113,11 +113,14 @@ async def handle_new_event(request: Request) -> JSONResponse:
     try:
         async with request.app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
-                if event_obj.kind in {0, 3}:
+                if event_obj.kind in [0, 3]:
                     await event_obj.delete_check(conn, cur, statsd)
-
-                await event_obj.add_event(conn, cur)
-                statsd.increment("nostr.event.added.count", tags=["func:new_event"])
+                elif event_obj.kind == 5:
+                    events_to_delete = await event_obj.parse_kind5()
+                    await event_obj.delete_event(conn, cur, events_to_delete)
+                else:
+                    await event_obj.add_event(conn, cur)
+                    statsd.increment("nostr.event.added.count", tags=["func:new_event"])
                 return event_obj.evt_response("true", 200)
 
     except psycopg.IntegrityError as e:

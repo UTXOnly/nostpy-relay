@@ -54,6 +54,25 @@ class Event:
         statsd.increment("nostr.event.deleted.count", tags=["func:new_event"])
         await conn.commit()
 
+    async def parse_kind5(self, deletion_event):
+        event_values = []
+        extracted_events = [event for event in self.tags]
+        for array in extracted_events:
+            if array[0].startswith(("#e", "#a")):
+                event_values.append(array[1])
+        return event_values
+
+    async def delete_event(self, conn, cur, delete_events) -> bool:
+        delete_statement = """
+        DELETE FROM events
+        WHERE id = {}
+        """
+        conditions = [f"{event_id}" for event_id in delete_events]
+        complete_clause = delete_statement.format(" OR ".join(conditions))
+        await cur.execute(complete_clause)
+        await conn.commit()
+
+        
     async def add_event(self, conn, cur) -> None:
         await cur.execute(
             """
@@ -132,16 +151,16 @@ class Subscription:
             )
             conditions = [f"elem::text LIKE '%{search_item}%'"]
     
-            complete_cluase = search_clause.format(" OR ".join(conditions))
-            return complete_cluase
+            complete_clause = search_clause.format(" OR ".join(conditions))
+            return complete_clause
     
     def _search_content(self, search_item):
         search_clause = (
             "content {}"
         )
         conditions = [f"LIKE '%{search_item}%'"]
-        complete_cluase = search_clause.format(" OR ".join(conditions))
-        return complete_cluase
+        complete_clause = search_clause.format(" OR ".join(conditions))
+        return complete_clause
 
 
     async def _sanitize_event_keys(self, filters, logger) -> Dict:
@@ -276,7 +295,7 @@ class Subscription:
                 search_content = self._search_content(global_search)
                 self.where_clause += f" AND ({search_content} OR {search_clause})"
 
-            if not limit:
+            if not limit or limit > 100:
                 limit = 100
 
             self.base_query = f"SELECT * FROM events WHERE {self.where_clause} ORDER BY created_at DESC LIMIT {limit} ;"
