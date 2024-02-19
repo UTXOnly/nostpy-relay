@@ -54,7 +54,7 @@ class Event:
         statsd.increment("nostr.event.deleted.count", tags=["func:new_event"])
         await conn.commit()
 
-    async def parse_kind5(self, deletion_event):
+    async def parse_kind5(self) -> None:
         event_values = []
         extracted_events = [event for event in self.tags]
         for array in extracted_events:
