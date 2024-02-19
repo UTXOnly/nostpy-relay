@@ -71,7 +71,7 @@ class Event:
         DELETE FROM events
         WHERE id = {};
         """
-        conditions = [f"{event_id}" for event_id in delete_events]
+        conditions = [f"'{event_id}'" for event_id in delete_events]
         logger.info(f"conditions is {conditions}")
         complete_clause = delete_statement.format(" OR ".join(conditions))
         logger.info(f"complete cluase is {complete_clause}")
