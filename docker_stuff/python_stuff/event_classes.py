@@ -45,7 +45,7 @@ class Event:
     def __str__(self) -> str:
         return f"{self.event_id}, {self.pubkey}, {self.kind}, {self.created_at}, {self.tags}, {self.content}, {self.sig} "
 
-    async def verify_signature(self, logger) -> bool:
+    def verify_signature(self, logger) -> bool:
         try:
             pub_key: secp256k1.PublicKey = secp256k1.PublicKey(bytes.fromhex("02" + self.pubkey), True)
             result: bool = pub_key.schnorr_verify(bytes.fromhex(self.event_id), bytes.fromhex(self.sig), None, raw=True)
@@ -68,7 +68,7 @@ class Event:
         statsd.increment("nostr.event.deleted.count", tags=["func:new_event"])
         await conn.commit()
 
-    async def parse_kind5(self, logger) -> None:
+    def parse_kind5(self, logger) -> None:
         event_values = [self.tags[key][1] for key in self.tags]
         logger.info(f"Returning ev : {event_values}")
         return event_values
