@@ -69,7 +69,8 @@ class Event:
         await conn.commit()
 
     def parse_kind5(self, logger) -> None:
-        event_values = [self.tags[key][1] for key in self.tags]
+        extracted_events = [key for key in self.tags]
+        event_values = [array[1] for array in extracted_events]
         logger.info(f"Returning ev : {event_values}")
         return event_values
 
