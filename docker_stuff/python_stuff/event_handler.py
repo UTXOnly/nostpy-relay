@@ -113,11 +113,21 @@ async def handle_new_event(request: Request) -> JSONResponse:
     try:
         async with request.app.async_pool.connection() as conn:
             async with conn.cursor() as cur:
-                if event_obj.kind in {0, 3}:
+                if event_obj.kind in [0, 3]:
                     await event_obj.delete_check(conn, cur, statsd)
+                elif event_obj.kind == 5:
+                    if event_obj.verify_signature(logger):
+                        events_to_delete = event_obj.parse_kind5(statsd)
+                        await event_obj.delete_event(
+                            conn, cur, events_to_delete, logger
+                        )
+                        return event_obj.evt_response("true", 200)
+                    else:
+                        return event_obj.evt_response("flase", 200)
 
-                await event_obj.add_event(conn, cur)
-                statsd.increment("nostr.event.added.count", tags=["func:new_event"])
+                else:
+                    await event_obj.add_event(conn, cur)
+                    statsd.increment("nostr.event.added.count", tags=["func:new_event"])
                 return event_obj.evt_response("true", 200)
 
     except psycopg.IntegrityError as e:
@@ -144,12 +154,15 @@ async def handle_subscription(request: Request) -> JSONResponse:
             )
 
         logger.debug(f"Fiters are: {subscription_obj.filters}")
-        tag_values, query_parts, limit = await subscription_obj.parse_filters(
-            subscription_obj.filters, logger
-        )
+        (
+            tag_values,
+            query_parts,
+            limit,
+            global_search,
+        ) = await subscription_obj.parse_filters(subscription_obj.filters, logger)
 
         sql_query = subscription_obj.base_query_builder(
-            tag_values, query_parts, limit, logger
+            tag_values, query_parts, limit, global_search, logger
         )
 
         cached_results = subscription_obj.fetch_data_from_cache(

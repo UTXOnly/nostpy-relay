@@ -2,6 +2,7 @@ import asyncio
 import json
 from typing import List, Tuple, Dict
 from fastapi.responses import JSONResponse
+import secp256k1
 
 
 class Event:
@@ -44,6 +45,23 @@ class Event:
     def __str__(self) -> str:
         return f"{self.event_id}, {self.pubkey}, {self.kind}, {self.created_at}, {self.tags}, {self.content}, {self.sig} "
 
+    def verify_signature(self, logger) -> bool:
+        try:
+            pub_key: secp256k1.PublicKey = secp256k1.PublicKey(
+                bytes.fromhex("02" + self.pubkey), True
+            )
+            result: bool = pub_key.schnorr_verify(
+                bytes.fromhex(self.event_id), bytes.fromhex(self.sig), None, raw=True
+            )
+            if result:
+                logger.info(f"Verification successful for event: {self.event_id}")
+            else:
+                logger.error(f"Verification failed for event: {self.event_id}")
+            return result
+        except (ValueError, TypeError, secp256k1.Error) as e:
+            logger.error(f"Error verifying signature for event {self.event_id}: {e}")
+            return False
+
     async def delete_check(self, conn, cur, statsd) -> None:
         delete_query = """
         DELETE FROM events
@@ -52,6 +70,21 @@ class Event:
         await cur.execute(delete_query, (self.pubkey, self.kind))
         statsd.decrement("nostr.event.added.count", tags=["func:new_event"])
         statsd.increment("nostr.event.deleted.count", tags=["func:new_event"])
+        await conn.commit()
+
+    def parse_kind5(self, statsd) -> List:
+        event_values = [array[1] for array in self.tags]
+        statsd.decrement("nostr.event.added.count", tags=["func:new_event"])
+        statsd.increment("nostr.event.deleted.count", tags=["func:new_event"])
+        return event_values
+
+    async def delete_event(self, conn, cur, delete_events, logger) -> bool:
+        delete_statement = """
+        DELETE FROM events
+        WHERE id = ANY(%s) AND pubkey = %s;
+        """
+        event_ids = [event_id for event_id in delete_events]
+        await cur.execute(delete_statement, (event_ids, self.pubkey))
         await conn.commit()
 
     async def add_event(self, conn, cur) -> None:
@@ -106,8 +139,7 @@ class Subscription:
     def __init__(self, request_payload: dict) -> None:
         self.filters = request_payload.get("event_dict", {})
         self.subscription_id = request_payload.get("subscription_id")
-        # @self.where_clause = None
-        # @self.base_query = f"SELECT * FROM events WHERE {self.where_clause} LIMIT 100;"
+        self.where_clause = ""
         self.column_names = [
             "id",
             "pubkey",
@@ -118,24 +150,46 @@ class Subscription:
             "sig",
         ]
 
-    def generate_tag_clause(self, tags) -> str:
+    def _generate_tag_clause(self, tags) -> str:
         tag_clause = (
             " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
         )
-        conditions = [f"elem @> '{json.dumps(tag_pair)}'" for tag_pair in tags]
+        conditions = [f"elem @> '{tag_pair}'" for tag_pair in tags]
 
-        complete_query = tag_clause.format(" OR ".join(conditions))
-        return complete_query
+        complete_cluase = tag_clause.format(" OR ".join(conditions))
+        return complete_cluase
 
-    async def sanitize_event_keys(self, filters, logger) -> Dict:
+    def _search_tags(self, search_item):
+        search_clause = (
+            " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
+        )
+        conditions = [f"elem::text LIKE '%{search_item}%'"]
+
+        complete_clause = search_clause.format(" OR ".join(conditions))
+        return complete_clause
+
+    def _search_content(self, search_item):
+        search_clause = "content {}"
+        conditions = [f"LIKE '%{search_item}%'"]
+        complete_clause = search_clause.format(" OR ".join(conditions))
+        return complete_clause
+
+    async def _sanitize_event_keys(self, filters, logger) -> Dict:
         updated_keys = {}
         limit = ""
+        global_search = {}
         try:
             try:
                 limit = filters.get("limit", 100)
                 filters.pop("limit")
             except:
                 logger.debug(f"No limit")
+
+            try:
+                global_search = filters.get("search", {})
+                filters.pop("search")
+            except:
+                logger.debug(f"No search item")
 
             key_mappings = {
                 "authors": "pubkey",
@@ -152,12 +206,12 @@ class Subscription:
                     else:
                         updated_keys[key] = filters[key]
 
-            return updated_keys, limit
+            return updated_keys, limit, global_search
         except Exception as e:
             logger.error(f"An unexpected error occurred: {e}", exc_info=True)
-            return updated_keys, limit
+            return updated_keys, limit, global_search
 
-    async def parse_sanitized_keys(self, updated_keys, logger) -> Tuple[List, List]:
+    async def _parse_sanitized_keys(self, updated_keys, logger) -> Tuple[List, List]:
         query_parts = []
         tag_values = []
 
@@ -228,29 +282,36 @@ class Subscription:
             return None
 
     async def parse_filters(self, filters: dict, logger) -> tuple:
-        updated_keys, limit = await self.sanitize_event_keys(filters, logger)
+        updated_keys, limit, global_search = await self._sanitize_event_keys(
+            filters, logger
+        )
         logger.debug(f"Updated keys is: {updated_keys}")
         if updated_keys:
-            tag_values, query_parts = await self.parse_sanitized_keys(
+            tag_values, query_parts = await self._parse_sanitized_keys(
                 updated_keys, logger
             )
-            return tag_values, query_parts, limit
+            return tag_values, query_parts, limit, global_search
         else:
-            return {}, {}, None
+            return {}, {}, None, {}
 
-    def base_query_builder(self, tag_values, query_parts, limit, logger):
+    def base_query_builder(self, tag_values, query_parts, limit, global_search, logger):
         try:
             if query_parts:
                 self.where_clause = " AND ".join(query_parts)
 
             if tag_values:
-                tag_clause = self.generate_tag_clause(tag_values)
+                tag_clause = self._generate_tag_clause(tag_values)
                 self.where_clause += f" AND {tag_clause}"
 
-            if not limit:
+            if global_search:
+                search_clause = self._search_tags(global_search)
+                search_content = self._search_content(global_search)
+                self.where_clause += f" AND ({search_content} OR {search_clause})"
+
+            if not limit or limit > 100:
                 limit = 100
 
-            self.base_query = f"SELECT * FROM events WHERE {self.where_clause} ORDER BY created_at LIMIT {limit} ;"
+            self.base_query = f"SELECT * FROM events WHERE {self.where_clause} ORDER BY created_at DESC LIMIT {limit} ;"
             logger.debug(f"SQL query constructed: {self.base_query}")
             return self.base_query
         except Exception as exc:
