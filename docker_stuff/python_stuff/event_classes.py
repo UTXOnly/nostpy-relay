@@ -164,13 +164,13 @@ class Subscription:
         return complete_cluase
     
     def _search_tags(self, search_item):
-            search_clause = (
-                " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
-            )
-            conditions = [f"elem::text LIKE '%{search_item}%'"]
-    
-            complete_clause = search_clause.format(" OR ".join(conditions))
-            return complete_clause
+        search_clause = (
+            " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
+        )
+        conditions = [f"elem::text LIKE '%{search_item}%'"]
+
+        complete_clause = search_clause.format(" OR ".join(conditions))
+        return complete_clause
     
     def _search_content(self, search_item):
         search_clause = (
