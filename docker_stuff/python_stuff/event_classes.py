@@ -47,8 +47,12 @@ class Event:
 
     def verify_signature(self, logger) -> bool:
         try:
-            pub_key: secp256k1.PublicKey = secp256k1.PublicKey(bytes.fromhex("02" + self.pubkey), True)
-            result: bool = pub_key.schnorr_verify(bytes.fromhex(self.event_id), bytes.fromhex(self.sig), None, raw=True)
+            pub_key: secp256k1.PublicKey = secp256k1.PublicKey(
+                bytes.fromhex("02" + self.pubkey), True
+            )
+            result: bool = pub_key.schnorr_verify(
+                bytes.fromhex(self.event_id), bytes.fromhex(self.sig), None, raw=True
+            )
             if result:
                 logger.info(f"Verification successful for event: {self.event_id}")
             else:
@@ -57,7 +61,7 @@ class Event:
         except (ValueError, TypeError, secp256k1.Error) as e:
             logger.error(f"Error verifying signature for event {self.event_id}: {e}")
             return False
-        
+
     async def delete_check(self, conn, cur, statsd) -> None:
         delete_query = """
         DELETE FROM events
@@ -68,24 +72,23 @@ class Event:
         statsd.increment("nostr.event.deleted.count", tags=["func:new_event"])
         await conn.commit()
 
-    def parse_kind5(self, logger) -> None:
-        extracted_events = [key for key in self.tags]
-        event_values = [array[1] for array in extracted_events]
-        logger.info(f"Returning ev : {event_values}")
+    def parse_kind5(self, statsd) -> List:
+        #extracted_events = [key for key in self.tags]
+        #event_values = [array[1] for array in extracted_events]
+        event_values = [array[1] for array in self.tags]
+        statsd.decrement("nostr.event.added.count", tags=["func:new_event"])
+        statsd.increment("nostr.event.deleted.count", tags=["func:new_event"])
         return event_values
 
     async def delete_event(self, conn, cur, delete_events, logger) -> bool:
-        logger.info(f"delete_events var is {delete_events}")
         delete_statement = """
         DELETE FROM events
         WHERE id = ANY(%s) AND pubkey = %s;
         """
         event_ids = [event_id for event_id in delete_events]
-        logger.info(f"event_ids is {event_ids}")
         await cur.execute(delete_statement, (event_ids, self.pubkey))
         await conn.commit()
 
-        
     async def add_event(self, conn, cur) -> None:
         await cur.execute(
             """
@@ -157,7 +160,7 @@ class Subscription:
 
         complete_cluase = tag_clause.format(" OR ".join(conditions))
         return complete_cluase
-    
+
     def _search_tags(self, search_item):
         search_clause = (
             " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
@@ -166,15 +169,12 @@ class Subscription:
 
         complete_clause = search_clause.format(" OR ".join(conditions))
         return complete_clause
-    
+
     def _search_content(self, search_item):
-        search_clause = (
-            "content {}"
-        )
+        search_clause = "content {}"
         conditions = [f"LIKE '%{search_item}%'"]
         complete_clause = search_clause.format(" OR ".join(conditions))
         return complete_clause
-
 
     async def _sanitize_event_keys(self, filters, logger) -> Dict:
         updated_keys = {}
@@ -284,7 +284,9 @@ class Subscription:
             return None
 
     async def parse_filters(self, filters: dict, logger) -> tuple:
-        updated_keys, limit, global_search = await self._sanitize_event_keys(filters, logger)
+        updated_keys, limit, global_search = await self._sanitize_event_keys(
+            filters, logger
+        )
         logger.debug(f"Updated keys is: {updated_keys}")
         if updated_keys:
             tag_values, query_parts = await self._parse_sanitized_keys(

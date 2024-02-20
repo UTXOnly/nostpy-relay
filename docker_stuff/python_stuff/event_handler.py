@@ -116,12 +116,11 @@ async def handle_new_event(request: Request) -> JSONResponse:
                 if event_obj.kind in [0, 3]:
                     await event_obj.delete_check(conn, cur, statsd)
                 elif event_obj.kind == 5:
-                    logger.info(f" event obj kind is {event_obj.kind}")
-                    logger.info(f"ev tags is {event_obj.tags}")
                     if event_obj.verify_signature(logger):
-                        events_to_delete = event_obj.parse_kind5(logger)
-                        logger.info(f"ev to del is {events_to_delete}")
-                        await event_obj.delete_event(conn, cur, events_to_delete, logger)
+                        events_to_delete = event_obj.parse_kind5(statsd)
+                        await event_obj.delete_event(
+                            conn, cur, events_to_delete, logger
+                        )
                         return event_obj.evt_response("true", 200)
                     else:
                         return event_obj.evt_response("flase", 200)
@@ -155,9 +154,12 @@ async def handle_subscription(request: Request) -> JSONResponse:
             )
 
         logger.debug(f"Fiters are: {subscription_obj.filters}")
-        tag_values, query_parts, limit, global_search = await subscription_obj.parse_filters(
-            subscription_obj.filters, logger
-        )
+        (
+            tag_values,
+            query_parts,
+            limit,
+            global_search,
+        ) = await subscription_obj.parse_filters(subscription_obj.filters, logger)
 
         sql_query = subscription_obj.base_query_builder(
             tag_values, query_parts, limit, global_search, logger
