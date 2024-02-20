@@ -58,6 +58,11 @@ python3 menu.py
 
 This will bring up the menu below and you can control the program from there!
 
+**Usage notes**
+* Option 1 `Execute server setup script` needs to be run to create the `relay_service` user and set proper file permissions
+* After creating the `.env` that file is meant to stay encrypted(encrypted suring `Execute server script`), option2 `Start Nostpy relay` will not run unless the file is encypted
+  * You can encrypt/decrypt the file with option 5 
+
 
 
 ![Image 2023-09-15 at 8 44 45 AM](https://github.com/UTXOnly/nost-py/assets/49233513/ee40d91c-2e6a-48a8-a0a8-c14e25e8ff07)
@@ -83,14 +88,15 @@ This is relay is actively worked on, it's is only a proof of concept right now. 
 - [x] NIP-01: Basic protocol flow description
 - [x] NIP-02: Contact list and petnames
 - [x] NIP-04: Encrypted Direct Message
-- [] NIP-09: Event deletion
+- [x] NIP-09: Event deletion
 - [x] NIP-11: Relay information document
 - [] NIP-11a: Relay Information Document Extensions
-- [] NIP-12: Generic tag queries
 - [] NIP-13: Proof of Work
 - [x] NIP-15: End of Stored Events Notice
 - [x] NIP-16: Event Treatment
 - [x] NIP-25: Reactions
+- [x] NIP-50: Search Capability
+- [x] NIP-99: Classified Listings
 
 ### Contributing
 
