@@ -73,8 +73,6 @@ class Event:
         await conn.commit()
 
     def parse_kind5(self, statsd) -> List:
-        #extracted_events = [key for key in self.tags]
-        #event_values = [array[1] for array in extracted_events]
         event_values = [array[1] for array in self.tags]
         statsd.decrement("nostr.event.added.count", tags=["func:new_event"])
         statsd.increment("nostr.event.deleted.count", tags=["func:new_event"])

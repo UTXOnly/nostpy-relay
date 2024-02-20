@@ -12,7 +12,6 @@ from datadog import initialize, statsd
 from ddtrace import tracer
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
 
 from event_classes import Event, Subscription
 from psycopg_pool import AsyncConnectionPool
