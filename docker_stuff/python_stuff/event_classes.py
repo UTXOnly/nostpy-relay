@@ -75,8 +75,8 @@ class Event:
         for array in extracted_events:
             logger.info(f"Array is {array} and of type {type(array)}")
             logger.info(f"Array 0 is {array[0]}")
-            if array[0].startswith(("#e", "#a")):
-                event_values.append(array[1])
+
+            event_values.append(array[1])
         logger.info(f"Returning ev : {event_values}")
         return event_values
 
