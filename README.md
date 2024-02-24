@@ -10,7 +10,7 @@ A purely Python, easy to deploy nostr relay using `asyncio` & `websockets` to se
 
 
 
-A containerized Python relay paried with a Postgres databse, reachable via a NGINX reverse proxy. This has been tested on [Coracle](https://coracle.social), [Iris.to](https://Iris.to) and [Snort.social](https://Snort.social) clients and works for the NIPS listed below.
+A containerized Python relay paried with a Postgres databse, reachable via a NGINX reverse proxy. This has been tested on [Nostrudel](https://nostrudel.ninja/), [Iris.to](https://Iris.to) and [Snort.social](https://Snort.social) clients and works for the NIPS listed below.
 
 Numerous branches in development, trying to improve performance, reliability and ease of use. The Datadog branch deploys a Datadog agent container to collect logs, metrics and traces to better observe application performance.
 
