@@ -2,12 +2,7 @@
 
 ![Pylint_score](./pylint.svg) 
 
-[![Ubuntu Build](http://54.144.142.244:8080/buildStatus/icon?job=nostpy-build-containers-docker-compose-up&subject=Ubuntu%20Build)](http://54.144.142.244:8080/job/nostpy-build-containers-docker-compose-up/)
-
-[![Ubuntu Build](http://54.144.142.244:8080/buildStatus/icon?job=nostpy-build-containers-docker-compose-up/branch/optimize&subject=Dev%20Branch)](http://54.144.142.244:8080/job/nostpy-build-containers-docker-compose-up/)
-
-
-A simple and easy to deploy nostr relay using `asyncio` & `websockets` to server Nostr clients
+A purely Python, easy to deploy nostr relay using `asyncio` & `websockets` to server Nostr clients
 
 ## Description
 
@@ -15,7 +10,7 @@ A simple and easy to deploy nostr relay using `asyncio` & `websockets` to server
 
 
 
-A containerized Python relay paried with a Postgres databse, reachable via a NGINX reverse proxy. This has been tested on [Coracle](https://coracle.social), [Iris.to](https://Iris.to) and [Snort.social](https://Snort.social) clients and works for the NIPS listed below.
+A containerized Python relay paried with a Postgres databse, reachable via a NGINX reverse proxy. This has been tested on [Nostrudel](https://nostrudel.ninja/), [Iris.to](https://Iris.to) and [Snort.social](https://Snort.social) clients and works for the NIPS listed below.
 
 Numerous branches in development, trying to improve performance, reliability and ease of use. The Datadog branch deploys a Datadog agent container to collect logs, metrics and traces to better observe application performance.
 
@@ -45,6 +40,9 @@ DD_API_KEY=<YOUR_DATADOG_API_KEY>
 DOMAIN_NAME=<YOUR_DOMAIN_NAME>
 HEX_PUBKEY=<YOUR_HEX_PUBLIC_KEY_FOR_NIP_11>
 CONTACT=<YOUR_EMAIL_OR_NPUB>
+ENV_FILE_PATH=./docker_stuff/.env
+NGINX_FILE_PATH=/etc/nginx/sites-available/default
+VERSION=v0.8
 
 ```
 
@@ -58,12 +56,18 @@ python3 menu.py
 
 This will bring up the menu below and you can control the program from there!
 
+**Usage notes**
+* Option 1 `Execute server setup script` needs to be run to create the `relay_service` user and set proper file permissions
+* After creating the `.env` that file is meant to stay encrypted(encrypted suring `Execute server script`), option2 `Start Nostpy relay` will not run unless the file is encypted
+  * You can encrypt/decrypt the file with option 5 
+
 
 
 ![Image 2023-09-15 at 8 44 45 AM](https://github.com/UTXOnly/nost-py/assets/49233513/ee40d91c-2e6a-48a8-a0a8-c14e25e8ff07)
 
 
-![image](https://github.com/UTXOnly/nost-py/assets/49233513/c970f4a8-8af3-4b23-a6fe-3fc9bac49ec0)
+![Screenshot from 2024-02-23 21-15-49](https://github.com/UTXOnly/nost-py/assets/49233513/2119a053-3ebf-42b5-a996-2ccb87651c9e)
+
 
 
 ### Install demo
@@ -83,14 +87,15 @@ This is relay is actively worked on, it's is only a proof of concept right now. 
 - [x] NIP-01: Basic protocol flow description
 - [x] NIP-02: Contact list and petnames
 - [x] NIP-04: Encrypted Direct Message
-- [] NIP-09: Event deletion
+- [x] NIP-09: Event deletion
 - [x] NIP-11: Relay information document
 - [] NIP-11a: Relay Information Document Extensions
-- [] NIP-12: Generic tag queries
 - [] NIP-13: Proof of Work
 - [x] NIP-15: End of Stored Events Notice
 - [x] NIP-16: Event Treatment
 - [x] NIP-25: Reactions
+- [x] NIP-50: Search Capability
+- [x] NIP-99: Classified Listings
 
 ### Contributing
 

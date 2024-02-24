@@ -1,3 +1,15 @@
+## v0.8
+
+**Enhancements**
+* Completed feature request [#37 [FR] Support for NIP-50 (search capability) for both content and tags](https://github.com/UTXOnly/nost-py/issues/37)
+  * Support for [NIP-50](https://github.com/nostr-protocol/nips/blob/master/50.md#nip-50) search queries
+  * Searches `tags` and `content` fields
+  * Compatible with searching [NIP-99 Classified Listings](https://github.com/nostr-protocol/nips/blob/master/99.md)
+
+**Bug fixes**
+* Fixed [#39 [BUG] Escape characters included in tag query](https://github.com/UTXOnly/nost-py/issues/39) 
+* Fixed [#40 unbounded query limit](https://github.com/UTXOnly/nost-py/issues/40)
+
 ## v0.7
 **Enhancements**
 * Re-added redis cache to serve frequent queries faster
