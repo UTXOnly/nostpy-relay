@@ -2,12 +2,7 @@
 
 ![Pylint_score](./pylint.svg) 
 
-[![Ubuntu Build](http://54.144.142.244:8080/buildStatus/icon?job=nostpy-build-containers-docker-compose-up&subject=Ubuntu%20Build)](http://54.144.142.244:8080/job/nostpy-build-containers-docker-compose-up/)
-
-[![Ubuntu Build](http://54.144.142.244:8080/buildStatus/icon?job=nostpy-build-containers-docker-compose-up/branch/optimize&subject=Dev%20Branch)](http://54.144.142.244:8080/job/nostpy-build-containers-docker-compose-up/)
-
-
-A simple and easy to deploy nostr relay using `asyncio` & `websockets` to server Nostr clients
+A purely Python, easy to deploy nostr relay using `asyncio` & `websockets` to server Nostr clients
 
 ## Description
 
@@ -45,6 +40,9 @@ DD_API_KEY=<YOUR_DATADOG_API_KEY>
 DOMAIN_NAME=<YOUR_DOMAIN_NAME>
 HEX_PUBKEY=<YOUR_HEX_PUBLIC_KEY_FOR_NIP_11>
 CONTACT=<YOUR_EMAIL_OR_NPUB>
+ENV_FILE_PATH=./docker_stuff/.env
+NGINX_FILE_PATH=/etc/nginx/sites-available/default
+VERSION=v0.8
 
 ```
 
