@@ -5,6 +5,14 @@
   * Support for [NIP-50](https://github.com/nostr-protocol/nips/blob/master/50.md#nip-50) search queries
   * Searches `tags` and `content` fields
   * Compatible with searching [NIP-99 Classified Listings](https://github.com/nostr-protocol/nips/blob/master/99.md)
+ 
+* Completed feature request for [#38 [FR] Support NIP-09 Event Deletion](https://github.com/UTXOnly/nost-py/issues/38)
+  * Add support for NIP-09 event deletions
+  * Upon receiving a request from a client, relay will:
+    * Check if event is `kind 5`
+      * Validate the `sig` of the event
+      * Delete events where `pubkey` = `pubkey` from `kind 5` event (can only delete your own events)
+      * Respond to client with `["OK","true]` response
 
 **Bug fixes**
 * Fixed [#39 [BUG] Escape characters included in tag query](https://github.com/UTXOnly/nost-py/issues/39) 
