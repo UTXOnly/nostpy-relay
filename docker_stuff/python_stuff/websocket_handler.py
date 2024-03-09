@@ -160,7 +160,7 @@ class ExtractedResponse:
 
         """
         self.event_type = response_data["event"]
-        self.subscription_id = response_data["event_id"]
+        self.subscription_id = response_data["subscription_id"]
         try:
             self.results = json.loads(response_data["results_json"])
         except json.JSONDecodeError as json_error:
