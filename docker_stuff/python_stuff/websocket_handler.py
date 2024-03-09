@@ -168,8 +168,8 @@ class ExtractedResponse:
                 f"Error decoding JSON message in Extracted Response: {json_error}."
             )
             self.results = ""
-            
-        if self.event_type == "EVENT":
+
+        if self.event_type == "OK":
             self.message = response_data.get("message", "")
 
 
