@@ -8,7 +8,8 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
 
-MAGIC_NUMBER = b'0xENCRYPTED'
+MAGIC_NUMBER = b"0xENCRYPTED"
+
 
 def derive_key(password):
     try:
@@ -17,7 +18,7 @@ def derive_key(password):
             iterations=100000,
             salt=b"",  # No salt is used
             length=32,
-            backend=default_backend()
+            backend=default_backend(),
         )
         secret = base64.urlsafe_b64encode(kdf.derive(password.encode()))
         return secret
@@ -25,20 +26,23 @@ def derive_key(password):
         print(f"Error occurred during key derivation: {e}")
         return e
 
+
 def print_color(text, color):
     print(f"\033[1;{color}m{text}\033[0m")
+
 
 def change_file_permissions(file_path):
     try:
         print_color("Current file permissions are:", "32")
-        subprocess.run(['ls', '-l', file_path], check=True)
+        subprocess.run(["ls", "-l", file_path], check=True)
 
         os.chmod(file_path, 0o600)
 
         print_color("Changed file permissions are now:", "32")
-        subprocess.run(['ls', '-l', file_path], check=True)
+        subprocess.run(["ls", "-l", file_path], check=True)
     except Exception as e:
         print("An error occurred while changing file permissions:", str(e))
+
 
 def encrypt_file(filename, key=None):
     if key is None:
@@ -86,7 +90,9 @@ def decrypt_file(encrypted_filename, key=None):
             print(f"{encrypted_filename} is not encrypted.")
             return False, key
 
-        encrypted_data = encrypted_data[len(MAGIC_NUMBER):]  # Strip magic number from data
+        encrypted_data = encrypted_data[
+            len(MAGIC_NUMBER) :
+        ]  # Strip magic number from data
 
         fernet = Fernet(key)
         decrypted_data = fernet.decrypt(encrypted_data)
@@ -99,6 +105,7 @@ def decrypt_file(encrypted_filename, key=None):
     except (InvalidToken, Exception) as e:
         print(f"Error occurred during file decryption: {e}")
         return False, key
+
 
 def main():
     password = input("Enter your password: ")
@@ -121,6 +128,7 @@ def main():
             print("Encrypted filename cannot be empty.")
     else:
         print("Invalid choice.")
+
 
 if __name__ == "__main__":
     main()

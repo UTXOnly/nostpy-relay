@@ -1,21 +1,21 @@
+import asyncio
 import hashlib
 import json
-import ast
 import logging
-from collections import defaultdict
-from logging.handlers import RotatingFileHandler
-from typing import Any, Dict, List, Optional, Tuple, Union
 import time
+import ast
+from collections import defaultdict
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import aiohttp
-import asyncio
 import websockets
+from aiohttp.client_exceptions import ClientConnectionError
+from logging.handlers import RotatingFileHandler
+
 from datadog import initialize, statsd
 from ddtrace import tracer
-
-
 import websockets.exceptions
-from aiohttp.client_exceptions import ClientConnectionError
+
 
 options: Dict[str, Any] = {"statsd_host": "172.28.0.5", "statsd_port": 8125}
 
@@ -329,7 +329,7 @@ async def handle_websocket_connection(
                         websocket=websocket,
                     )
                 elif ws_message.event_type == "REQ":
-                    logger.debug(f"Entering REQ branch")
+                    logger.debug("Entering REQ branch")
                     logger.debug(
                         f"Payload is {ws_message.event_payload} and of type: {type(ws_message.event_payload)}"
                     )

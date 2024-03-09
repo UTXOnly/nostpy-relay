@@ -1,6 +1,5 @@
 import subprocess
 import os
-import pkg_resources
 import file_encryption
 
 
