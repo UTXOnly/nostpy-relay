@@ -58,7 +58,7 @@ class Event:
             else:
                 logger.error(f"Verification failed for event: {self.event_id}")
             return result
-        except (ValueError, TypeError, secp256k1.Error) as e:
+        except (ValueError, TypeError) as e:
             logger.error(f"Error verifying signature for event {self.event_id}: {e}")
             return False
 
@@ -78,7 +78,7 @@ class Event:
         statsd.increment("nostr.event.deleted.count", tags=["func:new_event"])
         return event_values
 
-    async def delete_event(self, conn, cur, delete_events, logger) -> bool:
+    async def delete_event(self, conn, cur, delete_events) -> bool:
         delete_statement = """
         DELETE FROM events
         WHERE id = ANY(%s) AND pubkey = %s;
@@ -184,13 +184,13 @@ class Subscription:
                 limit = filters.get("limit", 100)
                 filters.pop("limit")
             except:
-                logger.debug(f"No limit")
+                logger.debug("No limit")
 
             try:
                 global_search = filters.get("search", {})
                 filters.pop("search")
             except:
-                logger.debug(f"No search item")
+                logger.debug("No search item")
 
             key_mappings = {
                 "authors": "pubkey",

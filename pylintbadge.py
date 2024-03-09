@@ -46,11 +46,11 @@ def main():
         color = get_color(float(score))
     
         filename = 'pylint.svg'
-        print("{} written".format(filename))
+        print(f"{filename} written")
         with open(filename, 'w') as score_file:
             score_file.write(template.format(score=score, color=color))
     except Exception as e:
-        print("An error occurred: {}".format(str(e)))
+        print(f"An error occurred: {str(e)}")
 
 
 

@@ -94,7 +94,6 @@ def initialize_db() -> None:
         logger.info("Database initialization complete.")
     except psycopg.Error as caught_error:
         logger.info(f"Error occurred during database initialization: {caught_error}")
-        return False
 
 
 @app.post("/new_event")
@@ -135,7 +134,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         statsd.increment(
                             "nostr.event.added.count", tags=["func:new_event"]
                         )
-                    except psycopg.IntegrityError as e:
+                    except psycopg.IntegrityError:
                         conn.rollback()
                         logger.info(
                             f"Event with ID {event_obj.event_id} already exists"
@@ -150,8 +149,8 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     results_status="true", http_status_code=200
                 )
 
-    except Exception as e:
-        logger.debug(f"Entering gen exc")
+    except Exception:
+        logger.debug("Entering gen exc")
         conn.rollback()
         return event_obj.evt_response(
             results_status="false",
