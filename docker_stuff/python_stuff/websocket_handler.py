@@ -161,6 +161,7 @@ class ExtractedResponse:
         """
         self.event_type = response_data["event"]
         self.subscription_id = response_data["subscription_id"]
+        self.message = ""
         try:
             self.results = json.loads(response_data["results_json"])
         except json.JSONDecodeError as json_error:
@@ -178,7 +179,7 @@ class ExtractedResponse:
             self.event_type,
             self.subscription_id,
             self.results,
-            response_data["message"]
+            self.message
         )
         self.rate_limit_response: Tuple[str, Optional[str], str, Optional[str]] = (
             "OK",
