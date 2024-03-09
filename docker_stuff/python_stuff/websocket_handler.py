@@ -1,11 +1,6 @@
 import asyncio
 import json
 import logging
-from websocket_classes import (
-    TokenBucketRateLimiter,
-    WebsocketMessages,
-    ExtractedResponse,
-)
 from typing import Any, Dict, Tuple
 
 import aiohttp
@@ -17,9 +12,14 @@ from datadog import initialize, statsd
 from ddtrace import tracer
 import websockets.exceptions
 
+from websocket_classes import (
+    ExtractedResponse,
+    TokenBucketRateLimiter,
+    WebsocketMessages,
+)
+
 
 options = {"statsd_host": "172.28.0.5", "statsd_port": 8125}
-
 initialize(**options)
 
 tracer.configure(hostname="172.28.0.5", port=8126)
@@ -44,7 +44,7 @@ async def handle_websocket_connection(
                 try:
                     logger.debug(f"message in loop is {message}")
                     ws_message = message
-                    if len(ws_message) > 0:
+                    if ws_message:
                         ws_message = WebsocketMessages(
                             message=json.loads(message),
                             websocket=websocket,
