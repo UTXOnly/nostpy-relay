@@ -407,13 +407,7 @@ async def send_event_to_handler(
                 f"Received response from Event Handler {response_data}, data types is {type(response_data)}"
             )
             response_object = ExtractedResponse(response_data)
-            if response.status == 200:
-                formatted_response = await response_object.format_response()
-                logger.debug(
-                    f"Formatted response data from send_event_to_handler function: {formatted_response}"
-                )
-                await websocket.send(json.dumps(formatted_response))
-            elif response.status != 200:
+            if response.status:
                 formatted_response = await response_object.format_response()
                 await websocket.send(json.dumps(formatted_response))
     except Exception as e:
