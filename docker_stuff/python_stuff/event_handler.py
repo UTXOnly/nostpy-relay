@@ -126,8 +126,18 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         return event_obj.evt_response(results_status="flase", http_status_code=200)
 
                 else:
-                    await event_obj.add_event(conn, cur)
-                    statsd.increment("nostr.event.added.count", tags=["func:new_event"])
+                    try:
+                        await event_obj.add_event(conn, cur)
+                        statsd.increment("nostr.event.added.count", tags=["func:new_event"])
+                    except psycopg.IntegrityError as e:
+                        logger.debug(f"Entering integ loop")
+                        conn.rollback()
+                        logger.info(f"Event with ID {event_obj.event_id} already exists")
+                        resp = event_obj.evt_response(
+                            results_status="true", http_status_code=409, message="duplicate: already have this event"
+                        )
+                        logger.debug(f"resp integ error is {resp}")
+                        return resp
                 return event_obj.evt_response(results_status="true", http_status_code=200)
 
     except psycopg.IntegrityError as e:
