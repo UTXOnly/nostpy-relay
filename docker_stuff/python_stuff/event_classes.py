@@ -107,7 +107,7 @@ class Event:
     def evt_response(self, results_json, http_status_code):
         response = {
             "event": "OK",
-            "subscription_id": "n0stafarian419",
+            "event_id": "n0stafarian419",
             "results_json": results_json,
         }
         return JSONResponse(content=response, status_code=http_status_code)

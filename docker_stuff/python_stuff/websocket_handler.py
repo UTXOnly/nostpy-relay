@@ -160,7 +160,7 @@ class ExtractedResponse:
 
         """
         self.event_type = response_data["event"]
-        self.subscription_id = response_data["subscription_id"]
+        self.subscription_id = response_data["event_id"]
         try:
             self.results = json.loads(response_data["results_json"])
         except json.JSONDecodeError as json_error:
@@ -170,6 +170,12 @@ class ExtractedResponse:
             self.results = ""
 
         self.comment = ""
+        self.event_response: Tuple[str, Optional[str], str, Optional[str]]  = (
+            self.event_type,
+            self.subscription_id,
+            self.results,
+            response_data["message"]
+        )
         self.rate_limit_response: Tuple[str, Optional[str], str, Optional[str]] = (
             "OK",
             "nostafarian419",
@@ -401,8 +407,8 @@ async def send_event_to_handler(
                     f"Formatted response data from send_event_to_handler function: {formatted_response}"
                 )
                 await websocket.send(json.dumps(formatted_response))
-            elif response.status == 409:
-                return response_object.duplicate_response
+            elif response.status != 200:
+                return response_object.event_response
     except Exception as e:
         logger.error(f"An error occurred while sending the event to the handler: {e}")
 
