@@ -169,6 +169,11 @@ class ExtractedResponse:
             )
             self.results = ""
 
+        try:
+            self.message = response_data["message"]
+        except:
+            self.message = ""
+
         self.comment = ""
         self.event_response: Tuple[str, Optional[str], str, Optional[str]]  = (
             self.event_type,
