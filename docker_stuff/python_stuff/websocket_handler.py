@@ -161,41 +161,15 @@ class ExtractedResponse:
         """
         self.event_type = response_data["event"]
         self.subscription_id = response_data["subscription_id"]
-        self.message = ""
+        self.message = response_data.get("message", "")
         try:
             self.results = json.loads(response_data["results_json"])
         except json.JSONDecodeError as json_error:
-            #logger.error(
-            #    f"Error decoding JSON message in Extracted Response: {json_error}."
-            #)
+            logger.error(
+                f"Error decoding JSON message in Extracted Response: {json_error}."
+            )
             self.results = ""
 
-        if self.event_type == "OK":
-            self.message = response_data.get("message", "")
-            logger.info(f"Response data: message extracted is {self.message}")
-
-
-        self.comment = ""
-        self.event_response: Tuple[str, Optional[str], str, Optional[str]]  = (
-            self.event_type,
-            self.subscription_id,
-            self.results,
-            self.message
-        )
-        self.rate_limit_response: Tuple[str, Optional[str], str, Optional[str]] = (
-            "OK",
-            "nostafarian419",
-            "false",
-            "rate-limited: slow your roll nostrich",
-        )
-        self.duplicate_response: Tuple[str, Optional[str], str, Optional[str]] = (
-            "OK",
-            "nostafarian419",
-            "false",
-            "duplicate: already have this event",
-        )
-
-    #
     async def _process_event(self, event_result):
         try:
             logger.debug(f"event_result var is {event_result}")
@@ -204,7 +178,6 @@ class ExtractedResponse:
         except Exception as exc:
             logger.error(f"Process events exc is {exc}", exc_info=True)
             return ""
-        #
 
     async def format_response(self):
         """

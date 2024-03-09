@@ -121,30 +121,43 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         await event_obj.delete_event(
                             conn, cur, events_to_delete, logger
                         )
-                        return event_obj.evt_response(results_status="true", http_status_code=200)
+                        return event_obj.evt_response(
+                            results_status="true", http_status_code=200
+                        )
                     else:
-                        return event_obj.evt_response(results_status="flase", http_status_code=200)
+                        return event_obj.evt_response(
+                            results_status="flase", http_status_code=200
+                        )
 
                 else:
                     try:
                         await event_obj.add_event(conn, cur)
-                        statsd.increment("nostr.event.added.count", tags=["func:new_event"])
+                        statsd.increment(
+                            "nostr.event.added.count", tags=["func:new_event"]
+                        )
                     except psycopg.IntegrityError as e:
                         conn.rollback()
-                        logger.info(f"Event with ID {event_obj.event_id} already exists")
+                        logger.info(
+                            f"Event with ID {event_obj.event_id} already exists"
+                        )
                         return event_obj.evt_response(
-                            results_status="true", http_status_code=409, message="duplicate: already have this event"
+                            results_status="true",
+                            http_status_code=409,
+                            message="duplicate: already have this event",
                         )
 
-                return event_obj.evt_response(results_status="true", http_status_code=200)
+                return event_obj.evt_response(
+                    results_status="true", http_status_code=200
+                )
 
     except Exception as e:
         logger.debug(f"Entering gen exc")
         conn.rollback()
         return event_obj.evt_response(
-            results_status="false", http_status_code=500, message="error: could not connect to the database"
+            results_status="false",
+            http_status_code=500,
+            message="error: could not connect to the database",
         )
-
 
 
 @app.post("/subscription")

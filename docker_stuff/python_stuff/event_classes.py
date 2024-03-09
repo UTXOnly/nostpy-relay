@@ -109,7 +109,7 @@ class Event:
             "event": "OK",
             "subscription_id": self.event_id,
             "results_json": results_status,
-            "message": message
+            "message": message,
         }
         return JSONResponse(content=response, status_code=http_status_code)
 
