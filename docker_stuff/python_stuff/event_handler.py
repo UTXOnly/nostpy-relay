@@ -131,6 +131,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                 return event_obj.evt_response(results_status="true", http_status_code=200)
 
     except psycopg.IntegrityError as e:
+        logger.debug(f"Entering integ loop")
         conn.rollback()
         logger.info(f"Event with ID {event_obj.event_id} already exists")
         resp = event_obj.evt_response(
@@ -139,6 +140,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
         logger.debug(f"resp integ error is {resp}")
         return resp
     except Exception as e:
+        logger.debug(f"Entering gen exc")
         conn.rollback()
         resp = event_obj.evt_response(
             results_status="false", http_status_code=500, message="error: could not connect to the database"
