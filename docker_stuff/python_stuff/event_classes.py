@@ -104,7 +104,7 @@ class Event:
         )
         await conn.commit()
 
-    def evt_response(self, results_status, http_status_code, message=""):
+    def evt_response(self, results_status, http_status_code, message=None):
         response = {
             "event": "OK",
             "subscription_id": self.event_id,

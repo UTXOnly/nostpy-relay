@@ -133,14 +133,18 @@ async def handle_new_event(request: Request) -> JSONResponse:
     except psycopg.IntegrityError as e:
         conn.rollback()
         logger.info(f"Event with ID {event_obj.event_id} already exists")
-        return event_obj.evt_response(
+        resp = event_obj.evt_response(
             results_status="true", http_status_code=409, message="duplicate: already have this event"
         )
+        logger.debug(f"resp integ error is {resp}")
+        return resp
     except Exception as e:
         conn.rollback()
-        return event_obj.evt_response(
+        resp = event_obj.evt_response(
             results_status="false", http_status_code=500, message="error: could not connect to the database"
         )
+        logger.debug(f"resp gen error is {resp}")
+        return resp
 
 
 @app.post("/subscription")
