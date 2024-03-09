@@ -414,8 +414,8 @@ async def send_event_to_handler(
                 )
                 await websocket.send(json.dumps(formatted_response))
             elif response.status != 200:
-                await websocket.send(json.dumps(await response_object.format_response()))
-                return response_object.event_response
+                formatted_response = await response_object.format_response()
+                await websocket.send(json.dumps(formatted_response))
     except Exception as e:
         logger.error(f"An error occurred while sending the event to the handler: {e}")
 
