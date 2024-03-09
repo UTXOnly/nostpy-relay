@@ -24,7 +24,7 @@ initialize(**options)
 tracer.configure(hostname="172.28.0.5", port=8126)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 log_file: str = "./logs/websocket_handler.log"
 handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
@@ -161,6 +161,7 @@ class ExtractedResponse:
         """
         self.event_type = response_data["event"]
         self.subscription_id = response_data["subscription_id"]
+        self.message = response_data.get("message", "")
         try:
             self.results = json.loads(response_data["results_json"])
         except json.JSONDecodeError as json_error:
@@ -169,21 +170,6 @@ class ExtractedResponse:
             )
             self.results = ""
 
-        self.comment = ""
-        self.rate_limit_response: Tuple[str, Optional[str], str, Optional[str]] = (
-            "OK",
-            "nostafarian419",
-            "false",
-            "rate-limited: slow your roll nostrich",
-        )
-        self.duplicate_response: Tuple[str, Optional[str], str, Optional[str]] = (
-            "OK",
-            "nostafarian419",
-            "false",
-            "duplicate: already have this event",
-        )
-
-    #
     async def _process_event(self, event_result):
         try:
             logger.debug(f"event_result var is {event_result}")
@@ -192,7 +178,6 @@ class ExtractedResponse:
         except Exception as exc:
             logger.error(f"Process events exc is {exc}", exc_info=True)
             return ""
-        #
 
     async def format_response(self):
         """
@@ -215,7 +200,7 @@ class ExtractedResponse:
                 self.event_type,
                 self.subscription_id,
                 self.results,
-                self.comment,
+                self.message,
             )
 
         else:
@@ -395,14 +380,9 @@ async def send_event_to_handler(
                 f"Received response from Event Handler {response_data}, data types is {type(response_data)}"
             )
             response_object = ExtractedResponse(response_data)
-            if response.status == 200:
+            if response.status:
                 formatted_response = await response_object.format_response()
-                logger.debug(
-                    f"Formatted response data from send_event_to_handler function: {formatted_response}"
-                )
                 await websocket.send(json.dumps(formatted_response))
-            elif response.status == 409:
-                return response_object.duplicate_response
     except Exception as e:
         logger.error(f"An error occurred while sending the event to the handler: {e}")
 
@@ -451,7 +431,7 @@ async def send_subscription_to_handler(
 
 
 if __name__ == "__main__":
-    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=5000)
+    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=50000)
 
     try:
         start_server = websockets.serve(handle_websocket_connection, "0.0.0.0", 8008)

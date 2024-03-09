@@ -29,7 +29,7 @@ tracer.configure(hostname="172.28.0.5", port=8126)
 redis_client: redis.Redis = redis.Redis(host="172.28.0.6", port=6379)
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 log_file = "./logs/event_handler.log"
 handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
@@ -121,24 +121,42 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         await event_obj.delete_event(
                             conn, cur, events_to_delete, logger
                         )
-                        return event_obj.evt_response("true", 200)
+                        return event_obj.evt_response(
+                            results_status="true", http_status_code=200
+                        )
                     else:
-                        return event_obj.evt_response("flase", 200)
+                        return event_obj.evt_response(
+                            results_status="flase", http_status_code=200
+                        )
 
                 else:
-                    await event_obj.add_event(conn, cur)
-                    statsd.increment("nostr.event.added.count", tags=["func:new_event"])
-                return event_obj.evt_response("true", 200)
+                    try:
+                        await event_obj.add_event(conn, cur)
+                        statsd.increment(
+                            "nostr.event.added.count", tags=["func:new_event"]
+                        )
+                    except psycopg.IntegrityError as e:
+                        conn.rollback()
+                        logger.info(
+                            f"Event with ID {event_obj.event_id} already exists"
+                        )
+                        return event_obj.evt_response(
+                            results_status="true",
+                            http_status_code=409,
+                            message="duplicate: already have this event",
+                        )
 
-    except psycopg.IntegrityError as e:
-        conn.rollback()
-        return event_obj.evt_response(
-            f"Event with ID {event_obj.event_id} already exists", 409
-        )
+                return event_obj.evt_response(
+                    results_status="true", http_status_code=200
+                )
+
     except Exception as e:
+        logger.debug(f"Entering gen exc")
         conn.rollback()
         return event_obj.evt_response(
-            f"Error:{e} occured adding event {event_obj.event_id}", 409
+            results_status="false",
+            http_status_code=500,
+            message="error: could not connect to the database",
         )
 
 
