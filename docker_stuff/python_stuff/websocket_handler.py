@@ -165,9 +165,9 @@ class ExtractedResponse:
         try:
             self.results = json.loads(response_data["results_json"])
         except json.JSONDecodeError as json_error:
-            logger.error(
-                f"Error decoding JSON message in Extracted Response: {json_error}."
-            )
+            #logger.error(
+            #    f"Error decoding JSON message in Extracted Response: {json_error}."
+            #)
             self.results = ""
 
         if self.event_type == "OK":
