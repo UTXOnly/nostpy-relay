@@ -172,6 +172,7 @@ class ExtractedResponse:
 
         if self.event_type == "OK":
             self.message = response_data.get("message", "")
+            logger.info(f"Response data: message extracted is {self.message}")
 
 
         self.comment = ""
@@ -413,6 +414,7 @@ async def send_event_to_handler(
                 )
                 await websocket.send(json.dumps(formatted_response))
             elif response.status != 200:
+                await websocket.send(json.dumps(await response_object.format_response()))
                 return response_object.event_response
     except Exception as e:
         logger.error(f"An error occurred while sending the event to the handler: {e}")
@@ -462,7 +464,7 @@ async def send_subscription_to_handler(
 
 
 if __name__ == "__main__":
-    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=5000)
+    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=50000)
 
     try:
         start_server = websockets.serve(handle_websocket_connection, "0.0.0.0", 8008)
