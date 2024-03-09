@@ -226,7 +226,7 @@ class ExtractedResponse:
                 self.event_type,
                 self.subscription_id,
                 self.results,
-                self.comment,
+                self.message,
             )
 
         else:
