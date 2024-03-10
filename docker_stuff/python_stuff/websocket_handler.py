@@ -153,16 +153,6 @@ async def send_event_to_handler(
         logger.error(f"An error occurred while sending the event to the handler: {e}")
 
 
-async def send_event_loop(response_list, websocket):
-    tasks = []
-
-    for event_item in response_list:
-        task = asyncio.create_task(websocket.send(json.dumps(event_item)))
-        tasks.append(task)
-
-    await asyncio.gather(*tasks)
-
-
 async def send_subscription_to_handler(
     session: aiohttp.ClientSession,
     event_dict: Dict,
@@ -189,7 +179,7 @@ async def send_subscription_to_handler(
 
         if response.status == 200 and response_object.event_type == "EVENT":
             response_list = await response_object.format_response()
-            await send_event_loop(response_list, websocket)
+            await response_object.send_event_loop(response_list, websocket)
             await websocket.send(json.dumps(EOSE))
         else:
             await websocket.send(json.dumps(EOSE))
