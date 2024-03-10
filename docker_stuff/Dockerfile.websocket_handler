@@ -6,5 +6,7 @@ COPY ws_requirements.txt .
 RUN pip install --no-cache-dir -r ws_requirements.txt
 
 COPY ./python_stuff/websocket_handler.py .
+COPY ./python_stuff/websocket_classes.py .
+
 
 CMD ["ddtrace-run", "python", "websocket_handler.py"]
