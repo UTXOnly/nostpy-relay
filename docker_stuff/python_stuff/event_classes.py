@@ -180,17 +180,10 @@ class Subscription:
         limit = ""
         global_search = {}
         try:
-            try:
-                limit = filters.get("limit", 100)
-                filters.pop("limit")
-            except:
-                logger.debug("No limit")
-
-            try:
-                global_search = filters.get("search", {})
-                filters.pop("search")
-            except:
-                logger.debug("No search item")
+            limit = filters.get("limit", 100)
+            filters.pop("limit")
+            global_search = filters.get("search", {})
+            filters.pop("search")
 
             key_mappings = {
                 "authors": "pubkey",
