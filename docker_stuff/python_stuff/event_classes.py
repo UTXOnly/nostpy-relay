@@ -198,7 +198,7 @@ class Subscription:
                 "ids": "id",
             }
 
-            if len(filters) > 0:
+            if filters:
                 for key in filters:
                     new_key = key_mappings.get(key, key)
                     if new_key != key:
