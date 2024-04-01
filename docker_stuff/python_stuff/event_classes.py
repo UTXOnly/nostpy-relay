@@ -181,9 +181,11 @@ class Subscription:
         global_search = {}
         try:
             limit = filters.get("limit", 100)
-            filters.pop("limit")
+            if limit:
+                filters.pop("limit")
             global_search = filters.get("search", {})
-            filters.pop("search")
+            if global_search:
+                filters.pop("search")
 
             key_mappings = {
                 "authors": "pubkey",
