@@ -162,11 +162,11 @@ class Subscription:
 
     def _search_tags(self, search_item):
         search_clause = (
-            " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
+            " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {} OR content LIKE '%{search_item}%')"
         )
         conditions = [f"elem::text LIKE '%{search_item}%'"]
 
-        complete_clause = search_clause.format(" OR ".join(conditions))
+        complete_clause = search_clause.format(" AND ".join(conditions))
         return complete_clause
 
     def _search_content(self, search_item):
@@ -183,14 +183,14 @@ class Subscription:
             try:
                 limit = filters.get("limit", 100)
                 filters.pop("limit")
-            except:
-                logger.debug("No limit")
+            except Exception as exc:
+                logger.error(f"Exception is: {exc}")
 
             try:
                 global_search = filters.get("search", {})
                 filters.pop("search")
-            except:
-                logger.debug("No search item")
+            except Exception as exc:
+                logger.error(f"Exception is: {exc}")
 
             key_mappings = {
                 "authors": "pubkey",
@@ -198,7 +198,7 @@ class Subscription:
                 "ids": "id",
             }
 
-            if len(filters) > 0:
+            if filters:
                 for key in filters:
                     new_key = key_mappings.get(key, key)
                     if new_key != key:
@@ -307,8 +307,8 @@ class Subscription:
             if global_search:
                 search_clause = self._search_tags(global_search)
                 search_content = self._search_content(global_search)
-                self.where_clause += f" AND ({search_content} OR {search_clause})"
-
+                self.where_clause += f" AND {search_content}" 
+                #SELECT * FROM events WHERE kind = 1  AND EXSTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE elem::text LIKE '%charity%' OR content LIKE '%charity%');I
             if not limit or limit > 100:
                 limit = 100
 
