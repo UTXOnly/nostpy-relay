@@ -167,7 +167,7 @@ class Subscription:
         conditions = [f"elem::text LIKE '%{search_item}%'"]
 
         complete_clause = search_clause.format(" AND ".join(conditions))
-        return complete_clause
+        return search_clause #complete_clause
 
     def _search_content(self, search_item):
         search_clause = "content {}"
