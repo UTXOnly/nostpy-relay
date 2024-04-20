@@ -1,11 +1,9 @@
 import asyncio
 import json
 import logging
-import os
 from typing import Any, Dict, Tuple
 
 import aiohttp
-from aiohttp import web
 import websockets
 from aiohttp.client_exceptions import ClientConnectionError
 from logging.handlers import RotatingFileHandler
@@ -21,20 +19,19 @@ from websocket_classes import (
 )
 
 
-
-options = {"statsd_host": os.getenv("STATSD_HOST"), "statsd_port": 8125}
+options = {"statsd_host": "172.28.0.5", "statsd_port": 8125}
 initialize(**options)
 
-tracer.configure(hostname=os.getenv("TRACER_HOST"), port=8126)
+tracer.configure(hostname="172.28.0.5", port=8126)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+log_file = "./logs/websocket_handler.log"
+handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-
-async def health_check(request):
-    return web.Response(text="OK",status=200)
-
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 
 async def handle_websocket_connection(
@@ -188,32 +185,14 @@ async def send_subscription_to_handler(
             await websocket.send(json.dumps(EOSE))
             logger.debug(f"Response data is {response_data} but it failed")
 
-#if __name__ == "__main__":
-#    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=50000)
-#
-#    try:
-#        start_server = websockets.serve(handle_websocket_connection, "0.0.0.0", 8008)
-#        asyncio.get_event_loop().run_until_complete(start_server)
-#        asyncio.get_event_loop().run_forever()
-#
-#    except Exception as e:
-#        logger.error(f"Error occurred while starting the server main loop: {e}")
-async def main():
-    # Create an HTTP application
-    app = web.Application()
-    app.router.add_get('/health', health_check)  # Add health check endpoint
-    
-
-    # Start the WebSocket server
-    websocket_server = websockets.serve(handle_websocket_connection, "0.0.0.0", 8008)
-
-    # Run both servers concurrently
-    await asyncio.gather(websocket_server, web._run_app(app, port=81))
 
 if __name__ == "__main__":
+    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=50000)
 
     try:
-        rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=50000)
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        pass
+        start_server = websockets.serve(handle_websocket_connection, "0.0.0.0", 8008)
+        asyncio.get_event_loop().run_until_complete(start_server)
+        asyncio.get_event_loop().run_forever()
+
+    except Exception as e:
+        logger.error(f"Error occurred while starting the server main loop: {e}")
