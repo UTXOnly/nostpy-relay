@@ -306,8 +306,8 @@ class Subscription:
 
             if global_search:
                 search_clause = self._search_tags(global_search)
-                search_content = self._search_content(global_search)
-                self.where_clause += f" AND {search_content}" 
+                #search_content = self._search_content(global_search)
+                self.where_clause += f" AND {search_clause}" 
                 #SELECT * FROM events WHERE kind = 1  AND EXSTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE elem::text LIKE '%charity%' OR content LIKE '%charity%');I
             if not limit or limit > 100:
                 limit = 100

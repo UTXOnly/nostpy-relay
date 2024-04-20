@@ -18,23 +18,15 @@ from event_classes import Event, Subscription
 from psycopg_pool import AsyncConnectionPool
 
 
-load_dotenv()
-
-options = {"statsd_host": "172.28.0.5", "statsd_port": 8125}
+options = {"statsd_host": os.getenv("STATSD_HOST"), "statsd_port": 8125}
 initialize(**options)
 
-redis_client = redis.Redis(host="172.28.0.6", port=6379)
-
-tracer.configure(hostname="172.28.0.5", port=8126)
-redis_client: redis.Redis = redis.Redis(host="172.28.0.6", port=6379)
+redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=6379)
+tracer.configure(hostname=os.getenv("TRACER_HOST"), port=8126)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-log_file = "./logs/event_handler.log"
-handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
 
 def get_conn_str() -> str:
