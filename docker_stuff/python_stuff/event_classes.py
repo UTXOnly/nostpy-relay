@@ -162,7 +162,7 @@ class Subscription:
 
     def _search_tags(self, search_item):
         search_clause = (
-            " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {} OR content LIKE '%{search_item}%')"
+            f" EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE elem::text LIKE '%{search_item}%' OR content LIKE '%{search_item}%')"
         )
         conditions = [f"elem::text LIKE '%{search_item}%'"]
 
