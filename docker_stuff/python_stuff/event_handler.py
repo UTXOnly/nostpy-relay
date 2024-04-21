@@ -131,8 +131,9 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
                 else:
                     try:
+                        logger.debug(f"Adding event id: {event_obj.event_id}")
                         await event_obj.add_event(conn, cur)
-                        logger.debug(f"event  id is: {event_obj.event_id}")
+                        logger.debug(f"after query sucess  is: {event_obj.event_id}")
                         statsd.increment(
                             "nostr.event.added.count", tags=["func:new_event"]
                         )
@@ -145,6 +146,13 @@ async def handle_new_event(request: Request) -> JSONResponse:
                             results_status="false",
                             http_status_code=409,
                             message="duplicate: already have this event",
+                        )
+                    except Exception as exc:
+                        logger.error(f"Exception adding event {exc}")
+                        return event_obj.evt_response(
+                        results_status="false",
+                        http_status_code=400,
+                        message="error: failed to add event",
                         )
 
                 return event_obj.evt_response(
