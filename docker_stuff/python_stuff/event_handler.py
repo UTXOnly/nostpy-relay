@@ -108,6 +108,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
         content=event_dict["content"],
         sig=event_dict["sig"],
     )
+    logger.debug(f"New event loop iter, ev object is {event_obj.event_id} and {event_obj.kind}")
 
     try:
         async with request.app.async_pool.connection() as conn:
