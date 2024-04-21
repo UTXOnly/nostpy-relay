@@ -115,6 +115,12 @@ async def handle_new_event(request: Request) -> JSONResponse:
             async with conn.cursor() as cur:
                 if event_obj.kind in [0, 3]:
                     await event_obj.delete_check(conn, cur, statsd)
+                    logger.debug(f"Adding event id: {event_obj.event_id}")
+                    await event_obj.add_event(conn, cur)
+                    logger.debug(f"after query sucess  is: {event_obj.event_id}")
+                    return event_obj.evt_response(
+                    results_status="true", http_status_code=200
+                     )
                 elif event_obj.kind == 5:
                     if event_obj.verify_signature(logger):
                         events_to_delete = event_obj.parse_kind5(statsd)
