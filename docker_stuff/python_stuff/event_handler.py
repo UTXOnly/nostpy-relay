@@ -131,6 +131,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                 else:
                     try:
                         await event_obj.add_event(conn, cur)
+                        logger.debug(f"event  id is: {event_obj.event_id}")
                         statsd.increment(
                             "nostr.event.added.count", tags=["func:new_event"]
                         )
@@ -140,7 +141,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                             f"Event with ID {event_obj.event_id} already exists"
                         )
                         return event_obj.evt_response(
-                            results_status="true",
+                            results_status="false",
                             http_status_code=409,
                             message="duplicate: already have this event",
                         )
