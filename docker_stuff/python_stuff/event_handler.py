@@ -200,7 +200,9 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
         cached_results = subscription_obj.fetch_data_from_cache(
             str(subscription_obj.filters), redis_client
+            
         )
+        logger.debug(f"Cached results are {cached_results}")
 
         if cached_results is None:
             async with app.async_pool.connection() as conn:
