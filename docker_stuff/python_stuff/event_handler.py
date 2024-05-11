@@ -197,6 +197,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         sql_query = subscription_obj.base_query_builder(
             tag_values, query_parts, limit, global_search, logger
         )
+        
 
         cached_results = subscription_obj.fetch_data_from_cache(
             str(subscription_obj.filters), redis_client
