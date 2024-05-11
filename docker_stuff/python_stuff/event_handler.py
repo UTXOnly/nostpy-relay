@@ -198,7 +198,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
             tag_values, query_parts, limit, global_search, logger
         )
         
-
+        logger.debug(f"raw filters is {subscription_obj.filters_raw}")
         cached_results = subscription_obj.fetch_data_from_cache(
             str(subscription_obj.filters_raw), redis_client
             
