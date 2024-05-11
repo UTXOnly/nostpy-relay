@@ -188,7 +188,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
         logger.debug(f"Fiters are: {subscription_obj.filters}")
         raw_filters = request_payload.get("event_dict", {})
-        logger.debug(f"raw line1 {subscription_obj.filters_raw}")
+        logger.debug(f"raw line1 {raw_filters}")
         (
             tag_values,
             query_parts,
@@ -200,7 +200,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
             tag_values, query_parts, limit, global_search, logger
         )
         
-        logger.debug(f"raw filters is {subscription_obj.filters_raw}")
+        logger.debug(f"raw filters is {raw_filters}")
         cached_results = subscription_obj.fetch_data_from_cache(
             str(raw_filters), redis_client
             
