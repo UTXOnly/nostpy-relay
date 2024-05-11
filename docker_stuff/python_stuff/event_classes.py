@@ -171,14 +171,14 @@ class Subscription:
         filters_wo_search_limit = filters
         try:
             try:
-                limit = filters.get("limit", 100)
+                limit = filters_wo_search_limit.get("limit", 100)
                 filters_wo_search_limit.pop("limit")
                 #filters.pop("limit")
             except Exception as exc:
                 logger.error(f"Exception is: {exc}")
 
             try:
-                global_search = filters.get("search", {})
+                global_search = filters_wo_search_limit.get("search", {})
                 filters_wo_search_limit.pop("search")
                 #filters.pop("search")
             except Exception as exc:
