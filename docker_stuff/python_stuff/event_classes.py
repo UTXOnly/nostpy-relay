@@ -138,8 +138,8 @@ class Subscription:
     """
 
     def __init__(self, request_payload: dict) -> None:
-        self.filters = request_payload.get("event_dict", {})
         self.filters_raw = request_payload.get("event_dict", {})
+        self.filters = request_payload.get("event_dict", {})
         self.subscription_id = request_payload.get("subscription_id")
         self.where_clause = ""
         self.column_names = [
