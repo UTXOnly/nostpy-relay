@@ -187,6 +187,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
             )
 
         logger.debug(f"Fiters are: {subscription_obj.filters}")
+        logger.deug(f"raw line1 {subscription_obj.filters_raw}")
         (
             tag_values,
             query_parts,
