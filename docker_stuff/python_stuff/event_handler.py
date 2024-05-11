@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import copy
 from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
 
@@ -108,7 +109,9 @@ async def handle_new_event(request: Request) -> JSONResponse:
         content=event_dict["content"],
         sig=event_dict["sig"],
     )
-    logger.debug(f"New event loop iter, ev object is {event_obj.event_id} and {event_obj.kind}")
+    logger.debug(
+        f"New event loop iter, ev object is {event_obj.event_id} and {event_obj.kind}"
+    )
 
     try:
         async with request.app.async_pool.connection() as conn:
@@ -119,8 +122,8 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     await event_obj.add_event(conn, cur)
                     logger.debug(f"after query sucess  is: {event_obj.event_id}")
                     return event_obj.evt_response(
-                    results_status="true", http_status_code=200
-                     )
+                        results_status="true", http_status_code=200
+                    )
                 elif event_obj.kind == 5:
                     if event_obj.verify_signature(logger):
                         events_to_delete = event_obj.parse_kind5(statsd)
@@ -156,9 +159,9 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     except Exception as exc:
                         logger.error(f"Exception adding event {exc}")
                         return event_obj.evt_response(
-                        results_status="false",
-                        http_status_code=400,
-                        message="error: failed to add event",
+                            results_status="false",
+                            http_status_code=400,
+                            message="error: failed to add event",
                         )
 
                 return event_obj.evt_response(
@@ -185,8 +188,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
             return subscription_obj.sub_response_builder(
                 "EOSE", subscription_obj.subscription_id, "", 204
             )
-
-        logger.debug(f"Fiters are: {subscription_obj.filters}")
+        raw_filters_copy = copy.deepcopy(subscription_obj.filters)
         (
             tag_values,
             query_parts,
@@ -194,19 +196,17 @@ async def handle_subscription(request: Request) -> JSONResponse:
             global_search,
         ) = await subscription_obj.parse_filters(subscription_obj.filters, logger)
 
-        sql_query = subscription_obj.base_query_builder(
-            tag_values, query_parts, limit, global_search, logger
-        )
-
         cached_results = subscription_obj.fetch_data_from_cache(
-            str(subscription_obj.filters), redis_client
-            
+            str(raw_filters_copy), redis_client
         )
         logger.debug(f"Cached results are {cached_results}")
 
         if cached_results is None:
             async with app.async_pool.connection() as conn:
                 async with conn.cursor() as cur:
+                    sql_query = subscription_obj.base_query_builder(
+                        tag_values, query_parts, limit, global_search, logger
+                    )
                     await cur.execute(query=sql_query)
                     listed = await cur.fetchall()
                     if listed:
@@ -215,9 +215,11 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         )
                         serialized_events = json.dumps(parsed_results)
                         redis_client.setex(
-                            str(subscription_obj.filters), 240, serialized_events
+                            str(raw_filters_copy), 240, serialized_events
                         )
-                        logger.debug(f"Caching results , keys: {str(subscription_obj.filters)}   value is : {serialized_events}")
+                        logger.debug(
+                            f"Caching results , keys: {str(raw_filters_copy)}   value is : {serialized_events}"
+                        )
                         return_response = subscription_obj.sub_response_builder(
                             "EVENT",
                             subscription_obj.subscription_id,
@@ -227,7 +229,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         return return_response
 
                     else:
-                        redis_client.setex(str(subscription_obj.filters), 240, "")
+                        redis_client.setex(str(raw_filters_copy), 240, "")
                         return subscription_obj.sub_response_builder(
                             "EOSE", subscription_obj.subscription_id, "", 200
                         )
