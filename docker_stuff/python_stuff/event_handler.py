@@ -196,7 +196,6 @@ async def handle_subscription(request: Request) -> JSONResponse:
             global_search,
         ) = await subscription_obj.parse_filters(subscription_obj.filters, logger)
 
-        logger.debug(f"raw filters is {raw_filters_copy}")
         cached_results = subscription_obj.fetch_data_from_cache(
             str(raw_filters_copy), redis_client
         )
