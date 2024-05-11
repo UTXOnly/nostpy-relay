@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import copy
 from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
 
@@ -188,6 +189,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
         logger.debug(f"Fiters are: {subscription_obj.filters}")
         raw_filters = request_payload.get("event_dict", {})
+        raw_filters_copy = copy.deepcopy(raw_filters)
         logger.debug(f"raw line1 {raw_filters}")
         (
             tag_values,
@@ -200,9 +202,9 @@ async def handle_subscription(request: Request) -> JSONResponse:
             tag_values, query_parts, limit, global_search, logger
         )
         
-        logger.debug(f"raw filters is {raw_filters}")
+        logger.debug(f"raw filters is {raw_filters_copy}")
         cached_results = subscription_obj.fetch_data_from_cache(
-            str(raw_filters), redis_client
+            str(raw_filters_copy), redis_client
             
         )
         logger.debug(f"Cached results are {cached_results}")
@@ -218,9 +220,9 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         )
                         serialized_events = json.dumps(parsed_results)
                         redis_client.setex(
-                            str(raw_filters), 240, serialized_events
+                            str(raw_filters_copy), 240, serialized_events
                         )
-                        logger.debug(f"Caching results , keys: {str(raw_filters)}   value is : {serialized_events}")
+                        logger.debug(f"Caching results , keys: {str(raw_filters_copy)}   value is : {serialized_events}")
                         return_response = subscription_obj.sub_response_builder(
                             "EVENT",
                             subscription_obj.subscription_id,
@@ -230,7 +232,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         return return_response
 
                     else:
-                        redis_client.setex(str(raw_filters), 240, "")
+                        redis_client.setex(str(raw_filters_copy), 240, "")
                         return subscription_obj.sub_response_builder(
                             "EOSE", subscription_obj.subscription_id, "", 200
                         )
