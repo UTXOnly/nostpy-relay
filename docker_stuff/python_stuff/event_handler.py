@@ -218,7 +218,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         redis_client.setex(
                             str(subscription_obj.filters_raw), 240, serialized_events
                         )
-                        logger.debug(f"Caching results , keys: {str(subscription_obj.filters)}   value is : {serialized_events}")
+                        logger.debug(f"Caching results , keys: {str(subscription_obj.filters_raw)}   value is : {serialized_events}")
                         return_response = subscription_obj.sub_response_builder(
                             "EVENT",
                             subscription_obj.subscription_id,
