@@ -139,6 +139,7 @@ class Subscription:
 
     def __init__(self, request_payload: dict) -> None:
         self.filters = request_payload.get("event_dict", {})
+        self.filters_raw = request_payload.get("event_dict", {})
         self.subscription_id = request_payload.get("subscription_id")
         self.where_clause = ""
         self.column_names = [
@@ -168,18 +169,18 @@ class Subscription:
         updated_keys = {}
         limit = ""
         global_search = {}
-        filters_wo_search_limit = filters
+        #filters_wo_search_limit = filters
         try:
             try:
-                limit = filters_wo_search_limit.get("limit", 100)
-                filters_wo_search_limit.pop("limit")
+                limit = filters.get("limit", 100)
+                filters.pop("limit")
                 #filters.pop("limit")
             except Exception as exc:
                 logger.error(f"Exception is: {exc}")
 
             try:
-                global_search = filters_wo_search_limit.get("search", {})
-                filters_wo_search_limit.pop("search")
+                global_search = filters.get("search", {})
+                filters.pop("search")
                 #filters.pop("search")
             except Exception as exc:
                 logger.error(f"Exception is: {exc}")
@@ -191,7 +192,7 @@ class Subscription:
             }
             
             if filters:
-                for key in filters_wo_search_limit:
+                for key in filters:
                     new_key = key_mappings.get(key, key)
                     if new_key != key:
                         stored_val = filters[key]

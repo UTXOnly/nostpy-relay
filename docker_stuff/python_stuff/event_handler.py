@@ -200,7 +200,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         
 
         cached_results = subscription_obj.fetch_data_from_cache(
-            str(subscription_obj.filters), redis_client
+            str(subscription_obj.filters_raw), redis_client
             
         )
         logger.debug(f"Cached results are {cached_results}")
@@ -216,7 +216,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         )
                         serialized_events = json.dumps(parsed_results)
                         redis_client.setex(
-                            str(subscription_obj.filters), 240, serialized_events
+                            str(subscription_obj.filters_raw), 240, serialized_events
                         )
                         logger.debug(f"Caching results , keys: {str(subscription_obj.filters)}   value is : {serialized_events}")
                         return_response = subscription_obj.sub_response_builder(
@@ -228,7 +228,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                         return return_response
 
                     else:
-                        redis_client.setex(str(subscription_obj.filters), 240, "")
+                        redis_client.setex(str(subscription_obj.filters_raw), 240, "")
                         return subscription_obj.sub_response_builder(
                             "EOSE", subscription_obj.subscription_id, "", 200
                         )
