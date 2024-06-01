@@ -186,11 +186,11 @@ class ExtractedResponse:
             )
 
         return client_response
-    
-    async def send_event_loop(self,response_list, websocket) -> None:
+
+    async def send_event_loop(self, response_list, websocket) -> None:
         """
         Asynchronously sends a list of event items to a WebSocket.
-    
+
         Parameters:
             response_list (List[Dict]): A list of dictionaries representing event items.
             websocket (websockets.WebSocketClientProtocol): The WebSocket connection to send the events to.
@@ -200,7 +200,6 @@ class ExtractedResponse:
             task = asyncio.create_task(websocket.send(json.dumps(event_item)))
             tasks.append(task)
         await asyncio.gather(*tasks)
-
 
 
 class WebsocketMessages:

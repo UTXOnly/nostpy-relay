@@ -160,37 +160,29 @@ class Subscription:
         complete_cluase = tag_clause.format(" OR ".join(conditions))
         return complete_cluase
 
-    def _search_tags(self, search_item):
-        search_clause = (
-            " EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE {})"
-        )
-        conditions = [f"elem::text LIKE '%{search_item}%'"]
-
-        complete_clause = search_clause.format(" OR ".join(conditions))
-        return complete_clause
-
-    def _search_content(self, search_item):
-        search_clause = "content {}"
-        conditions = [f"LIKE '%{search_item}%'"]
-        complete_clause = search_clause.format(" OR ".join(conditions))
-        return complete_clause
+    def _search_clause(self, search_item):
+        search_clause = f" EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE elem::text LIKE '%{search_item}%' OR content LIKE '%{search_item}%')"
+        return search_clause
 
     async def _sanitize_event_keys(self, filters, logger) -> Dict:
         updated_keys = {}
         limit = ""
         global_search = {}
+        # filters_wo_search_limit = filters
         try:
             try:
                 limit = filters.get("limit", 100)
                 filters.pop("limit")
-            except:
-                logger.debug("No limit")
+                # filters.pop("limit")
+            except Exception as exc:
+                logger.error(f"Exception is: {exc}")
 
             try:
                 global_search = filters.get("search", {})
                 filters.pop("search")
-            except:
-                logger.debug("No search item")
+                # filters.pop("search")
+            except Exception as exc:
+                logger.error(f"Exception is: {exc}")
 
             key_mappings = {
                 "authors": "pubkey",
@@ -198,7 +190,7 @@ class Subscription:
                 "ids": "id",
             }
 
-            if len(filters) > 0:
+            if filters:
                 for key in filters:
                     new_key = key_mappings.get(key, key)
                     if new_key != key:
@@ -305,9 +297,8 @@ class Subscription:
                 self.where_clause += f" AND {tag_clause}"
 
             if global_search:
-                search_clause = self._search_tags(global_search)
-                search_content = self._search_content(global_search)
-                self.where_clause += f" AND ({search_content} OR {search_clause})"
+                search_clause = self._search_clause(global_search)
+                self.where_clause += f" AND {search_clause}"
 
             if not limit or limit > 100:
                 limit = 100
