@@ -12,7 +12,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
-from otel_metrics import PythonOTEL
+#from otel_metrics import PythonOTEL
 from event_classes import Event, Subscription
 from psycopg_pool import AsyncConnectionPool
 
@@ -49,7 +49,7 @@ otlp_tracer = trace.get_tracer_provider().add_span_processor(span_processor)
 
 # PsycopgInstrumentor().instrument(enable_commenter=True, commenter_options={})
 
-py_otel = PythonOTEL()
+#py_otel = PythonOTEL()
 
 # Set up a separate tracer provider for Redis
 redis_tracer_provider = TracerProvider(
@@ -218,7 +218,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
     try:
         request_payload = await request.json()
         subscription_obj = Subscription(request_payload)
-        py_otel.counter_query.add(1, py_otel.labels)
+        #py_otel.counter_query.add(1, py_otel.labels)
 
         if not subscription_obj.filters:
             return subscription_obj.sub_response_builder(
