@@ -70,24 +70,24 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    #labels:
-    #  com.datadoghq.ad.check_names: '["postgres"]'
-    #  com.datadoghq.ad.init_configs: '[{}]'
-    #  com.datadoghq.ad.instances: |
-    #    [
-    #      {
-    #        "dbm": true,
-    #        "username": "datadog",
-    #        "password" : "datadog",
-    #        "host": "172.28.0.4",
-    #        "port" : "5432",
-    #        "disable_generic_tags": true,
-    #        "tags" : "db:DEV_test",
-    #        "service" : "DEV-pg-db",
-    #        "reported_hostname" : "DEV-pg-db"
-    #      }
-    #    ]
-#
+    labels:
+      com.datadoghq.ad.check_names: '["postgres"]'
+      com.datadoghq.ad.init_configs: '[{}]'
+      com.datadoghq.ad.instances: |
+        [
+          {
+            "dbm": true,
+            "username": "datadog",
+            "password" : "datadog",
+            "host": "172.28.0.4",
+            "port" : "5432",
+            "disable_generic_tags": true,
+            "tags" : "db:DEV_test",
+            "service" : "DEV-pg-db",
+            "reported_hostname" : "DEV-pg-db"
+          }
+        ]
+
   datadog-agent:
     container_name: datadog-agent
     image: datadog/agent:latest
