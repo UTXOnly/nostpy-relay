@@ -149,7 +149,7 @@ services:
     image: bhartford419/nginx-certbot:nostpyv4
     environment:
       - DOMAIN=relay.nostpy.lol
-      - DOCKER_SVC=172.28.0.2
+      - DOCKER_SVC=172.17.0.1
       - SVC_PORT=8008
     ports:
       - "80:80"
