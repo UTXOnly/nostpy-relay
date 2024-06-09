@@ -183,7 +183,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         if event_obj.verify_signature(logger):
                             events_to_delete = event_obj.parse_kind5()
                             await event_obj.delete_event(
-                                conn, cur, events_to_delete, logger
+                                conn, cur, events_to_delete
                             )
                             return event_obj.evt_response(
                                 results_status="true", http_status_code=200
