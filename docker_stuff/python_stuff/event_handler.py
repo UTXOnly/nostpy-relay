@@ -68,8 +68,8 @@ redis_tracer_provider.add_span_processor(redis_span_processor)
 
 # Instrument Redis with the separate tracer provider
 RedisInstrumentor().instrument(tracer_provider=redis_tracer_provider)
-#redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=6379)
-redis_client = redis.Redis("172.28.0.6", port=6379)
+redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=6379)
+#redis_client = redis.Redis("172.28.0.6", port=6379)
 # Logger setup
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
