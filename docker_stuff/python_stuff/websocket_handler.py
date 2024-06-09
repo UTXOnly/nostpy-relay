@@ -7,8 +7,6 @@ import aiohttp
 import websockets
 from aiohttp.client_exceptions import ClientConnectionError
 
-from datadog import initialize, statsd
-from ddtrace import tracer
 import websockets.exceptions
 
 from websocket_classes import (
@@ -23,6 +21,7 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExport
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.resources import Resource
 from opentelemetry.instrumentation.aiohttp_client import (
     AioHttpClientInstrumentor
 )
@@ -30,7 +29,10 @@ from opentelemetry.instrumentation.aiohttp_client import (
 
 AioHttpClientInstrumentor().instrument()
 
-trace.set_tracer_provider(TracerProvider())
+#trace.set_tracer_provider(TracerProvider())
+trace.set_tracer_provider(
+    TracerProvider(resource=Resource.create({"service.name": "websocket_handler_otel"}))
+)
 tracer = trace.get_tracer(__name__)
 
 otlp_exporter = OTLPSpanExporter()
@@ -87,6 +89,7 @@ async def handle_websocket_connection(
                     )
                     with tracer.start_as_current_span("send_event_to_handle") as span:
                         current_span = trace.get_current_span()
+                        #current_span.set_attribute("service.name", "websocket_handler")
                         current_span.set_attribute("operation.name", "send.event.handler")
                         await send_event_to_handler(
                             session=session,
@@ -100,6 +103,7 @@ async def handle_websocket_connection(
                     )
                     with tracer.start_as_current_span("send_event_to_subscription") as span:
                         current_span = trace.get_current_span()
+                        #current_span.set_attribute("service.name", "websocket_handler")
                         current_span.set_attribute("operation.name", "send.event.subscription")
                         await send_subscription_to_handler(
                             session=session,
@@ -140,7 +144,7 @@ async def send_event_to_handler(
     event_dict: Dict[str, Any],
     websocket: websockets.WebSocketServerProtocol,
 ) -> None:
-    url: str = "http://primary_event_handler:8009/new_event"
+    url: str = "http://event_handler:8009/new_event"
     try:
         async with session.post(url, data=json.dumps(event_dict)) as response:
             current_span = trace.get_current_span()
@@ -163,7 +167,7 @@ async def send_subscription_to_handler(
     subscription_id: str,
     websocket: websockets.WebSocketServerProtocol,
 ) -> None:
-    url: str = "http://primary_event_handler:8009/subscription"
+    url: str = "http://event_handler:8009/subscription"
     payload: Dict[str, Any] = {
         "event_dict": event_dict,
         "subscription_id": subscription_id,

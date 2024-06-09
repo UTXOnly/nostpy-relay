@@ -7,6 +7,8 @@ from contextlib import asynccontextmanager
 import psycopg
 import redis
 import uvicorn
+from dotenv import load_dotenv
+
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -30,6 +32,8 @@ from opentelemetry.sdk.resources import Resource
 # from opentelemetry.semconv.trace import ResourceAttributes
 from opentelemetry.instrumentation.redis import RedisInstrumentor
 
+load_dotenv()
+
 
 #load_dotenv()
 app = FastAPI()
@@ -37,7 +41,7 @@ app = FastAPI()
 
 # trace.set_tracer_provider(TracerProvider())
 trace.set_tracer_provider(
-    TracerProvider(resource=Resource.create({"service.name": "eh_otel_test"}))
+    TracerProvider(resource=Resource.create({"service.name": "event_handler_otel"}))
 )
 tracer = trace.get_tracer(__name__)
 
@@ -64,22 +68,36 @@ redis_tracer_provider.add_span_processor(redis_span_processor)
 
 # Instrument Redis with the separate tracer provider
 RedisInstrumentor().instrument(tracer_provider=redis_tracer_provider)
-redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=6379)
+#redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=6379)
+redis_client = redis.Redis("172.28.0.6", port=6379)
 # Logger setup
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
 
+#def get_conn_str() -> str:
+#    return f"""
+#    dbname={os.getenv('PGDATABASE')}
+#    user={os.getenv('PGUSER')}
+#    password={os.getenv('PGPASSWORD')}
+#    host={os.getenv('PGHOST')}
+#    port={os.getenv('PGPORT')}
+#    """
+
 def get_conn_str() -> str:
     return f"""
-    dbname={os.getenv('PGDATABASE')}
-    user={os.getenv('PGUSER')}
-    password={os.getenv('PGPASSWORD')}
-    host={os.getenv('PGHOST')}
-    port={os.getenv('PGPORT')}
+    dbname=nostr
+    user=nostr
+    password=nostr
+    host=172.28.0.4
+    port=5432
     """
 
+
+def test_conn():
+    string_db = get_conn_str()
+    logger.debug(f"COnnection string is {string_db}")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -237,6 +255,10 @@ async def handle_subscription(request: Request) -> JSONResponse:
         )
         logger.debug(f"Cached results are {cached_results}")
 
+        sql_query = subscription_obj.base_query_builder(
+                            tag_values, query_parts, limit, global_search, logger
+                        )
+
         if cached_results is None:
             with tracer.start_as_current_span("SELECT * FROM EVENTS") as parent:
                 current_span = trace.get_current_span()
@@ -246,9 +268,9 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 current_span.set_attribute("operation.name", "postgres.query")
                 async with app.async_pool.connection() as conn:
                     async with conn.cursor() as cur:
-                        sql_query = subscription_obj.base_query_builder(
-                            tag_values, query_parts, limit, global_search, logger
-                        )
+                        #sql_query = subscription_obj.base_query_builder(
+                        #    tag_values, query_parts, limit, global_search, logger
+                        #)
                         await cur.execute(query=sql_query)
                         listed = await cur.fetchall()
                         if listed:
@@ -309,5 +331,6 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
 
 if __name__ == "__main__":
+    test_conn()
     initialize_db()
     uvicorn.run(app, host="0.0.0.0", port=8009)
