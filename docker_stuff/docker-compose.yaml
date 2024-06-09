@@ -31,6 +31,7 @@ services:
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://datadog-agent:4317
       - DD_SERVICE=event_handler
+      - REDIS_HOST=172.28.0.6
       - DD_AGENT_HOST=datadog-agent
       - DD_DBM_PROPAGATION_MODE=full
       - DD_ENV=${DD_ENV}
