@@ -6,7 +6,6 @@ from typing import Any, Dict, Tuple
 import aiohttp
 import websockets
 from aiohttp.client_exceptions import ClientConnectionError
-from logging.handlers import RotatingFileHandler
 
 from datadog import initialize, statsd
 from ddtrace import tracer
@@ -19,19 +18,14 @@ from websocket_classes import (
 )
 
 
-options = {"statsd_host": "172.28.0.5", "statsd_port": 8125}
+options = {"statsd_host": "datadog-agent", "statsd_port": 8125}
 initialize(**options)
 
-tracer.configure(hostname="172.28.0.5", port=8126)
+tracer.configure(hostname="datadog-agent", port=8126)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
-log_file = "./logs/websocket_handler.log"
-handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
 
 async def handle_websocket_connection(
@@ -138,7 +132,7 @@ async def send_event_to_handler(
     event_dict: Dict[str, Any],
     websocket: websockets.WebSocketServerProtocol,
 ) -> None:
-    url: str = "http://event_handler/new_event"
+    url: str = "http://primary_event_handler:8009/new_event"
     try:
         async with session.post(url, data=json.dumps(event_dict)) as response:
             response_data: Dict[str, Any] = await response.json()
@@ -159,7 +153,7 @@ async def send_subscription_to_handler(
     subscription_id: str,
     websocket: websockets.WebSocketServerProtocol,
 ) -> None:
-    url: str = "http://event_handler/subscription"
+    url: str = "http://primary_event_handler:8009/subscription"
     payload: Dict[str, Any] = {
         "event_dict": event_dict,
         "subscription_id": subscription_id,
