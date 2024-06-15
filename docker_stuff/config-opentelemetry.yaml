@@ -102,7 +102,6 @@ processors:
       - key: service.instance.id
         value: "my-manual-hostname"
         action: upsert
-      attributes:
       - key: deployment.environment
         value: nostpy-otel
         action: upsert
