@@ -76,23 +76,23 @@ logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
 
-#def get_conn_str() -> str:
-#    return f"""
-#    dbname={os.getenv('PGDATABASE')}
-#    user={os.getenv('PGUSER')}
-#    password={os.getenv('PGPASSWORD')}
-#    host={os.getenv('PGHOST')}
-#    port={os.getenv('PGPORT')}
-#    """
-
 def get_conn_str() -> str:
     return f"""
-    dbname=nostr
-    user=nostr
-    password=nostr
-    host=172.28.0.4
-    port=5432
+    dbname={os.getenv('PGDATABASE')}
+    user={os.getenv('PGUSER')}
+    password={os.getenv('PGPASSWORD')}
+    host={os.getenv('PGHOST')}
+    port={os.getenv('PGPORT')}
     """
+
+#def get_conn_str() -> str:
+#    return f"""
+#    dbname=nostr
+#    user=nostr
+#    password=nostr
+#    host=172.28.0.4
+#    port=5432
+#    """
 
 
 def test_conn():
