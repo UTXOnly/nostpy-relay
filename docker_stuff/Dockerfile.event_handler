@@ -13,7 +13,7 @@ WORKDIR /app
 COPY eh_requirements.txt .
 RUN pip install --no-cache-dir -r eh_requirements.txt
 
-COPY ./python_stuff/event*.py .
+COPY ./python_stuff/event*.py ./
 
 CMD ["python", "event_handler.py"]
 
