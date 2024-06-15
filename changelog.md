@@ -1,3 +1,24 @@
+## v1.0.0
+
+### Enhancements
+**Added**
+* Nginx reverse proxy container
+* Support for OpenTelemetry
+  * Traces and metrics over GRPC
+  * OTel collector/Datadog exporter
+* Support for both x86/ARM64 architecture for Python containers
+* Upgraded Python containers to 3.11-slim base image
+
+**Removed**
+* Nginx reverse proxy on host
+* Python 3.9-slim base images
+* Datadog Python tracer
+* Datadog docker agent
+
+**Bug fixes**
+* Fixed [#53 Search functionality not getting relevent events to the search query](https://github.com/UTXOnly/nost-py/issues/53)
+* Fixed [#55 Fail to add kind 0 notes, returns false positive OK "true" message](https://github.com/UTXOnly/nost-py/issues/55)
+
 ## v0.8
 
 **Enhancements**
