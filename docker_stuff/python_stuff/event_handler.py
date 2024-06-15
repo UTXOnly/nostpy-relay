@@ -175,7 +175,6 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         await event_obj.delete_check(conn, cur)
                         logger.debug(f"Adding event id: {event_obj.event_id}")
                         await event_obj.add_event(conn, cur)
-                        logger.debug(f"after query sucess  is: {event_obj.event_id}")
                         return event_obj.evt_response(
                             results_status="true", http_status_code=200
                         )
@@ -197,7 +196,6 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         try:
                             logger.debug(f"Adding event id: {event_obj.event_id}")
                             await event_obj.add_event(conn, cur)
-                            logger.debug(f"after query sucess  is: {event_obj.event_id}")
 
                         except psycopg.IntegrityError:
                             conn.rollback()
@@ -268,14 +266,11 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 current_span.set_attribute("operation.name", "postgres.query")
                 async with app.async_pool.connection() as conn:
                     async with conn.cursor() as cur:
-                        #sql_query = subscription_obj.base_query_builder(
-                        #    tag_values, query_parts, limit, global_search, logger
-                        #)
                         await cur.execute(query=sql_query)
-                        listed = await cur.fetchall()
-                        if listed:
+                        query_results = await cur.fetchall()
+                        if query_results:
                             parsed_results = await subscription_obj.query_result_parser(
-                                listed
+                                query_results
                             )
                             serialized_events = json.dumps(parsed_results)
                             redis_client.setex(
@@ -304,7 +299,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 parse_var = json.loads(cached_results.decode("utf-8"))
                 results_json = json.dumps(parse_var)
             except:
-                logger.warning("Empty cache results, sending EOSE")
+                logger.debug("Empty cache results, sending EOSE")
             if not parse_var:
                 event_type = "EOSE"
                 results_json = ""
