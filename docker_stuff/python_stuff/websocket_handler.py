@@ -22,21 +22,21 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.resources import Resource
-from opentelemetry.instrumentation.aiohttp_client import (
-    AioHttpClientInstrumentor
-)
+from opentelemetry.instrumentation.aiohttp_client import AioHttpClientInstrumentor
 
 
 AioHttpClientInstrumentor().instrument()
 
-#trace.set_tracer_provider(TracerProvider())
+# trace.set_tracer_provider(TracerProvider())
 trace.set_tracer_provider(
     TracerProvider(resource=Resource.create({"service.name": "websocket_handler_otel"}))
 )
 tracer = trace.get_tracer(__name__)
 
 otlp_exporter = OTLPSpanExporter()
-span_processor = BatchSpanProcessor(otlp_exporter) # we don't want to export every single trace by itself but rather batch them
+span_processor = BatchSpanProcessor(
+    otlp_exporter
+)  # we don't want to export every single trace by itself but rather batch them
 otlp_tracer = trace.get_tracer_provider().add_span_processor(span_processor)
 
 
@@ -89,8 +89,10 @@ async def handle_websocket_connection(
                     )
                     with tracer.start_as_current_span("send_event_to_handle") as span:
                         current_span = trace.get_current_span()
-                        #current_span.set_attribute("service.name", "websocket_handler")
-                        current_span.set_attribute("operation.name", "send.event.handler")
+                        # current_span.set_attribute("service.name", "websocket_handler")
+                        current_span.set_attribute(
+                            "operation.name", "send.event.handler"
+                        )
                         await send_event_to_handler(
                             session=session,
                             event_dict=dict(ws_message.event_payload),
@@ -101,10 +103,14 @@ async def handle_websocket_connection(
                     logger.debug(
                         f"Payload is {ws_message.event_payload} and of type: {type(ws_message.event_payload)}"
                     )
-                    with tracer.start_as_current_span("send_event_to_subscription") as span:
+                    with tracer.start_as_current_span(
+                        "send_event_to_subscription"
+                    ) as span:
                         current_span = trace.get_current_span()
-                        #current_span.set_attribute("service.name", "websocket_handler")
-                        current_span.set_attribute("operation.name", "send.event.subscription")
+                        # current_span.set_attribute("service.name", "websocket_handler")
+                        current_span.set_attribute(
+                            "operation.name", "send.event.subscription"
+                        )
                         await send_subscription_to_handler(
                             session=session,
                             event_dict=ws_message.event_payload,

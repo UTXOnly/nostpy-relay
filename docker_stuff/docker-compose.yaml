@@ -62,12 +62,15 @@ services:
         ipv4_address: 172.28.0.6
 
   nginx-certbot:
-    #build: .
-    image: bhartford419/nginx-certbot:nostpyv4
+    build: .
+    #image: bhartford419/nginx-certbot:nostpyv4
     environment:
-      - DOMAIN=relay.nostpy.lol
+      - DOMAIN=${DOMAIN}
       - DOCKER_SVC=172.17.0.1
       - SVC_PORT=8008
+      - VERSION=${VERSION}
+      - CONTACT=${CONTACT}
+      - HEX_PUBKEY=${HEX_PUBKEY}
     ports:
       - "80:80"
       - "443:443"
@@ -79,7 +82,6 @@ services:
 
   opentelemetry-collector:
     image: otel/opentelemetry-collector-contrib:latest
-    #build: .
     environment:
       - DD_API_KEY=${DD_API_KEY}
     volumes:
@@ -95,15 +97,13 @@ services:
       - "55680:55680"
       - "4317:4317"
       - "4318:4318"
-    #networks:
-    #  - my-overlay-network
     command: ["--config=/etc/otel/config.yaml"]
 
 volumes:
   postgres_data:
 
 networks:
-  my_network:
+  nostpy_network:
     driver: bridge
     ipam:
       driver: default

@@ -1,59 +1,42 @@
+import copy
 import json
 import logging
 import os
-import copy
 from contextlib import asynccontextmanager
 
 import psycopg
 import redis
 import uvicorn
-from dotenv import load_dotenv
-
-
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-
-#from otel_metrics import PythonOTEL
-from event_classes import Event, Subscription
-from psycopg_pool import AsyncConnectionPool
-
 from opentelemetry import trace
-
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.psycopg import PsycopgInstrumentor
+from opentelemetry.instrumentation.redis import RedisInstrumentor
+from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.instrumentation.psycopg import PsycopgInstrumentor
 from opentelemetry.semconv.trace import SpanAttributes
-from opentelemetry.sdk.resources import Resource
+from psycopg_pool import AsyncConnectionPool
 
+from event_classes import Event, Subscription
 
-# from opentelemetry.sdk.resources import Resource
-# from opentelemetry.semconv.trace import ResourceAttributes
-from opentelemetry.instrumentation.redis import RedisInstrumentor
+# from otel_metrics import PythonOTEL
 
-load_dotenv()
-
-
-#load_dotenv()
 app = FastAPI()
 
-
-# trace.set_tracer_provider(TracerProvider())
 trace.set_tracer_provider(
     TracerProvider(resource=Resource.create({"service.name": "event_handler_otel"}))
 )
 tracer = trace.get_tracer(__name__)
 
 otlp_exporter = OTLPSpanExporter()
-span_processor = BatchSpanProcessor(
-    otlp_exporter
-)  # we don't want to export every single trace by itself but rather batch them
+span_processor = BatchSpanProcessor(otlp_exporter)
 otlp_tracer = trace.get_tracer_provider().add_span_processor(span_processor)
 
-# PsycopgInstrumentor().instrument(enable_commenter=True, commenter_options={})
 
-#py_otel = PythonOTEL()
+# py_otel = PythonOTEL()
 
 # Set up a separate tracer provider for Redis
 redis_tracer_provider = TracerProvider(
@@ -69,8 +52,7 @@ redis_tracer_provider.add_span_processor(redis_span_processor)
 # Instrument Redis with the separate tracer provider
 RedisInstrumentor().instrument(tracer_provider=redis_tracer_provider)
 redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=6379)
-#redis_client = redis.Redis("172.28.0.6", port=6379)
-# Logger setup
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
@@ -85,19 +67,6 @@ def get_conn_str() -> str:
     port={os.getenv('PGPORT')}
     """
 
-#def get_conn_str() -> str:
-#    return f"""
-#    dbname=nostr
-#    user=nostr
-#    password=nostr
-#    host=172.28.0.4
-#    port=5432
-#    """
-
-
-def test_conn():
-    string_db = get_conn_str()
-    logger.debug(f"COnnection string is {string_db}")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -181,9 +150,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     elif event_obj.kind == 5:
                         if event_obj.verify_signature(logger):
                             events_to_delete = event_obj.parse_kind5()
-                            await event_obj.delete_event(
-                                conn, cur, events_to_delete
-                            )
+                            await event_obj.delete_event(conn, cur, events_to_delete)
                             return event_obj.evt_response(
                                 results_status="true", http_status_code=200
                             )
@@ -191,7 +158,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                             return event_obj.evt_response(
                                 results_status="flase", http_status_code=200
                             )
-    
+
                     else:
                         try:
                             logger.debug(f"Adding event id: {event_obj.event_id}")
@@ -214,7 +181,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                                 http_status_code=400,
                                 message="error: failed to add event",
                             )
-    
+
                     return event_obj.evt_response(
                         results_status="true", http_status_code=200
                     )
@@ -234,7 +201,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
     try:
         request_payload = await request.json()
         subscription_obj = Subscription(request_payload)
-        #py_otel.counter_query.add(1, py_otel.labels)
+        # py_otel.counter_query.add(1, py_otel.labels)
 
         if not subscription_obj.filters:
             return subscription_obj.sub_response_builder(
@@ -254,8 +221,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
         logger.debug(f"Cached results are {cached_results}")
 
         sql_query = subscription_obj.base_query_builder(
-                            tag_values, query_parts, limit, global_search, logger
-                        )
+            tag_values, query_parts, limit, global_search, logger
+        )
 
         if cached_results is None:
             with tracer.start_as_current_span("SELECT * FROM EVENTS") as parent:
@@ -286,7 +253,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                                 200,
                             )
                             return return_response
-    
+
                         else:
                             redis_client.setex(str(raw_filters_copy), 240, "")
                             return subscription_obj.sub_response_builder(
@@ -326,6 +293,5 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
 
 if __name__ == "__main__":
-    test_conn()
     initialize_db()
     uvicorn.run(app, host="0.0.0.0", port=8009)
