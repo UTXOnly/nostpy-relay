@@ -1,0 +1,36 @@
+server {
+    listen 443 ssl;
+    server_name ${DOMAIN};
+
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+    ssl_protocols TLSv1.3 TLSv1.2;
+    ssl_prefer_server_ciphers on;
+    ssl_ecdh_curve secp521r1:secp384r1;
+    ssl_ciphers EECDH+AESGCM:EECDH+AES256;
+
+    ssl_session_cache shared:TLS:2m;
+    ssl_buffer_size 4k;
+
+    ssl_stapling on;
+    ssl_stapling_verify on;
+    resolver 1.1.1.1 1.0.0.1 [2606:4700:4700::1111] [2606:4700:4700::1001];
+
+    add_header Strict-Transport-Security 'max-age=31536000; includeSubDomains; preload' always;
+    keepalive_timeout 70;
+
+    location / {
+        if ($http_accept ~* "application/nostr\\+json") {
+            return 200 '{"name": "${DOMAIN}", "description": "NostPy relay ${VERSION}", "pubkey": "${HEX_PUBKEY}", "contact": "${CONTACT}", "supported_nips": [1, 2, 4, 9, 15, 16, 25, 50, 99], "software": "git+https://github.com/UTXOnly/nost-py.git", "version": "${VERSION}", "site": "https://image.nostr.build/ca2fd20bdd90fe91525ffdd752a2773eb85c2d5a144154d4a0e6227835fa4ae1.jpg"}';
+            add_header 'Content-Type' 'application/json';
+        }
+
+        proxy_pass http://${DOCKER_SVC}:${SVC_PORT};  # Use the environment variables
+        proxy_http_version 1.1;
+        proxy_read_timeout 1d;
+        proxy_send_timeout 1d;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+    }
+}

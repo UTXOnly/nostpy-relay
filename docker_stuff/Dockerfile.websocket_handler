@@ -1,7 +1,14 @@
-FROM python:3.9-slim
+FROM python:3.11-slim
 
 WORKDIR /app
-
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        gcc \
+        pkg-config \
+        libc-dev \
+        g++ \
+        make \
+    && rm -rf /var/lib/apt/lists/*
 COPY ws_requirements.txt .
 RUN pip install --no-cache-dir -r ws_requirements.txt
 
@@ -9,4 +16,4 @@ COPY ./python_stuff/websocket_handler.py .
 COPY ./python_stuff/websocket_classes.py .
 
 
-CMD ["ddtrace-run", "python", "websocket_handler.py"]
+CMD [ "python", "websocket_handler.py"]

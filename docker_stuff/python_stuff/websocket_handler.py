@@ -6,10 +6,7 @@ from typing import Any, Dict, Tuple
 import aiohttp
 import websockets
 from aiohttp.client_exceptions import ClientConnectionError
-from logging.handlers import RotatingFileHandler
 
-from datadog import initialize, statsd
-from ddtrace import tracer
 import websockets.exceptions
 
 from websocket_classes import (
@@ -18,20 +15,35 @@ from websocket_classes import (
     WebsocketMessages,
 )
 
+from opentelemetry import trace
 
-options = {"statsd_host": "172.28.0.5", "statsd_port": 8125}
-initialize(**options)
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.instrumentation.aiohttp_client import AioHttpClientInstrumentor
 
-tracer.configure(hostname="172.28.0.5", port=8126)
+
+AioHttpClientInstrumentor().instrument()
+
+# trace.set_tracer_provider(TracerProvider())
+trace.set_tracer_provider(
+    TracerProvider(resource=Resource.create({"service.name": "websocket_handler_otel"}))
+)
+tracer = trace.get_tracer(__name__)
+
+otlp_exporter = OTLPSpanExporter()
+span_processor = BatchSpanProcessor(
+    otlp_exporter
+)  # we don't want to export every single trace by itself but rather batch them
+otlp_tracer = trace.get_tracer_provider().add_span_processor(span_processor)
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-log_file = "./logs/websocket_handler.log"
-handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
 
 async def handle_websocket_connection(
@@ -54,14 +66,6 @@ async def handle_websocket_connection(
                     logger.error(f"Error decoding JSON message: {json_error}")
                     continue
 
-                statsd.increment(
-                    "nostr.new_connection.count",
-                    tags=[
-                        f"client_ip:{ws_message.obfuscated_client_ip}",
-                        f"nostr_client:{ws_message.origin}",
-                    ],
-                )
-
                 if not await rate_limiter.check_request(
                     ws_message.obfuscated_client_ip
                 ):
@@ -74,13 +78,7 @@ async def handle_websocket_connection(
                         "false",
                         "rate-limited: slow your roll nostrich",
                     )
-                    statsd.increment(
-                        "nostr.client.rate_limited.count",
-                        tags=[
-                            f"client_ip:{ws_message.obfuscated_client_ip}",
-                            f"nostr_client:{ws_message.origin}",
-                        ],
-                    )
+
                     await websocket.send(json.dumps(rate_limit_response))
                     await websocket.close()
                     return
@@ -89,22 +87,36 @@ async def handle_websocket_connection(
                     logger.debug(
                         f"Event to be sent payload is: {ws_message.event_payload} of type {type(ws_message.event_payload)}"
                     )
-                    await send_event_to_handler(
-                        session=session,
-                        event_dict=dict(ws_message.event_payload),
-                        websocket=websocket,
-                    )
+                    with tracer.start_as_current_span("send_event_to_handle") as span:
+                        current_span = trace.get_current_span()
+                        # current_span.set_attribute("service.name", "websocket_handler")
+                        current_span.set_attribute(
+                            "operation.name", "send.event.handler"
+                        )
+                        await send_event_to_handler(
+                            session=session,
+                            event_dict=dict(ws_message.event_payload),
+                            websocket=websocket,
+                        )
                 elif ws_message.event_type == "REQ":
                     logger.debug("Entering REQ branch")
                     logger.debug(
                         f"Payload is {ws_message.event_payload} and of type: {type(ws_message.event_payload)}"
                     )
-                    await send_subscription_to_handler(
-                        session=session,
-                        event_dict=ws_message.event_payload,
-                        subscription_id=ws_message.subscription_id,
-                        websocket=websocket,
-                    )
+                    with tracer.start_as_current_span(
+                        "send_event_to_subscription"
+                    ) as span:
+                        current_span = trace.get_current_span()
+                        # current_span.set_attribute("service.name", "websocket_handler")
+                        current_span.set_attribute(
+                            "operation.name", "send.event.subscription"
+                        )
+                        await send_subscription_to_handler(
+                            session=session,
+                            event_dict=ws_message.event_payload,
+                            subscription_id=ws_message.subscription_id,
+                            websocket=websocket,
+                        )
                 elif ws_message.event_type == "CLOSE":
                     response: Tuple[str, str] = (
                         "CLOSED",
@@ -138,9 +150,11 @@ async def send_event_to_handler(
     event_dict: Dict[str, Any],
     websocket: websockets.WebSocketServerProtocol,
 ) -> None:
-    url: str = "http://event_handler/new_event"
+    url: str = "http://event_handler:8009/new_event"
     try:
         async with session.post(url, data=json.dumps(event_dict)) as response:
+            current_span = trace.get_current_span()
+            current_span.set_attribute("operation.name", "post.event.handler")
             response_data: Dict[str, Any] = await response.json()
             logger.debug(
                 f"Received response from Event Handler {response_data}, data types is {type(response_data)}"
@@ -159,13 +173,15 @@ async def send_subscription_to_handler(
     subscription_id: str,
     websocket: websockets.WebSocketServerProtocol,
 ) -> None:
-    url: str = "http://event_handler/subscription"
+    url: str = "http://event_handler:8009/subscription"
     payload: Dict[str, Any] = {
         "event_dict": event_dict,
         "subscription_id": subscription_id,
     }
 
     async with session.post(url, data=json.dumps(payload)) as response:
+        current_span = trace.get_current_span()
+        current_span.set_attribute("operation.name", "post.event.subscription")
         response_data = await response.json()
         logger.debug(
             f"Data type of response_data: {type(response_data)}, Response Data: {response_data}"
@@ -178,9 +194,16 @@ async def send_subscription_to_handler(
         EOSE = "EOSE", response_object.subscription_id
 
         if response.status == 200 and response_object.event_type == "EVENT":
-            response_list = await response_object.format_response()
-            await response_object.send_event_loop(response_list, websocket)
-            await websocket.send(json.dumps(EOSE))
+            with tracer.start_as_current_span("format_response") as span:
+                current_span = trace.get_current_span()
+                current_span.set_attribute("operation.name", "format.response")
+                response_list = await response_object.format_response()
+            with tracer.start_as_current_span("send event loop") as span:
+                current_span = trace.get_current_span()
+                current_span.set_attribute("operation.name", "send.event.loop")
+
+                await response_object.send_event_loop(response_list, websocket)
+                await websocket.send(json.dumps(EOSE))
         else:
             await websocket.send(json.dumps(EOSE))
             logger.debug(f"Response data is {response_data} but it failed")

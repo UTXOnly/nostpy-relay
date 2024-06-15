@@ -62,20 +62,16 @@ class Event:
             logger.error(f"Error verifying signature for event {self.event_id}: {e}")
             return False
 
-    async def delete_check(self, conn, cur, statsd) -> None:
+    async def delete_check(self, conn, cur) -> None:
         delete_query = """
         DELETE FROM events
         WHERE pubkey = %s AND kind = %s;
         """
         await cur.execute(delete_query, (self.pubkey, self.kind))
-        statsd.decrement("nostr.event.added.count", tags=["func:new_event"])
-        statsd.increment("nostr.event.deleted.count", tags=["func:new_event"])
         await conn.commit()
 
-    def parse_kind5(self, statsd) -> List:
+    def parse_kind5(self) -> List:
         event_values = [array[1] for array in self.tags]
-        statsd.decrement("nostr.event.added.count", tags=["func:new_event"])
-        statsd.increment("nostr.event.deleted.count", tags=["func:new_event"])
         return event_values
 
     async def delete_event(self, conn, cur, delete_events) -> bool:

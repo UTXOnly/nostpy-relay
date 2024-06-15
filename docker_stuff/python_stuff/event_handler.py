@@ -1,41 +1,61 @@
+import copy
 import json
 import logging
 import os
-import copy
 from contextlib import asynccontextmanager
-from logging.handlers import RotatingFileHandler
 
 import psycopg
 import redis
 import uvicorn
-
-from datadog import initialize, statsd
-from ddtrace import tracer
-from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-
-from event_classes import Event, Subscription
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.psycopg import PsycopgInstrumentor
+from opentelemetry.instrumentation.redis import RedisInstrumentor
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.semconv.trace import SpanAttributes
 from psycopg_pool import AsyncConnectionPool
 
+from event_classes import Event, Subscription
 
-load_dotenv()
+# from otel_metrics import PythonOTEL
 
-options = {"statsd_host": "172.28.0.5", "statsd_port": 8125}
-initialize(**options)
+app = FastAPI()
 
-redis_client = redis.Redis(host="172.28.0.6", port=6379)
+trace.set_tracer_provider(
+    TracerProvider(resource=Resource.create({"service.name": "event_handler_otel"}))
+)
+tracer = trace.get_tracer(__name__)
 
-tracer.configure(hostname="172.28.0.5", port=8126)
-redis_client: redis.Redis = redis.Redis(host="172.28.0.6", port=6379)
+otlp_exporter = OTLPSpanExporter()
+span_processor = BatchSpanProcessor(otlp_exporter)
+otlp_tracer = trace.get_tracer_provider().add_span_processor(span_processor)
+
+
+# py_otel = PythonOTEL()
+
+# Set up a separate tracer provider for Redis
+redis_tracer_provider = TracerProvider(
+    resource=Resource.create({"service.name": "redis"})
+)
+redis_tracer = redis_tracer_provider.get_tracer(__name__)
+
+# Set up the OTLP exporter and span processor for Redis
+redis_otlp_exporter = OTLPSpanExporter()
+redis_span_processor = BatchSpanProcessor(redis_otlp_exporter)
+redis_tracer_provider.add_span_processor(redis_span_processor)
+
+# Instrument Redis with the separate tracer provider
+RedisInstrumentor().instrument(tracer_provider=redis_tracer_provider)
+redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=6379)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-log_file = "./logs/event_handler.log"
-handler = RotatingFileHandler(log_file, maxBytes=1000000, backupCount=5)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
 
 def get_conn_str() -> str:
@@ -56,6 +76,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+FastAPIInstrumentor.instrument_app(app)
 
 
 def initialize_db() -> None:
@@ -114,59 +135,56 @@ async def handle_new_event(request: Request) -> JSONResponse:
     )
 
     try:
-        async with request.app.async_pool.connection() as conn:
-            async with conn.cursor() as cur:
-                if event_obj.kind in [0, 3]:
-                    await event_obj.delete_check(conn, cur, statsd)
-                    logger.debug(f"Adding event id: {event_obj.event_id}")
-                    await event_obj.add_event(conn, cur)
-                    logger.debug(f"after query sucess  is: {event_obj.event_id}")
-                    return event_obj.evt_response(
-                        results_status="true", http_status_code=200
-                    )
-                elif event_obj.kind == 5:
-                    if event_obj.verify_signature(logger):
-                        events_to_delete = event_obj.parse_kind5(statsd)
-                        await event_obj.delete_event(
-                            conn, cur, events_to_delete, logger
-                        )
+        with tracer.start_as_current_span("add_event") as span:
+            current_span = trace.get_current_span()
+            current_span.set_attribute(SpanAttributes.DB_SYSTEM, "postgresql")
+            async with request.app.async_pool.connection() as conn:
+                async with conn.cursor() as cur:
+                    if event_obj.kind in [0, 3]:
+                        await event_obj.delete_check(conn, cur)
+                        logger.debug(f"Adding event id: {event_obj.event_id}")
+                        await event_obj.add_event(conn, cur)
                         return event_obj.evt_response(
                             results_status="true", http_status_code=200
                         )
+                    elif event_obj.kind == 5:
+                        if event_obj.verify_signature(logger):
+                            events_to_delete = event_obj.parse_kind5()
+                            await event_obj.delete_event(conn, cur, events_to_delete)
+                            return event_obj.evt_response(
+                                results_status="true", http_status_code=200
+                            )
+                        else:
+                            return event_obj.evt_response(
+                                results_status="flase", http_status_code=200
+                            )
+
                     else:
-                        return event_obj.evt_response(
-                            results_status="flase", http_status_code=200
-                        )
+                        try:
+                            logger.debug(f"Adding event id: {event_obj.event_id}")
+                            await event_obj.add_event(conn, cur)
 
-                else:
-                    try:
-                        logger.debug(f"Adding event id: {event_obj.event_id}")
-                        await event_obj.add_event(conn, cur)
-                        logger.debug(f"after query sucess  is: {event_obj.event_id}")
-                        statsd.increment(
-                            "nostr.event.added.count", tags=["func:new_event"]
-                        )
-                    except psycopg.IntegrityError:
-                        conn.rollback()
-                        logger.info(
-                            f"Event with ID {event_obj.event_id} already exists"
-                        )
-                        return event_obj.evt_response(
-                            results_status="false",
-                            http_status_code=409,
-                            message="duplicate: already have this event",
-                        )
-                    except Exception as exc:
-                        logger.error(f"Exception adding event {exc}")
-                        return event_obj.evt_response(
-                            results_status="false",
-                            http_status_code=400,
-                            message="error: failed to add event",
-                        )
+                        except psycopg.IntegrityError:
+                            conn.rollback()
+                            logger.info(
+                                f"Event with ID {event_obj.event_id} already exists"
+                            )
+                            return event_obj.evt_response(
+                                results_status="false",
+                                http_status_code=409,
+                                message="duplicate: already have this event",
+                            )
+                        except Exception as exc:
+                            logger.error(f"Exception adding event {exc}")
+                            return event_obj.evt_response(
+                                results_status="false",
+                                http_status_code=400,
+                                message="error: failed to add event",
+                            )
 
-                return event_obj.evt_response(
-                    results_status="true", http_status_code=200
-                )
+                    return event_obj.evt_response(
+                        results_status="true", http_status_code=200
+                    )
 
     except Exception:
         logger.debug("Entering gen exc")
@@ -183,6 +201,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
     try:
         request_payload = await request.json()
         subscription_obj = Subscription(request_payload)
+        # py_otel.counter_query.add(1, py_otel.labels)
 
         if not subscription_obj.filters:
             return subscription_obj.sub_response_builder(
@@ -201,38 +220,45 @@ async def handle_subscription(request: Request) -> JSONResponse:
         )
         logger.debug(f"Cached results are {cached_results}")
 
-        if cached_results is None:
-            async with app.async_pool.connection() as conn:
-                async with conn.cursor() as cur:
-                    sql_query = subscription_obj.base_query_builder(
-                        tag_values, query_parts, limit, global_search, logger
-                    )
-                    await cur.execute(query=sql_query)
-                    listed = await cur.fetchall()
-                    if listed:
-                        parsed_results = await subscription_obj.query_result_parser(
-                            listed
-                        )
-                        serialized_events = json.dumps(parsed_results)
-                        redis_client.setex(
-                            str(raw_filters_copy), 240, serialized_events
-                        )
-                        logger.debug(
-                            f"Caching results , keys: {str(raw_filters_copy)}   value is : {serialized_events}"
-                        )
-                        return_response = subscription_obj.sub_response_builder(
-                            "EVENT",
-                            subscription_obj.subscription_id,
-                            serialized_events,
-                            200,
-                        )
-                        return return_response
+        sql_query = subscription_obj.base_query_builder(
+            tag_values, query_parts, limit, global_search, logger
+        )
 
-                    else:
-                        redis_client.setex(str(raw_filters_copy), 240, "")
-                        return subscription_obj.sub_response_builder(
-                            "EOSE", subscription_obj.subscription_id, "", 200
-                        )
+        if cached_results is None:
+            with tracer.start_as_current_span("SELECT * FROM EVENTS") as parent:
+                current_span = trace.get_current_span()
+                current_span.set_attribute(SpanAttributes.DB_SYSTEM, "postgresql")
+                current_span.set_attribute(SpanAttributes.DB_STATEMENT, sql_query)
+                current_span.set_attribute("service.name", "postgres")
+                current_span.set_attribute("operation.name", "postgres.query")
+                async with app.async_pool.connection() as conn:
+                    async with conn.cursor() as cur:
+                        await cur.execute(query=sql_query)
+                        query_results = await cur.fetchall()
+                        if query_results:
+                            parsed_results = await subscription_obj.query_result_parser(
+                                query_results
+                            )
+                            serialized_events = json.dumps(parsed_results)
+                            redis_client.setex(
+                                str(raw_filters_copy), 240, serialized_events
+                            )
+                            logger.debug(
+                                f"Caching results , keys: {str(raw_filters_copy)}   value is : {serialized_events}"
+                            )
+                            return_response = subscription_obj.sub_response_builder(
+                                "EVENT",
+                                subscription_obj.subscription_id,
+                                serialized_events,
+                                200,
+                            )
+                            return return_response
+
+                        else:
+                            redis_client.setex(str(raw_filters_copy), 240, "")
+                            return subscription_obj.sub_response_builder(
+                                "EOSE", subscription_obj.subscription_id, "", 200
+                            )
 
         elif cached_results:
             event_type = "EVENT"
@@ -240,7 +266,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 parse_var = json.loads(cached_results.decode("utf-8"))
                 results_json = json.dumps(parse_var)
             except:
-                logger.warning("Empty cache results, sending EOSE")
+                logger.debug("Empty cache results, sending EOSE")
             if not parse_var:
                 event_type = "EOSE"
                 results_json = ""
@@ -268,4 +294,4 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
 if __name__ == "__main__":
     initialize_db()
-    uvicorn.run(app, host="0.0.0.0", port=80)
+    uvicorn.run(app, host="0.0.0.0", port=8009)

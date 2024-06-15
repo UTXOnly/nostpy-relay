@@ -1,0 +1,136 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+      grpc:
+
+  docker_stats:
+    endpoint: unix:///var/run/docker.sock
+    metrics:
+      container.network.io.usage.rx_packets:
+        enabled: true
+      container.network.io.usage.tx_packets:
+        enabled: true
+      container.cpu.usage.system:
+        enabled: true
+      container.memory.rss:
+        enabled: true
+      container.blockio.io_serviced_recursive:
+        enabled: true
+      container.uptime:
+        enabled: true
+      container.memory.hierarchical_memory_limit:
+        enabled: true
+
+  hostmetrics:
+    collection_interval: 10s
+    scrapers:
+      paging:
+        metrics:
+          system.paging.utilization:
+            enabled: true
+      cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
+          system.cpu.physical.count:
+            enabled: true
+          system.cpu.logical.count:
+            enabled: true
+          system.cpu.frequency:
+            enabled: true
+      disk:
+      filesystem:
+        metrics:
+          system.filesystem.utilization:
+            enabled: true
+      load:
+      memory:
+      network:
+      processes:
+
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'otelcol'
+          scrape_interval: 10s
+          static_configs:
+            - targets: ['0.0.0.0:8888']
+
+  filelog:
+    include_file_path: true
+    poll_interval: 500ms
+    include:
+      - /var/log/*/app.log
+    operators:
+      - type: json_parser
+      - type: time_parser
+        parse_from: attributes.time
+        layout: '%Y-%m-%dT%H:%M:%S%z'
+
+processors:
+  batch:
+    send_batch_max_size: 1000
+    send_batch_size: 100
+    timeout: 10s
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 4000
+    spike_limit_mib: 800
+  resourcedetection:
+    detectors: [env, ec2, system]
+    system:
+      resource_attributes:
+        os.description:
+          enabled: true
+        host.arch:
+          enabled: true
+        host.cpu.vendor.id:
+          enabled: true
+        host.cpu.family:
+          enabled: true
+        host.cpu.model.id:
+          enabled: true
+        host.cpu.model.name:
+          enabled: true
+        host.cpu.stepping:
+          enabled: true
+        host.cpu.cache.l2.size:
+          enabled: true
+  attributes:
+    actions:
+      - key: service.instance.id
+        value: "my-manual-hostname"
+        action: upsert
+      - key: deployment.environment
+        value: nostpy-otel
+        action: upsert
+
+connectors:
+  datadog/connector:
+
+exporters:
+  datadog/exporter:
+    api:
+      site: datadoghq.com
+      key: ${DD_API_KEY}
+    traces:
+      trace_buffer: 500
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resourcedetection, attributes]
+      exporters: [datadog/connector, datadog/exporter]
+    metrics:
+      receivers: [datadog/connector, otlp, hostmetrics, docker_stats]
+      processors: [memory_limiter, batch, resourcedetection, attributes]
+      exporters: [datadog/exporter]
+    logs:
+      receivers: [otlp, filelog]
+      processors: [memory_limiter, batch, resourcedetection, attributes]
+      exporters: [datadog/exporter]
+  telemetry:
+    logs:
+      level: "debug"

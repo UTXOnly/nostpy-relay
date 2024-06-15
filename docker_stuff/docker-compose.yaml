@@ -5,47 +5,31 @@ services:
       context: .
       dockerfile: Dockerfile.websocket_handler
     environment:
-      - DD_SERVICE=websocket_handler
-      - DD_ENV=${DD_ENV}
-      - DD_LOGS_INJECTION=true
-      - DD_PROFILING_ENABLED=true
-      - DD_RUNTIME_METRICS_ENABLED=true
-      - DD_AGENT_HOST=datadog-agent
-      - DD_APPSEC_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://172.28.0.7:4317
     ports:
       - 8008:8008
     networks:
-      my_network:
+      nostpy_network:
         ipv4_address: 172.28.0.2
-    volumes:
-      - ./logs:/app/logs
-    labels:
-      com.datadoghq.ad.logs: '[{"type":"file", "source": "websocket_handler", "service": "websocket_handler", "path": "/logs/websocket_handler.log"}]'
-    
 
   event_handler:
     build:
       context: .
       dockerfile: Dockerfile.event_handler
     environment:
-      - DD_SERVICE=event_handler
-      - DD_AGENT_HOST=datadog-agent
-      - DD_DBM_PROPAGATION_MODE=full
-      - DD_ENV=${DD_ENV}
-      - DD_LOGS_INJECTION=true
-      - DD_PROFILING_ENABLED=true
-      - DD_RUNTIME_METRICS_ENABLED=true
-      - DD_APPSEC_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://172.28.0.7:4317
+      - REDIS_HOST=${REDIS_HOST}
+      - PGDATABASE=${PGDATABASE}
+      - PGUSER=${PGUSER}
+      - PGPASSWORD=${PGPASSWORD}
+      - PGPORT=${PGPORT}
+      - PGHOST=${PGHOST}
     networks:
-      my_network:
+      nostpy_network:
         ipv4_address: 172.28.0.3
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./logs:/app/logs
-    labels:
-      com.datadoghq.ad.logs: '[{"type":"file", "source": "event_handler", "service": "event_handler", "path": "/logs/event_handler.log"}]'
 
   postgres:
     image: postgres:14
@@ -56,7 +40,7 @@ services:
     ports:
       - 5432:5432
     networks:
-      my_network:
+      nostpy_network:
         ipv4_address: 172.28.0.4
     command: postgres -c 'config_file=/postgresql.conf'
     volumes:
@@ -67,70 +51,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    labels:
-      com.datadoghq.ad.check_names: '["postgres"]'
-      com.datadoghq.ad.init_configs: '[{}]'
-      com.datadoghq.ad.instances: |
-        [
-          {
-            "dbm": true,
-            "username": "datadog",
-            "password" : "datadog",
-            "host": "172.28.0.4",
-            "port" : "5432",
-            "disable_generic_tags": true,
-            "tags" : "db:DEV_test",
-            "service" : "DEV-pg-db",
-            "reported_hostname" : "DEV-pg-db"
-          }
-        ]
-
-  datadog-agent:
-    container_name: datadog-agent
-    image: datadog/agent:latest
-    environment:
-      - DD_API_KEY=${DD_API_KEY}
-      - DD_SITE=datadoghq.com
-      - DD_HOSTNAME=${DD_HOSTNAME}
-      - DD_ENV=${DD_ENV}
-      - DD_TAGS=owner:nostrich
-      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
-      - DD_DOCKER_LABELS_AS_TAGS=true
-      - DD_DOCKER_ENV_AS_TAGS=true
-      - DD_SYSTEM_PROBE_ENABLED=true
-      - DD_PROCESS_AGENT_ENABLED=true
-      - DD_APM_NON_LOCAL_TRAFFIC=true
-      - DD_AGENT_HOST=host.docker.internal
-      - DD_LOGS_ENABLED=true
-      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
-      - DD_CONTAINER_EXCLUDE="image:datadog/agent:latest"
-      - DD_LOG_LEVEL=info
-      - DD_REMOTE_CONFIGURATION_ENABLED=true
-      - DD_LOGS_CONFIG_AUTO_MULTI_LINE_DETECTION=true
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - ./logs:/logs
-      - /proc/:/host/proc/:ro
-      - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
-      - /sys/kernel/debug:/sys/kernel/debug
-    cap_add:
-      - SYS_ADMIN
-      - SYS_RESOURCE
-      - SYS_PTRACE
-      - NET_ADMIN
-      - NET_BROADCAST
-      - NET_RAW
-      - IPC_LOCK
-      - CHOWN
-    security_opt:
-      - apparmor:unconfined
-    ports:
-      - "8126:8126"
-      - "8125:8125"
-    networks:
-      my_network:
-        ipv4_address: 172.28.0.5
 
   redis:
     image: redis:latest
@@ -138,14 +58,54 @@ services:
     ports:
       - "6379:6379"
     networks:
-      my_network:
+      nostpy_network:
         ipv4_address: 172.28.0.6
+
+  nginx-certbot:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    #image: bhartford419/nginx-certbot:nostpyv4
+    environment:
+      - DOMAIN=${DOMAIN}
+      - DOCKER_SVC=172.17.0.1
+      - SVC_PORT=8008
+      - VERSION=${VERSION}
+      - CONTACT=${CONTACT}
+      - HEX_PUBKEY=${HEX_PUBKEY}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/lib/letsencrypt:/var/lib/letsencrypt
+    depends_on:
+      - websocket_handler
+
+  opentelemetry-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    environment:
+      - DD_API_KEY=${DD_API_KEY}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
+      - /sys/kernel/debug:/sys/kernel/debug
+      - ./config-opentelemetry.yaml:/etc/otel/config.yaml
+    networks:
+      nostpy_network:
+        ipv4_address: 172.28.0.7
+    ports:
+      - "55680:55680"
+      - "4317:4317"
+      - "4318:4318"
+    command: ["--config=/etc/otel/config.yaml"]
 
 volumes:
   postgres_data:
 
 networks:
-  my_network:
+  nostpy_network:
     driver: bridge
     ipam:
       driver: default
