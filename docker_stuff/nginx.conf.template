@@ -2,13 +2,6 @@ server {
     listen 443 ssl;
     server_name ${DOMAIN};
 
-    location / {
-        if ($http_accept ~* "application/nostr\\+json") {
-            return 200 '{"name": "${DOMAIN}", "description": "NostPy relay ${VERSION}", "pubkey": "${HEX_PUBKEY}", "contact": "${CONTACT}", "supported_nips": [1, 2, 4, 9, 15, 16, 25, 50, 99], "software": "git+https://github.com/UTXOnly/nost-py.git", "version": "${VERSION}", "site": "https://image.nostr.build/ca2fd20bdd90fe91525ffdd752a2773eb85c2d5a144154d4a0e6227835fa4ae1.jpg"}';
-            add_header 'Content-Type' 'application/json';
-        }
-    }
-
     ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
     ssl_protocols TLSv1.3 TLSv1.2;
@@ -27,6 +20,11 @@ server {
     keepalive_timeout 70;
 
     location / {
+        if ($http_accept ~* "application/nostr\\+json") {
+            return 200 '{"name": "${DOMAIN}", "description": "NostPy relay ${VERSION}", "pubkey": "${HEX_PUBKEY}", "contact": "${CONTACT}", "supported_nips": [1, 2, 4, 9, 15, 16, 25, 50, 99], "software": "git+https://github.com/UTXOnly/nost-py.git", "version": "${VERSION}", "site": "https://image.nostr.build/ca2fd20bdd90fe91525ffdd752a2773eb85c2d5a144154d4a0e6227835fa4ae1.jpg"}';
+            add_header 'Content-Type' 'application/json';
+        }
+
         proxy_pass http://${DOCKER_SVC}:${SVC_PORT};  # Use the environment variables
         proxy_http_version 1.1;
         proxy_read_timeout 1d;
@@ -36,4 +34,3 @@ server {
         proxy_set_header Host $host;
     }
 }
-
