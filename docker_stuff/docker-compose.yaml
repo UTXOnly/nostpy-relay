@@ -75,6 +75,8 @@ services:
   opentelemetry-collector:
     image: otel/opentelemetry-collector-contrib:latest
     #build: .
+    environment:
+      - DD_API_KEY=${DD_API_KEY}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /proc/:/host/proc/:ro
