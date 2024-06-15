@@ -84,8 +84,8 @@ services:
       - /sys/kernel/debug:/sys/kernel/debug
       - ./config-opentelemetry.yaml:/etc/otel/config.yaml
     networks:
-    my_network:
-      ipv4_address: 172.28.0.7
+      my_network:
+        ipv4_address: 172.28.0.7
     ports:
       - "55680:55680"
       - "4317:4317"
