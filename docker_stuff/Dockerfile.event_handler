@@ -5,8 +5,8 @@ RUN apk update \
         gcc \
         libc-dev \
         g++ \
-        make
-
+        make \
+        pkgconf
 
 WORKDIR /app
 
@@ -16,5 +16,3 @@ RUN pip install --no-cache-dir -r eh_requirements.txt
 COPY ./python_stuff/event*.py ./
 
 CMD ["python", "event_handler.py"]
-
-
