@@ -99,9 +99,6 @@ processors:
           enabled: true
   attributes:
     actions:
-      - key: service.instance.id
-        value: "my-manual-hostname"
-        action: upsert
       - key: deployment.environment
         value: nostpy-otel
         action: upsert
