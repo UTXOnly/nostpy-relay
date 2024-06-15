@@ -19,6 +19,11 @@ services:
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://172.28.0.7:4317
       - REDIS_HOST=${REDIS_HOST}
+      - PGDATABASE=${PGDATABASE}
+      - PGUSER=${PGUSER}
+      - PGPASSWORD=${PGPASSWORD}
+      - PGPORT=${PGPORT}
+      - PGHOST=${PGHOST}
     networks:
       my_network:
         ipv4_address: 172.28.0.3
