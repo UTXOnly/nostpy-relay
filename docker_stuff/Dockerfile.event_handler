@@ -1,13 +1,11 @@
 FROM python:3.11-alpine
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
+RUN apk update \
+    && apk add --no-cache \
         gcc \
-        pkg-config \
         libc-dev \
         g++ \
-        make \
-    && rm -rf /var/lib/apt/lists/*
+        make
 
 
 WORKDIR /app
@@ -16,5 +14,7 @@ COPY eh_requirements.txt .
 RUN pip install --no-cache-dir -r eh_requirements.txt
 
 COPY ./python_stuff/event*.py .
-CMD [ "python", "event_handler.py"]
+
+CMD ["python", "event_handler.py"]
+
 

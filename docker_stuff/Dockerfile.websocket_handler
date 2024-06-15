@@ -1,17 +1,15 @@
 FROM python:3.11-alpine
 
 WORKDIR /app
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
+RUN apk update \
+    && apk add --no-cache \
         gcc \
-        pkg-config \
         libc-dev \
         g++ \
-        make \
-    && rm -rf /var/lib/apt/lists/*
+        make
 COPY ws_requirements.txt .
 RUN pip install --no-cache-dir -r ws_requirements.txt
 
 COPY ./python_stuff/websocket*.py .
 
-CMD [ "python", "websocket_handler.py"]
+CMD ["python", "websocket_handler.py"]
