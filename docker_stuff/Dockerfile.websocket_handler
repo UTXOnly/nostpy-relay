@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.11-alpine
 
 WORKDIR /app
 RUN apt-get update \
@@ -12,8 +12,6 @@ RUN apt-get update \
 COPY ws_requirements.txt .
 RUN pip install --no-cache-dir -r ws_requirements.txt
 
-COPY ./python_stuff/websocket_handler.py .
-COPY ./python_stuff/websocket_classes.py .
-
+COPY ./python_stuff/websocket*.py .
 
 CMD [ "python", "websocket_handler.py"]
