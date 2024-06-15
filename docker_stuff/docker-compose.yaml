@@ -9,7 +9,7 @@ services:
     ports:
       - 8008:8008
     networks:
-      my_network:
+      nostpy_network:
         ipv4_address: 172.28.0.2
 
   event_handler:
@@ -25,7 +25,7 @@ services:
       - PGPORT=${PGPORT}
       - PGHOST=${PGHOST}
     networks:
-      my_network:
+      nostpy_network:
         ipv4_address: 172.28.0.3
     depends_on:
       postgres:
@@ -40,7 +40,7 @@ services:
     ports:
       - 5432:5432
     networks:
-      my_network:
+      nostpy_network:
         ipv4_address: 172.28.0.4
     command: postgres -c 'config_file=/postgresql.conf'
     volumes:
@@ -58,7 +58,7 @@ services:
     ports:
       - "6379:6379"
     networks:
-      my_network:
+      nostpy_network:
         ipv4_address: 172.28.0.6
 
   nginx-certbot:
@@ -91,7 +91,7 @@ services:
       - /sys/kernel/debug:/sys/kernel/debug
       - ./config-opentelemetry.yaml:/etc/otel/config.yaml
     networks:
-      my_network:
+      nostpy_network:
         ipv4_address: 172.28.0.7
     ports:
       - "55680:55680"
