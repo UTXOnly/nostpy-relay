@@ -152,7 +152,7 @@ async def send_event_to_handler(
     event_dict: Dict[str, Any],
     websocket: websockets.WebSocketServerProtocol,
 ) -> None:
-    url: str = f"http://${EVENT_HANDLER_SVC}:8009/new_event"
+    url: str = f"http://{EVENT_HANDLER_SVC}:8009/new_event"
     try:
         async with session.post(url, data=json.dumps(event_dict)) as response:
             current_span = trace.get_current_span()
@@ -175,7 +175,7 @@ async def send_subscription_to_handler(
     subscription_id: str,
     websocket: websockets.WebSocketServerProtocol,
 ) -> None:
-    url: str = f"http://${EVENT_HANDLER_SVC}:8009/subscription"
+    url: str = f"http://{EVENT_HANDLER_SVC}:8009/subscription"
     payload: Dict[str, Any] = {
         "event_dict": event_dict,
         "subscription_id": subscription_id,
