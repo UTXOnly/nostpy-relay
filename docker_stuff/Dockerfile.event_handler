@@ -1,14 +1,13 @@
-FROM python:3.11-alpine
+FROM python:3.11-slim
 
-RUN apk update \
-    && apk add --no-cache \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
         gcc \
+        pkg-config \
         libc-dev \
         g++ \
         make \
-        pkgconf \
-        libffi-dev
-
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 COPY eh_requirements.txt .
