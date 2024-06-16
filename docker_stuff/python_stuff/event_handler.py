@@ -51,7 +51,7 @@ redis_tracer_provider.add_span_processor(redis_span_processor)
 
 # Instrument Redis with the separate tracer provider
 RedisInstrumentor().instrument(tracer_provider=redis_tracer_provider)
-redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=6379)
+redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"))
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -294,4 +294,4 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
 if __name__ == "__main__":
     initialize_db()
-    uvicorn.run(app, host="0.0.0.0", port=8009)
+    uvicorn.run(app, host="0.0.0.0", port=os.getenv("EVENT_HANDLER_PORT"))

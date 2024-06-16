@@ -6,7 +6,8 @@ services:
       dockerfile: Dockerfile.websocket_handler
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://172.28.0.7:4317
-      - EVENT_HANDLER_SVS=172.28.0.3
+      - EVENT_HANDLER_SVC=${EVENT_HANDLER_SVC}
+      - EVENT_HANDLER_PORT=${EVENT_HANDLER_PORT}
     ports:
       - 8008:8008
     networks:
@@ -20,6 +21,7 @@ services:
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://172.28.0.7:4317
       - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
       - PGDATABASE=${PGDATABASE}
       - PGUSER=${PGUSER}
       - PGPASSWORD=${PGPASSWORD}
