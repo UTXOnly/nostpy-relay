@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 from typing import Any, Dict, Tuple
 
 import aiohttp
@@ -42,8 +43,9 @@ otlp_tracer = trace.get_tracer_provider().add_span_processor(span_processor)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+
+EVENT_HANDLER_SVC= os.getenv("EVENT_HANDLER_SVC")
 
 
 async def handle_websocket_connection(
@@ -150,7 +152,7 @@ async def send_event_to_handler(
     event_dict: Dict[str, Any],
     websocket: websockets.WebSocketServerProtocol,
 ) -> None:
-    url: str = "http://event_handler:8009/new_event"
+    url: str = f"http://${EVENT_HANDLER_SVC}:8009/new_event"
     try:
         async with session.post(url, data=json.dumps(event_dict)) as response:
             current_span = trace.get_current_span()
@@ -173,7 +175,7 @@ async def send_subscription_to_handler(
     subscription_id: str,
     websocket: websockets.WebSocketServerProtocol,
 ) -> None:
-    url: str = "http://event_handler:8009/subscription"
+    url: str = f"http://${EVENT_HANDLER_SVC}:8009/subscription"
     payload: Dict[str, Any] = {
         "event_dict": event_dict,
         "subscription_id": subscription_id,

@@ -1,12 +1,19 @@
 FROM python:3.11-alpine
 
 WORKDIR /app
+
 RUN apk update \
     && apk add --no-cache \
         gcc \
         libc-dev \
         g++ \
-        make
+        make \
+        linux-headers \
+        python3-dev \
+        libffi-dev \
+        openssl-dev \
+        grpc-dev
+
 COPY ws_requirements.txt .
 RUN pip install --no-cache-dir -r ws_requirements.txt
 

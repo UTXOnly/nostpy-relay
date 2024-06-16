@@ -6,6 +6,7 @@ services:
       dockerfile: Dockerfile.websocket_handler
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://172.28.0.7:4317
+      - EVENT_HANDLER_SVS=172.28.0.3
     ports:
       - 8008:8008
     networks:
