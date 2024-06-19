@@ -22,6 +22,14 @@ from psycopg_pool import AsyncConnectionPool
 
 from event_classes import Event, Subscription
 
+# Initialize the logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
 # from otel_metrics import PythonOTEL
 
 app = FastAPI()
@@ -52,33 +60,30 @@ redis_tracer_provider.add_span_processor(redis_span_processor)
 RedisInstrumentor().instrument(tracer_provider=redis_tracer_provider)
 redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"))
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
 
 def get_conn_str(db_suffix: str) -> str:
     return (
-        f"dbname={os.getenv(f'PGDATABASE_{db_suffix}')}"
-        f"user={os.getenv(f'PGUSER_{db_suffix}')}"
-        f"password={os.getenv(f'PGPASSWORD_{db_suffix}')}"
-        f"host={os.getenv(f'PGHOST_{db_suffix}')}"
-        f"port={os.getenv(f'PGPORT_{db_suffix}')}"
+        f"dbname={os.getenv(f'PGDATABASE_{db_suffix}')} "
+        f"user={os.getenv(f'PGUSER_{db_suffix}')} "
+        f"password={os.getenv(f'PGPASSWORD_{db_suffix}')} "
+        f"host={os.getenv(f'PGHOST_{db_suffix}')} "
+        f"port={os.getenv(f'PGPORT_{db_suffix}')} "
     )
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    #conn_str_write = get_conn_str('WRITE')
+    conn_str_write = get_conn_str('WRITE')
     conn_str_read = get_conn_str('READ')
-    #logger.info(f"Write conn string is: {conn_str_write}")
+    logger.info(f"Write conn string is: {conn_str_write}")
     logger.info(f"Read conn string is: {conn_str_read}")
     
-    #app.write_pool = AsyncConnectionPool(conninfo=conn_str_write)
+    app.write_pool = AsyncConnectionPool(conninfo=conn_str_write)
     app.read_pool = AsyncConnectionPool(conninfo=conn_str_read)
     
     yield
     
-    #await app.write_pool.close()
+    await app.write_pool.close()
     await app.read_pool.close()
 
 
