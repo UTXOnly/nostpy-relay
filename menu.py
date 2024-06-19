@@ -11,12 +11,12 @@ def print_color(text, color):
 # Function to start Nostpy relay
 def start_nostpy_relay():
     try:
-        success, pass_holder = file_encryption.decrypt_file("./docker_stuff/.env")
-        if not success:
-            print(
-                "Decryption failed, file is not encrypted please encrypt file and rerun command"
-            )
-            return
+        #success, pass_holder = file_encryption.decrypt_file("./docker_stuff/.env")
+        #if not success:
+        #    print(
+        #        "Decryption failed, file is not encrypted please encrypt file and rerun command"
+        #    )
+        #    return
 
         os.chdir("./docker_stuff")
         file_path = "./postgresql/"
@@ -37,7 +37,7 @@ def start_nostpy_relay():
         os.chdir("..")
 
         # Re-encrypt env file to keep it encrypted when not in use
-        file_encryption.encrypt_file(filename="./docker_stuff/.env", key=pass_holder)
+        #file_encryption.encrypt_file(filename="./docker_stuff/.env", key=pass_holder)
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
     except Exception as e:
