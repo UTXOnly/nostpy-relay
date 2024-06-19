@@ -303,5 +303,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
 
 if __name__ == "__main__":
+    logger.info(f"Write conn string is: {get_conn_str('WRITE')}")
+    logger.info(f"Read conn string is: {get_conn_str('READ')}")
     initialize_db()
     uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("EVENT_HANDLER_PORT")))
