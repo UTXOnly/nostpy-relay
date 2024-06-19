@@ -77,7 +77,7 @@ async def lifespan(app: FastAPI):
     await app.write_pool.close()
     await app.read_pool.close()
 
-app = FastAPI(lifespan=lifespan)
+
 
 
 app = FastAPI(lifespan=lifespan)
@@ -91,6 +91,7 @@ def initialize_db() -> None:
 
     """
     try:
+        logger.info(f"conn string is {get_conn_str('WRITE')}")
         conn = psycopg.connect(get_conn_str('WRITE'))
         with conn.cursor() as cur:
             # Create events table if it doesn't already exist
@@ -299,4 +300,4 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
 if __name__ == "__main__":
     initialize_db()
-    uvicorn.run(app, host="0.0.0.0", port=os.getenv("EVENT_HANDLER_PORT"))
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("EVENT_HANDLER_PORT")))
