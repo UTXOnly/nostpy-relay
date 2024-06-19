@@ -35,7 +35,6 @@ otlp_exporter = OTLPSpanExporter()
 span_processor = BatchSpanProcessor(otlp_exporter)
 otlp_tracer = trace.get_tracer_provider().add_span_processor(span_processor)
 
-
 # py_otel = PythonOTEL()
 
 # Set up a separate tracer provider for Redis
@@ -58,21 +57,33 @@ logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
 
-def get_conn_str() -> str:
+def get_write_conn_str() -> str:
     return f"""
-    dbname={os.getenv('PGDATABASE')}
-    user={os.getenv('PGUSER')}
-    password={os.getenv('PGPASSWORD')}
-    host={os.getenv('PGHOST')}
-    port={os.getenv('PGPORT')}
+    dbname={os.getenv('PGDATABASE_WRITE')}
+    user={os.getenv('PGUSER_WRITE')}
+    password={os.getenv('PGPASSWORD_WRITE')}
+    host={os.getenv('PGHOST_WRITE')}
+    port={os.getenv('PGPORT_WRITE')}
+    """
+
+
+def get_read_conn_str() -> str:
+    return f"""
+    dbname={os.getenv('PGDATABASE_READ')}
+    user={os.getenv('PGUSER_READ')}
+    password={os.getenv('PGPASSWORD_READ')}
+    host={os.getenv('PGHOST_READ')}
+    port={os.getenv('PGPORT_READ')}
     """
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.async_pool = AsyncConnectionPool(conninfo=get_conn_str())
+    app.write_pool = AsyncConnectionPool(conninfo=get_write_conn_str())
+    app.read_pool = AsyncConnectionPool(conninfo=get_read_conn_str())
     yield
-    await app.async_pool.close()
+    await app.write_pool.close()
+    await app.read_pool.close()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -86,7 +97,7 @@ def initialize_db() -> None:
 
     """
     try:
-        conn = psycopg.connect(get_conn_str())
+        conn = psycopg.connect(get_write_conn_str())
         with conn.cursor() as cur:
             # Create events table if it doesn't already exist
             cur.execute(
@@ -138,7 +149,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
         with tracer.start_as_current_span("add_event") as span:
             current_span = trace.get_current_span()
             current_span.set_attribute(SpanAttributes.DB_SYSTEM, "postgresql")
-            async with request.app.async_pool.connection() as conn:
+            async with request.app.write_pool.connection() as conn:
                 async with conn.cursor() as cur:
                     if event_obj.kind in [0, 3]:
                         await event_obj.delete_check(conn, cur)
@@ -231,7 +242,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 current_span.set_attribute(SpanAttributes.DB_STATEMENT, sql_query)
                 current_span.set_attribute("service.name", "postgres")
                 current_span.set_attribute("operation.name", "postgres.query")
-                async with app.async_pool.connection() as conn:
+                async with app.read_pool.connection() as conn:
                     async with conn.cursor() as cur:
                         await cur.execute(query=sql_query)
                         query_results = await cur.fetchall()
