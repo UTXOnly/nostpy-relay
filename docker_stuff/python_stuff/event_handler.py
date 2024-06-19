@@ -57,33 +57,24 @@ logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
 
-def get_write_conn_str() -> str:
-    return f"""
-    dbname={os.getenv('PGDATABASE_WRITE')}
-    user={os.getenv('PGUSER_WRITE')}
-    password={os.getenv('PGPASSWORD_WRITE')}
-    host={os.getenv('PGHOST_WRITE')}
-    port={os.getenv('PGPORT_WRITE')}
-    """
-
-
-def get_read_conn_str() -> str:
-    return f"""
-    dbname={os.getenv('PGDATABASE_READ')}
-    user={os.getenv('PGUSER_READ')}
-    password={os.getenv('PGPASSWORD_READ')}
-    host={os.getenv('PGHOST_READ')}
-    port={os.getenv('PGPORT_READ')}
-    """
-
+def get_conn_str(db_suffix: str) -> str:
+    return (
+        f"dbname={os.getenv(f'PGDATABASE_{db_suffix}')}"
+        f"user={os.getenv(f'PGUSER_{db_suffix}')}"
+        f"password={os.getenv(f'PGPASSWORD_{db_suffix}')}"
+        f"host={os.getenv(f'PGHOST_{db_suffix}')}"
+        f"port={os.getenv(f'PGPORT_{db_suffix}')}"
+    )
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.write_pool = AsyncConnectionPool(conninfo=get_write_conn_str())
-    app.read_pool = AsyncConnectionPool(conninfo=get_read_conn_str())
+    app.write_pool = AsyncConnectionPool(conninfo=get_conn_str('WRITE'))
+    app.read_pool = AsyncConnectionPool(conninfo=get_conn_str('READ'))
     yield
     await app.write_pool.close()
     await app.read_pool.close()
+
+app = FastAPI(lifespan=lifespan)
 
 
 app = FastAPI(lifespan=lifespan)
@@ -97,7 +88,7 @@ def initialize_db() -> None:
 
     """
     try:
-        conn = psycopg.connect(get_write_conn_str())
+        conn = psycopg.connect(get_conn_str('WRITE'))
         with conn.cursor() as cur:
             # Create events table if it doesn't already exist
             cur.execute(
