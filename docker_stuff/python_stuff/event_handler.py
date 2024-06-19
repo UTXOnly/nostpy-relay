@@ -68,8 +68,11 @@ def get_conn_str(db_suffix: str) -> str:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info(f"Wrtire conn string is: {get_conn_str('WRITE')}")
     app.write_pool = AsyncConnectionPool(conninfo=get_conn_str('WRITE'))
+    logger.info(f"Wrtire conn string is: {get_conn_str('WRITE')}")
     app.read_pool = AsyncConnectionPool(conninfo=get_conn_str('READ'))
+    logger.info(f"Read conn string is: {get_conn_str('READ')}")
     yield
     await app.write_pool.close()
     await app.read_pool.close()
