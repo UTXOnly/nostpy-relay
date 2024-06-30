@@ -8,6 +8,7 @@
   * OTel collector/Datadog exporter
 * Support for both x86/ARM64 architecture for Python containers
 * Upgraded Python containers to 3.11-slim base image
+* Config option to configure seperate read/write database instances
 
 **Removed**
 * Nginx reverse proxy on host
