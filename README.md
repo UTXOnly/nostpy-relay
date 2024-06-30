@@ -89,6 +89,7 @@ This compose stack comes with a preconfigured OpenTelemety collector container a
 
 Will be adding log support soon, giving you full visibility into the health of your relay. 
 
+![Screenshot from 2024-06-15 10-45-06](https://github.com/UTXOnly/nost-py/assets/49233513/36afbaf4-cf7d-497b-8bb1-d2a90b7fa0af)
 
 
 ### Future plans
