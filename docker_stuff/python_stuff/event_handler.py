@@ -22,6 +22,14 @@ from psycopg_pool import AsyncConnectionPool
 
 from event_classes import Event, Subscription
 
+# Initialize the logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
 # from otel_metrics import PythonOTEL
 
 app = FastAPI()
@@ -34,7 +42,6 @@ tracer = trace.get_tracer(__name__)
 otlp_exporter = OTLPSpanExporter()
 span_processor = BatchSpanProcessor(otlp_exporter)
 otlp_tracer = trace.get_tracer_provider().add_span_processor(span_processor)
-
 
 # py_otel = PythonOTEL()
 
@@ -51,28 +58,35 @@ redis_tracer_provider.add_span_processor(redis_span_processor)
 
 # Instrument Redis with the separate tracer provider
 RedisInstrumentor().instrument(tracer_provider=redis_tracer_provider)
-redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=6379)
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"))
 
 
-def get_conn_str() -> str:
-    return f"""
-    dbname={os.getenv('PGDATABASE')}
-    user={os.getenv('PGUSER')}
-    password={os.getenv('PGPASSWORD')}
-    host={os.getenv('PGHOST')}
-    port={os.getenv('PGPORT')}
-    """
 
+def get_conn_str(db_suffix: str) -> str:
+    return (
+        f"dbname={os.getenv(f'PGDATABASE_{db_suffix}')} "
+        f"user={os.getenv(f'PGUSER_{db_suffix}')} "
+        f"password={os.getenv(f'PGPASSWORD_{db_suffix}')} "
+        f"host={os.getenv(f'PGHOST_{db_suffix}')} "
+        f"port={os.getenv(f'PGPORT_{db_suffix}')} "
+    )
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.async_pool = AsyncConnectionPool(conninfo=get_conn_str())
+    conn_str_write = get_conn_str('WRITE')
+    conn_str_read = get_conn_str('READ')
+    logger.info(f"Write conn string is: {conn_str_write}")
+    logger.info(f"Read conn string is: {conn_str_read}")
+    
+    app.write_pool = AsyncConnectionPool(conninfo=conn_str_write)
+    app.read_pool = AsyncConnectionPool(conninfo=conn_str_read)
+    
     yield
-    await app.async_pool.close()
+    
+    await app.write_pool.close()
+    await app.read_pool.close()
+
+
 
 
 app = FastAPI(lifespan=lifespan)
@@ -86,7 +100,8 @@ def initialize_db() -> None:
 
     """
     try:
-        conn = psycopg.connect(get_conn_str())
+        logger.info(f"conn string is {get_conn_str('WRITE')}")
+        conn = psycopg.connect(get_conn_str('WRITE'))
         with conn.cursor() as cur:
             # Create events table if it doesn't already exist
             cur.execute(
@@ -138,7 +153,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
         with tracer.start_as_current_span("add_event") as span:
             current_span = trace.get_current_span()
             current_span.set_attribute(SpanAttributes.DB_SYSTEM, "postgresql")
-            async with request.app.async_pool.connection() as conn:
+            async with request.app.write_pool.connection() as conn:
                 async with conn.cursor() as cur:
                     if event_obj.kind in [0, 3]:
                         await event_obj.delete_check(conn, cur)
@@ -231,7 +246,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 current_span.set_attribute(SpanAttributes.DB_STATEMENT, sql_query)
                 current_span.set_attribute("service.name", "postgres")
                 current_span.set_attribute("operation.name", "postgres.query")
-                async with app.async_pool.connection() as conn:
+                async with app.read_pool.connection() as conn:
                     async with conn.cursor() as cur:
                         await cur.execute(query=sql_query)
                         query_results = await cur.fetchall()
@@ -293,5 +308,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
 
 if __name__ == "__main__":
+    logger.info(f"Write conn string is: {get_conn_str('WRITE')}")
+    logger.info(f"Read conn string is: {get_conn_str('READ')}")
     initialize_db()
-    uvicorn.run(app, host="0.0.0.0", port=8009)
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("EVENT_HANDLER_PORT")))

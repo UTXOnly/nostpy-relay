@@ -6,6 +6,9 @@ services:
       dockerfile: Dockerfile.websocket_handler
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://172.28.0.7:4317
+      - EVENT_HANDLER_SVC=${EVENT_HANDLER_SVC}
+      - EVENT_HANDLER_PORT=${EVENT_HANDLER_PORT}
+      - WS_PORT=${WS_PORT}
     ports:
       - 8008:8008
     networks:
@@ -18,12 +21,19 @@ services:
       dockerfile: Dockerfile.event_handler
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://172.28.0.7:4317
+      - EVENT_HANDLER_PORT=${EVENT_HANDLER_PORT}
       - REDIS_HOST=${REDIS_HOST}
-      - PGDATABASE=${PGDATABASE}
-      - PGUSER=${PGUSER}
-      - PGPASSWORD=${PGPASSWORD}
-      - PGPORT=${PGPORT}
-      - PGHOST=${PGHOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - PGDATABASE_WRITE=${PGDATABASE_WRITE}
+      - PGUSER_WRITE=${PGUSER_WRITE}
+      - PGPASSWORD_WRITE=${PGPASSWORD_WRITE}
+      - PGPORT_WRITE=${PGPORT_WRITE}
+      - PGHOST_WRITE=${PGHOST_WRITE=}
+      - PGDATABASE_READ=${PGDATABASE_READ}
+      - PGUSER_READ=${PGUSER_READ}
+      - PGPASSWORD_READ=${PGPASSWORD_READ}
+      - PGPORT_READ=${PGPORT_READ}
+      - PGHOST_READ=${PGHOST_READ}
     networks:
       nostpy_network:
         ipv4_address: 172.28.0.3
@@ -34,9 +44,9 @@ services:
   postgres:
     image: postgres:14
     environment:
-      - POSTGRES_DB=${PGDATABASE}
-      - POSTGRES_USER=${PGUSER}
-      - POSTGRES_PASSWORD=${PGPASSWORD}
+      - POSTGRES_DB=${PGDATABASE_WRITE}
+      - POSTGRES_USER=${PGUSER_WRITE}
+      - POSTGRES_PASSWORD=${PGPASSWORD_WRITE}
     ports:
       - 5432:5432
     networks:
@@ -65,11 +75,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.nginx
-    #image: bhartford419/nginx-certbot:nostpyv4
     environment:
       - DOMAIN=${DOMAIN}
       - DOCKER_SVC=172.17.0.1
-      - SVC_PORT=8008
+      - SVC_PORT=${EVENT_HANDLER_PORT}
       - VERSION=${VERSION}
       - CONTACT=${CONTACT}
       - HEX_PUBKEY=${HEX_PUBKEY}

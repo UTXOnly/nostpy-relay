@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 from typing import Any, Dict, Tuple
 
 import aiohttp
@@ -36,14 +37,16 @@ tracer = trace.get_tracer(__name__)
 otlp_exporter = OTLPSpanExporter()
 span_processor = BatchSpanProcessor(
     otlp_exporter
-)  # we don't want to export every single trace by itself but rather batch them
+)
 otlp_tracer = trace.get_tracer_provider().add_span_processor(span_processor)
 
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+
+EVENT_HANDLER_SVC= os.getenv("EVENT_HANDLER_SVC")
+EVENT_HANDLER_PORT= os.getenv("EVENT_HANDLER_PORT")
 
 
 async def handle_websocket_connection(
@@ -89,7 +92,6 @@ async def handle_websocket_connection(
                     )
                     with tracer.start_as_current_span("send_event_to_handle") as span:
                         current_span = trace.get_current_span()
-                        # current_span.set_attribute("service.name", "websocket_handler")
                         current_span.set_attribute(
                             "operation.name", "send.event.handler"
                         )
@@ -150,7 +152,7 @@ async def send_event_to_handler(
     event_dict: Dict[str, Any],
     websocket: websockets.WebSocketServerProtocol,
 ) -> None:
-    url: str = "http://event_handler:8009/new_event"
+    url: str = f"http://{EVENT_HANDLER_SVC}:{EVENT_HANDLER_PORT}/new_event"
     try:
         async with session.post(url, data=json.dumps(event_dict)) as response:
             current_span = trace.get_current_span()
@@ -173,7 +175,7 @@ async def send_subscription_to_handler(
     subscription_id: str,
     websocket: websockets.WebSocketServerProtocol,
 ) -> None:
-    url: str = "http://event_handler:8009/subscription"
+    url: str = f"http://{EVENT_HANDLER_SVC}:{EVENT_HANDLER_PORT}/subscription"
     payload: Dict[str, Any] = {
         "event_dict": event_dict,
         "subscription_id": subscription_id,
@@ -213,7 +215,7 @@ if __name__ == "__main__":
     rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=50000)
 
     try:
-        start_server = websockets.serve(handle_websocket_connection, "0.0.0.0", 8008)
+        start_server = websockets.serve(handle_websocket_connection, "0.0.0.0", os.getenv("WS_PORT"))
         asyncio.get_event_loop().run_until_complete(start_server)
         asyncio.get_event_loop().run_forever()
 
