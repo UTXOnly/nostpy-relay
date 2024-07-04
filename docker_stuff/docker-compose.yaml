@@ -57,7 +57,7 @@ services:
       - ./postgresql.conf:/postgresql.conf
       - ./postgresql/data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${PGUSER}"] # database username here - nostr, should be changed if other user
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER_WRITE}"] # database username here - nostr, should be changed if other user
       interval: 10s
       timeout: 5s
       retries: 5
