@@ -106,8 +106,8 @@ services:
         ipv4_address: 172.28.0.7
     ports:
       - "55680:55680"
-      - "4317:4317"
-      - "4318:4318"
+      #- "4317:4317"
+      #- "4318:4318"
     command: ["--config=/etc/otel/config.yaml"]
 
 volumes:
