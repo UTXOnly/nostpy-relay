@@ -88,8 +88,8 @@ processors:
         action: upsert
 
 
-connectors:
-  datadog/connector:
+#connectors:
+#  datadog/connector:
 
 exporters:
   datadog/exporter:
@@ -104,7 +104,7 @@ service:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch, resourcedetection, attributes]
-      exporters: [datadog/connector, datadog/exporter]
+      exporters: [datadog/exporter] #datadog/connector,
     #metrics:
     #  receivers: [datadog/connector, otlp, hostmetrics, docker_stats]
     #  processors: [memory_limiter, batch, resourcedetection, attributes]
