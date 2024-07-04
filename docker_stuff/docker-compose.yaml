@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile.websocket_handler
     environment:
-      - OTEL_EXPORTER_OTLP_ENDPOINT="opentelemetry-collector:4317"
+      - OTEL_EXPORTER_OTLP_ENDPOINT="172.17.0.1:4317"
       - EVENT_HANDLER_SVC=${EVENT_HANDLER_SVC}
       - EVENT_HANDLER_PORT=${EVENT_HANDLER_PORT}
       - WS_PORT=${WS_PORT}
@@ -20,7 +20,7 @@ services:
       context: .
       dockerfile: Dockerfile.event_handler
     environment:
-      - OTEL_EXPORTER_OTLP_ENDPOINT="opentelemetry-collector:4317"
+      - OTEL_EXPORTER_OTLP_ENDPOINT="172.17.0.1:4317"
       - EVENT_HANDLER_PORT=${EVENT_HANDLER_PORT}
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=${REDIS_PORT}
@@ -106,7 +106,7 @@ services:
         ipv4_address: 172.28.0.7
     ports:
       - "55680:55680"
-      #- "4317:4317"
+      - "4317:4317"
       #- "4318:4318"
     command: ["--config=/etc/otel/config.yaml"]
 
