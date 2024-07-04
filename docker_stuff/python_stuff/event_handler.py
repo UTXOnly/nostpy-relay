@@ -39,7 +39,7 @@ trace.set_tracer_provider(
 )
 tracer = trace.get_tracer(__name__)
 
-otlp_exporter = OTLPSpanExporter()
+otlp_exporter = OTLPSpanExporter(endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 span_processor = BatchSpanProcessor(otlp_exporter)
 otlp_tracer = trace.get_tracer_provider().add_span_processor(span_processor)
 
@@ -61,7 +61,6 @@ RedisInstrumentor().instrument(tracer_provider=redis_tracer_provider)
 redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"))
 
 
-
 def get_conn_str(db_suffix: str) -> str:
     return (
         f"dbname={os.getenv(f'PGDATABASE_{db_suffix}')} "
@@ -71,22 +70,21 @@ def get_conn_str(db_suffix: str) -> str:
         f"port={os.getenv(f'PGPORT_{db_suffix}')} "
     )
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    conn_str_write = get_conn_str('WRITE')
-    conn_str_read = get_conn_str('READ')
+    conn_str_write = get_conn_str("WRITE")
+    conn_str_read = get_conn_str("READ")
     logger.info(f"Write conn string is: {conn_str_write}")
     logger.info(f"Read conn string is: {conn_str_read}")
-    
+
     app.write_pool = AsyncConnectionPool(conninfo=conn_str_write)
     app.read_pool = AsyncConnectionPool(conninfo=conn_str_read)
-    
+
     yield
-    
+
     await app.write_pool.close()
     await app.read_pool.close()
-
-
 
 
 app = FastAPI(lifespan=lifespan)
@@ -101,7 +99,7 @@ def initialize_db() -> None:
     """
     try:
         logger.info(f"conn string is {get_conn_str('WRITE')}")
-        conn = psycopg.connect(get_conn_str('WRITE'))
+        conn = psycopg.connect(get_conn_str("WRITE"))
         with conn.cursor() as cur:
             # Create events table if it doesn't already exist
             cur.execute(
@@ -131,6 +129,27 @@ def initialize_db() -> None:
         logger.info("Database initialization complete.")
     except psycopg.Error as caught_error:
         logger.info(f"Error occurred during database initialization: {caught_error}")
+
+
+async def set_span_attributes(
+    span, db_system: str, db_statement: str, service_name: str, operation_name: str
+):
+    span.set_attribute(SpanAttributes.DB_SYSTEM, db_system)
+    span.set_attribute(SpanAttributes.DB_STATEMENT, db_statement)
+    span.set_attribute("service.name", service_name)
+    span.set_attribute("operation.name", operation_name)
+
+
+async def execute_sql_with_tracing(app, sql_query: str, span_name: str):
+    with tracer.start_as_current_span(span_name) as span:
+        current_span = trace.get_current_span()
+        await set_span_attributes(
+            current_span, "postgresql", sql_query, "postgres", "postgres.query"
+        )
+        async with app.read_pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(query=sql_query)
+                return await cur.fetchall()
 
 
 @app.post("/new_event")
@@ -173,12 +192,10 @@ async def handle_new_event(request: Request) -> JSONResponse:
                             return event_obj.evt_response(
                                 results_status="flase", http_status_code=200
                             )
-
                     else:
                         try:
                             logger.debug(f"Adding event id: {event_obj.event_id}")
                             await event_obj.add_event(conn, cur)
-
                         except psycopg.IntegrityError:
                             conn.rollback()
                             logger.info(
@@ -196,11 +213,9 @@ async def handle_new_event(request: Request) -> JSONResponse:
                                 http_status_code=400,
                                 message="error: failed to add event",
                             )
-
                     return event_obj.evt_response(
                         results_status="true", http_status_code=200
                     )
-
     except Exception:
         logger.debug("Entering gen exc")
         conn.rollback()
@@ -240,66 +255,31 @@ async def handle_subscription(request: Request) -> JSONResponse:
         )
 
         if cached_results is None:
-            with tracer.start_as_current_span("SELECT * FROM EVENTS") as parent:
-                current_span = trace.get_current_span()
-                current_span.set_attribute(SpanAttributes.DB_SYSTEM, "postgresql")
-                current_span.set_attribute(SpanAttributes.DB_STATEMENT, sql_query)
-                current_span.set_attribute("service.name", "postgres")
-                current_span.set_attribute("operation.name", "postgres.query")
-                async with app.read_pool.connection() as conn:
-                    async with conn.cursor() as cur:
-                        await cur.execute(query=sql_query)
-                        query_results = await cur.fetchall()
-                        if query_results:
-                            parsed_results = await subscription_obj.query_result_parser(
-                                query_results
-                            )
-                            serialized_events = json.dumps(parsed_results)
-                            redis_client.setex(
-                                str(raw_filters_copy), 240, serialized_events
-                            )
-                            logger.debug(
-                                f"Caching results , keys: {str(raw_filters_copy)}   value is : {serialized_events}"
-                            )
-                            return_response = subscription_obj.sub_response_builder(
-                                "EVENT",
-                                subscription_obj.subscription_id,
-                                serialized_events,
-                                200,
-                            )
-                            return return_response
-
-                        else:
-                            redis_client.setex(str(raw_filters_copy), 240, "")
-                            return subscription_obj.sub_response_builder(
-                                "EOSE", subscription_obj.subscription_id, "", 200
-                            )
-
-        elif cached_results:
-            event_type = "EVENT"
-            try:
-                parse_var = json.loads(cached_results.decode("utf-8"))
-                results_json = json.dumps(parse_var)
-            except:
-                logger.debug("Empty cache results, sending EOSE")
-            if not parse_var:
-                event_type = "EOSE"
-                results_json = ""
-            return subscription_obj.sub_response_builder(
-                event_type, subscription_obj.subscription_id, results_json, 200
+            query_results = await execute_sql_with_tracing(
+                app, sql_query, "SELECT * FROM EVENTS"
             )
-
-        else:
-            return subscription_obj.sub_response_builder(
-                "EOSE", subscription_obj.subscription_id, "", 200
-            )
-
+            if query_results:
+                parsed_results = await subscription_obj.query_result_parser(
+                    query_results
+                )
+                serialized_events = json.dumps(parsed_results)
+                redis_client.setex(str(raw_filters_copy), 240, serialized_events)
+                logger.debug(
+                    f"Caching results, keys: {str(raw_filters_copy)} value is: {serialized_events}"
+                )
+                return subscription_obj.sub_response_builder(
+                    "EVENT", subscription_obj.subscription_id, serialized_events, 200
+                )
+            else:
+                redis_client.setex(str(raw_filters_copy), 240, "")
+                return subscription_obj.sub_response_builder(
+                    "EOSE", subscription_obj.subscription_id, "", 200
+                )
     except psycopg.Error as exc:
         logger.error(f"Error occurred: {str(exc)}", exc_info=True)
         return subscription_obj.sub_response_builder(
             "EOSE", subscription_obj.subscription_id, "", 500
         )
-
     except Exception as exc:
         logger.error(f"General exception occurred: {exc}", exc_info=True)
         return subscription_obj.sub_response_builder(
