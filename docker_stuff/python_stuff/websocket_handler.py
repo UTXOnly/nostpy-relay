@@ -34,10 +34,8 @@ trace.set_tracer_provider(
 )
 tracer = trace.get_tracer(__name__)
 
-otlp_exporter = OTLPSpanExporter()
-span_processor = BatchSpanProcessor(
-    otlp_exporter
-)
+otlp_exporter = OTLPSpanExporter(endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
+span_processor = BatchSpanProcessor(otlp_exporter)
 otlp_tracer = trace.get_tracer_provider().add_span_processor(span_processor)
 
 
@@ -45,8 +43,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
-EVENT_HANDLER_SVC= os.getenv("EVENT_HANDLER_SVC")
-EVENT_HANDLER_PORT= os.getenv("EVENT_HANDLER_PORT")
+EVENT_HANDLER_SVC = os.getenv("EVENT_HANDLER_SVC")
+EVENT_HANDLER_PORT = os.getenv("EVENT_HANDLER_PORT")
 
 
 async def handle_websocket_connection(
@@ -215,7 +213,9 @@ if __name__ == "__main__":
     rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=50000)
 
     try:
-        start_server = websockets.serve(handle_websocket_connection, "0.0.0.0", os.getenv("WS_PORT"))
+        start_server = websockets.serve(
+            handle_websocket_connection, "0.0.0.0", os.getenv("WS_PORT")
+        )
         asyncio.get_event_loop().run_until_complete(start_server)
         asyncio.get_event_loop().run_forever()
 

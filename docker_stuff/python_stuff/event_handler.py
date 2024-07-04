@@ -39,7 +39,7 @@ trace.set_tracer_provider(
 )
 tracer = trace.get_tracer(__name__)
 
-otlp_exporter = OTLPSpanExporter()
+otlp_exporter = OTLPSpanExporter(endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 span_processor = BatchSpanProcessor(otlp_exporter)
 otlp_tracer = trace.get_tracer_provider().add_span_processor(span_processor)
 
