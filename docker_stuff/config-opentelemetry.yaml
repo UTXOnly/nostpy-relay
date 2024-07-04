@@ -88,8 +88,8 @@ processors:
         action: upsert
 
 
-#connectors:
-#  datadog/connector:
+connectors:
+  datadog/connector:
 
 exporters:
   datadog/exporter:
