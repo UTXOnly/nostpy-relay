@@ -6,50 +6,50 @@ receivers:
       grpc:
         endpoint: 0.0.0.0:4317
 
-  docker_stats:
-    endpoint: unix:///var/run/docker.sock
-    metrics:
-      container.network.io.usage.rx_packets:
-        enabled: true
-      container.network.io.usage.tx_packets:
-        enabled: true
-      container.cpu.usage.system:
-        enabled: true
-      container.memory.rss:
-        enabled: true
-      container.blockio.io_serviced_recursive:
-        enabled: true
-      container.uptime:
-        enabled: true
-      container.memory.hierarchical_memory_limit:
-        enabled: true
-
-  hostmetrics:
-    collection_interval: 10s
-    scrapers:
-      paging:
-        metrics:
-          system.paging.utilization:
-            enabled: true
-      cpu:
-        metrics:
-          system.cpu.utilization:
-            enabled: true
-          system.cpu.physical.count:
-            enabled: true
-          system.cpu.logical.count:
-            enabled: true
-          system.cpu.frequency:
-            enabled: true
-      disk:
-      filesystem:
-        metrics:
-          system.filesystem.utilization:
-            enabled: true
-      load:
-      memory:
-      network:
-      processes:
+  #docker_stats:
+  #  endpoint: unix:///var/run/docker.sock
+  #  metrics:
+  #    container.network.io.usage.rx_packets:
+  #      enabled: true
+  #    container.network.io.usage.tx_packets:
+  #      enabled: true
+  #    container.cpu.usage.system:
+  #      enabled: true
+  #    container.memory.rss:
+  #      enabled: true
+  #    container.blockio.io_serviced_recursive:
+  #      enabled: true
+  #    container.uptime:
+  #      enabled: true
+  #    container.memory.hierarchical_memory_limit:
+  #      enabled: true
+#
+  #hostmetrics:
+  #  collection_interval: 10s
+  #  scrapers:
+  #    paging:
+  #      metrics:
+  #        system.paging.utilization:
+  #          enabled: true
+  #    cpu:
+  #      metrics:
+  #        system.cpu.utilization:
+  #          enabled: true
+  #        system.cpu.physical.count:
+  #          enabled: true
+  #        system.cpu.logical.count:
+  #          enabled: true
+  #        system.cpu.frequency:
+  #          enabled: true
+  #    disk:
+  #    filesystem:
+  #      metrics:
+  #        system.filesystem.utilization:
+  #          enabled: true
+  #    load:
+  #    memory:
+  #    network:
+  #    processes:
 
 
 processors:
@@ -105,10 +105,10 @@ service:
       receivers: [otlp]
       processors: [memory_limiter, batch, resourcedetection, attributes]
       exporters: [datadog/connector, datadog/exporter]
-    metrics:
-      receivers: [datadog/connector, otlp, hostmetrics, docker_stats]
-      processors: [memory_limiter, batch, resourcedetection, attributes]
-      exporters: [datadog/exporter]
+    #metrics:
+    #  receivers: [datadog/connector, otlp, hostmetrics, docker_stats]
+    #  processors: [memory_limiter, batch, resourcedetection, attributes]
+    #  exporters: [datadog/exporter]
   telemetry:
     logs:
       level: "debug"
