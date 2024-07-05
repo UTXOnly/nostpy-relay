@@ -86,7 +86,7 @@ class TestEvent(unittest.TestCase):
         # Setup mock to raise an exception
         self.mock_write_cursor.execute.side_effect = RequestException
 
-        response = self.client.post('/new_event', json={
+        response = await self.client.post('/new_event', json={
             'id': 'test_id',
             'pubkey': 'test_pubkey',
             'kind': 1,
@@ -100,6 +100,56 @@ class TestEvent(unittest.TestCase):
             "event": "OK",
             "subscription_id": "test_id",
             "results_json": "false",
+            "message": "error: could not connect to the database"
+        })
+
+    async def test_subscription_handler_success(self):
+        # Setup mock return values
+        self.mock_redis.return_value.get.return_value = None
+        self.mock_read_cursor.execute.return_value = [{'data': 'some_data'}]
+
+        response = await self.client.post('/subscription', json={
+            'subscription_id': 'sub_test_id',
+            'filters': [{'kinds': [1]}]
+        })
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertEqual(response.json(), {
+            "event": "EVENT",
+            "subscription_id": "sub_test_id",
+            "results_json": [{'data': 'some_data'}],
+            "message": ""
+        })
+
+    async def test_subscription_handler_no_results(self):
+        # Setup mock return values
+        self.mock_redis.return_value.get.return_value = None
+        self.mock_read_cursor.execute.return_value = []
+
+        response = await self.client.post('/subscription', json={
+            'subscription_id': 'sub_test_id',
+            'filters': [{'kinds': [1]}]
+        })
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertEqual(response.json(), {
+            "event": "EOSE",
+            "subscription_id": "sub_test_id",
+            "results_json": [],
+            "message": ""
+        })
+
+    async def test_subscription_handler_failure(self):
+        # Setup mock to raise an exception
+        self.mock_read_cursor.execute.side_effect = RequestException
+
+        response = await self.client.post('/subscription', json={
+            'subscription_id': 'sub_test_id',
+            'filters': [{'kinds': [1]}]
+        })
+        self.assertEqual(response.status_code, HTTPStatus.INTERNAL_SERVER_ERROR)
+        self.assertEqual(response.json(), {
+            "event": "EOSE",
+            "subscription_id": "sub_test_id",
+            "results_json": [],
             "message": "error: could not connect to the database"
         })
 
