@@ -22,15 +22,12 @@ from psycopg_pool import AsyncConnectionPool
 
 from event_classes import Event, Subscription
 
-# Initialize the logger
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-
-# from otel_metrics import PythonOTEL
 
 app = FastAPI()
 
@@ -43,7 +40,6 @@ otlp_exporter = OTLPSpanExporter(endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT
 span_processor = BatchSpanProcessor(otlp_exporter)
 otlp_tracer = trace.get_tracer_provider().add_span_processor(span_processor)
 
-# py_otel = PythonOTEL()
 
 # Set up a separate tracer provider for Redis
 redis_tracer_provider = TracerProvider(
@@ -231,7 +227,6 @@ async def handle_subscription(request: Request) -> JSONResponse:
     try:
         request_payload = await request.json()
         subscription_obj = Subscription(request_payload)
-        # py_otel.counter_query.add(1, py_otel.labels)
 
         if not subscription_obj.filters:
             return subscription_obj.sub_response_builder(
@@ -285,7 +280,6 @@ async def handle_subscription(request: Request) -> JSONResponse:
         return subscription_obj.sub_response_builder(
             "EOSE", subscription_obj.subscription_id, "", 500
         )
-
 
 if __name__ == "__main__":
     logger.info(f"Write conn string is: {get_conn_str('WRITE')}")
