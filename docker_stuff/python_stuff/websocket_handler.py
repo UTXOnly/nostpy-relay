@@ -28,7 +28,6 @@ from opentelemetry.instrumentation.aiohttp_client import AioHttpClientInstrument
 
 AioHttpClientInstrumentor().instrument()
 
-# trace.set_tracer_provider(TracerProvider())
 trace.set_tracer_provider(
     TracerProvider(resource=Resource.create({"service.name": "websocket_handler_otel"}))
 )
@@ -107,7 +106,6 @@ async def handle_websocket_connection(
                         "send_event_to_subscription"
                     ) as span:
                         current_span = trace.get_current_span()
-                        # current_span.set_attribute("service.name", "websocket_handler")
                         current_span.set_attribute(
                             "operation.name", "send.event.subscription"
                         )
