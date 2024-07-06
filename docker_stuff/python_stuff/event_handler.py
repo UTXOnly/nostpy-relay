@@ -286,7 +286,6 @@ async def handle_subscription(request: Request) -> JSONResponse:
             "EOSE", subscription_obj.subscription_id, "", 500
         )
 
-
 if __name__ == "__main__":
     logger.info(f"Write conn string is: {get_conn_str('WRITE')}")
     logger.info(f"Read conn string is: {get_conn_str('READ')}")
