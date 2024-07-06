@@ -240,7 +240,7 @@ class WebsocketMessages:
                 merged.update(item)
             logger.debug(f"merged is {merged} and type {type(merged)}")
             self.event_payload = (
-                merged  # {json.loads(item) for item in range(2, len(message))}
+                merged  
             )
         else:
             self.event_payload: Dict[str, Any] = message[1]
