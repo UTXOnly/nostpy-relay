@@ -130,7 +130,7 @@ def initialize_db() -> None:
                     created_at INTEGER,
                     tags JSONB,
                     content TEXT,
-                    sig VARCHAR(255),
+                    sig VARCHAR(255)
                 );
             """
             )
@@ -143,7 +143,7 @@ def initialize_db() -> None:
                     client_pub VARCHAR(255),
                     kind INTEGER,
                     allowed BOOLEAN,
-                    sig VARCHAR(255),
+                    sig VARCHAR(255)
                 );
             """
             )
@@ -249,9 +249,9 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     return event_obj.evt_response(
                         results_status="true", http_status_code=200
                     )
-    except Exception:
-        logger.debug("Entering gen exc")
-        conn.rollback()
+    except Exception as exc:
+        logger.debug("Entering gen exc: {exc}")
+        await conn.rollback()
         return event_obj.evt_response(
             results_status="false",
             http_status_code=500,
