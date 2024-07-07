@@ -155,7 +155,6 @@ def initialize_db() -> None:
         logger.info(f"Error occurred during database initialization: {caught_error}")
 
 
-
 async def set_span_attributes(
     span, db_system: str, db_statement: str, service_name: str, operation_name: str
 ):
@@ -229,7 +228,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                             )
                     else:
                         try:
-                            q_res = await event_obj.check_mgmt_allow(conn,cur)
+                            q_res = await event_obj.check_mgmt_allow(conn, cur)
                             if not q_res:
                                 logger.debug(f"allow checlkpass: {q_res}")
                                 logger.debug(f"Adding event id: {event_obj.event_id}")
@@ -237,10 +236,10 @@ async def handle_new_event(request: Request) -> JSONResponse:
                             else:
                                 logger.debug(f"allow checlk: {q_res}")
                                 return event_obj.evt_response(
-                                results_status="false",
-                                http_status_code=500,
-                                message="rejected: user is banned from posting on this relay",
-                            )
+                                    results_status="false",
+                                    http_status_code=500,
+                                    message="rejected: user is banned from posting on this relay",
+                                )
                         except psycopg.IntegrityError:
                             await conn.rollback()
                             logger.info(

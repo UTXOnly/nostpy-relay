@@ -127,7 +127,6 @@ class Event:
                 return f"allowed: {list[1]} has been allowed"
 
     async def check_mgmt_allow(self, conn, cur) -> bool:
-    
         await cur.execute(
             f"""
             SELECT client_pub FROM allowlist WHERE client_pub = '{self.pubkey}' AND allowed = false;
@@ -136,18 +135,22 @@ class Event:
         )
         return await cur.fetchall()
 
-    async def mod_pubkey_perm(self, conn, cur, client, bool):
+    async def mod_pubkey_perm(self, conn, cur, client, bool, conflict_target):
+        if conflict_target not in ["client_pub", "kind"]:
+            raise ValueError("Invalid conflict target. Must be 'client_pub' or 'kind'.")
+
         await cur.execute(
-            """
-            INSERT INTO allowlist (note_id, client_pub, allowed) 
+            f"""
+            INSERT INTO allowlist (note_id, {conflict_target}, allowed) 
             VALUES (%s, %s, %s)
-            ON CONFLICT (client_pub) 
+            ON CONFLICT ({conflict_target}) 
             DO UPDATE SET 
                 note_id = EXCLUDED.note_id,
                 allowed = EXCLUDED.allowed
-            """,
-            (self.event_id, client, bool),
+        """,
+            (self.event_id, conflict_target, bool),
         )
+
         await conn.commit()
 
     def evt_response(self, results_status, http_status_code, message=""):
