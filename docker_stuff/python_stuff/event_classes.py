@@ -103,7 +103,7 @@ class Event:
     async def add_mgmt_event(self, conn, cur) -> None:
         await cur.execute(
             """
-            INSERT INTO mgmt_evt (id,pubkey,kind,created_at,tags,content,sig) VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO mgmt_event (id,pubkey,kind,created_at,tags,content,sig) VALUES (%s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 self.event_id,
