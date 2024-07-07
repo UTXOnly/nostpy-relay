@@ -132,7 +132,7 @@ class Event:
 
         """
         )
-        await cur.fetchall()
+        return await cur.fetchall()
 
     async def ban_user(self, conn, cur, client):
         await cur.execute(
