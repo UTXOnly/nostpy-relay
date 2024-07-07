@@ -227,10 +227,13 @@ async def handle_new_event(request: Request) -> JSONResponse:
                             )
                     else:
                         try:
-                            if not event_obj.check_mgmt_allow(conn,cur):
+                            q_res = await event_obj.check_mgmt_allow(conn,cur)
+                            if not q_res:
+                                logger.debug(f"allow checlkpass: {q_res}")
                                 logger.debug(f"Adding event id: {event_obj.event_id}")
                                 await event_obj.add_event(conn, cur)
                             else:
+                                logger.debug(f"allow checlk: {q_res}")
                                 return event_obj.evt_response(
                                 results_status="false",
                                 http_status_code=500,
