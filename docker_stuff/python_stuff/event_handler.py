@@ -89,51 +89,69 @@ FastAPIInstrumentor.instrument_app(app)
 
 def initialize_db() -> None:
     """
-    Initialize the database by creating the necessary tables if they don't exist,
-    and creating indexes on the pubkey and kind columns for both tables.
+    Initialize the database by creating the necessary table if it doesn't exist,
+    and creating indexes on the pubkey and kind columns.
 
     """
     try:
         logger.info(f"conn string is {get_conn_str('WRITE')}")
         conn = psycopg.connect(get_conn_str("WRITE"))
         with conn.cursor() as cur:
-            table_names = ["events", "mgmt_event"]
+            # Create events table if it doesn't already exist
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS events (
+                    id VARCHAR(255) PRIMARY KEY,
+                    pubkey VARCHAR(255),
+                    kind INTEGER,
+                    created_at INTEGER,
+                    tags JSONB,
+                    content TEXT,
+                    sig VARCHAR(255)
+                );
+            """
+            )
 
-            # Create tables
-            for table_name in table_names:
+            index_columns = ["pubkey", "kind"]
+            for column in index_columns:
                 cur.execute(
                     f"""
-                    CREATE TABLE IF NOT EXISTS {table_name} (
-                        id VARCHAR(255) PRIMARY KEY,
-                        pubkey VARCHAR(255),
-                        kind INTEGER,
-                        created_at INTEGER,
-                        tags JSONB,
-                        content TEXT,
-                        sig VARCHAR(255)
-                    );
-                    """
+                    CREATE INDEX IF NOT EXISTS idx_{str(column)}
+                    ON events ({str(column)});
+                """
                 )
 
-            # Define columns to index
-            index_columns = ["pubkey", "kind"]
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS event_mgmt (
+                    id VARCHAR(255) PRIMARY KEY,
+                    pubkey VARCHAR(255),
+                    kind INTEGER,
+                    created_at INTEGER,
+                    tags JSONB,
+                    content TEXT,
+                    sig VARCHAR(255),
+                );
+            """
+            )
 
-            # Create indexes for each table
-            for table_name in table_names:
-                for column in index_columns:
-                    cur.execute(
-                        f"""
-                        CREATE INDEX IF NOT EXISTS idx_{table_name}_{column}
-                        ON {table_name} ({column});
-                        """
-                    )
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS allowlist (
+                    note_id VARCHAR(255) PRIMARY KEY,
+                    tags JSONB,
+                    client_pub VARCHAR(255),
+                    kind INTEGER,
+                    allowed BOOLEAN,
+                    sig VARCHAR(255),
+                );
+            """
+            )
 
             conn.commit()
         logger.info("Database initialization complete.")
     except psycopg.Error as caught_error:
-        logger.error(f"Error occurred during database initialization: {caught_error}")
-
-
+        logger.info(f"Error occurred during database initialization: {caught_error}")
 
 
 async def set_span_attributes(
@@ -173,7 +191,6 @@ async def handle_new_event(request: Request) -> JSONResponse:
         f"New event loop iter, ev object is {event_obj.event_id} and {event_obj.kind}"
     )
 
-
     try:
         with tracer.start_as_current_span("add_event") as span:
             current_span = trace.get_current_span()
@@ -183,10 +200,11 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     if event_obj.kind in [42069]:
                         if event_obj.verify_signature(logger):
                             await event_obj.add_mgmt_event(conn, cur)
+                            await event_obj.parse_mgmt_event(conn, cur)
                             return event_obj.evt_response(
                                 results_status="true",
                                 http_status_code=200,
-                                message="relay mgmt: user added to ban list",
+                                message="relay mgmt: user added to ban",
                             )
 
                     if event_obj.kind in [0, 3]:

@@ -103,7 +103,7 @@ class Event:
     async def add_mgmt_event(self, conn, cur) -> None:
         await cur.execute(
             """
-            INSERT INTO mgmt_event (id,pubkey,kind,created_at,tags,content,sig) VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO event_mgmt (id,pubkey,kind,created_at,tags,content,sig) VALUES (%s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 self.event_id,
@@ -114,6 +114,31 @@ class Event:
                 self.content,
                 self.sig,
             ),
+        )
+        await conn.commit()
+
+    async def parse_mgmt_event(self, conn, cur):
+        for action, object in self.tags:
+            if action == "ban":
+                self.ban_user(cur, conn, object)
+            if action == "allow":
+                pass
+
+    async def check_mgmt_allow(self, conn, cur) -> None:
+        await cur.execute(
+            """
+            SELECT client_pub FROM allowlist WHERE allowed = false;
+
+        """
+        )
+        await conn.commit()
+
+    async def ban_user(self, conn, cur, client):
+        await cur.execute(
+            """
+            INSERT INTO allowlist note_id, tags, client_pub, allowed VALUES (%s,%s,%s,%s)
+        """,
+            (self.event_id, self.tags, client, "false"),
         )
         await conn.commit()
 
