@@ -136,9 +136,9 @@ class Event:
     async def ban_user(self, conn, cur, client):
         await cur.execute(
             """
-            INSERT INTO allowlist note_id, tags, client_pub, allowed VALUES (%s,%s,%s,%s)
+            INSERT INTO allowlist (note_id, client_pub, allowed) VALUES (%s,%s,%s)
         """,
-            (self.event_id, self.tags, client, "false"),
+            (self.event_id, client, "false"),
         )
         await conn.commit()
 
