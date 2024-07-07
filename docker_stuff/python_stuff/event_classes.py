@@ -128,7 +128,7 @@ class Event:
     
         await cur.execute(
             f"""
-            SELECT client_pub FROM allowlist WHERE client_pub = {self.pubkey} AND allowed = false;
+            SELECT client_pub FROM allowlist WHERE client_pub = '{self.pubkey}' AND allowed = false;
 
         """
         )
