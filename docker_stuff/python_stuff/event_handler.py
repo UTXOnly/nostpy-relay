@@ -171,7 +171,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
             current_span.set_attribute(SpanAttributes.DB_SYSTEM, "postgresql")
             async with request.app.write_pool.connection() as conn:
                 async with conn.cursor() as cur:
-                    if event_obj.kind == [42069]:
+                    if event_obj.kind in [42069]:
                         if event_obj.verify_signature(logger):
                             return event_obj.evt_response(
                                 results_status="true",
