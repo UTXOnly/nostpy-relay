@@ -25,7 +25,6 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.instrumentation.aiohttp_client import AioHttpClientInstrumentor
 
-from event_classes import Event
 
 
 AioHttpClientInstrumentor().instrument()
