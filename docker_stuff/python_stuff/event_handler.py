@@ -89,7 +89,7 @@ FastAPIInstrumentor.instrument_app(app)
 
 def initialize_db() -> None:
     """
-    Initialize the database by creating the necessary table if it doesn't exist,
+    Initialize the database by creating the necessary tables if they don't exist,
     and creating indexes on the pubkey and kind columns.
 
     """
@@ -109,7 +109,7 @@ def initialize_db() -> None:
                     content TEXT,
                     sig VARCHAR(255)
                 );
-            """
+                """
             )
 
             index_columns = ["pubkey", "kind"]
@@ -118,7 +118,7 @@ def initialize_db() -> None:
                     f"""
                     CREATE INDEX IF NOT EXISTS idx_{str(column)}
                     ON events ({str(column)});
-                """
+                    """
                 )
 
             cur.execute(
@@ -132,26 +132,28 @@ def initialize_db() -> None:
                     content TEXT,
                     sig VARCHAR(255)
                 );
-            """
+                """
             )
 
             cur.execute(
                 """
                 CREATE TABLE IF NOT EXISTS allowlist (
-                    note_id VARCHAR(255) PRIMARY KEY,
+                    client_pub VARCHAR(255) PRIMARY KEY,
+                    note_id VARCHAR(255),
                     tags JSONB,
-                    client_pub VARCHAR(255),
                     kind INTEGER,
                     allowed BOOLEAN,
-                    sig VARCHAR(255)
+                    sig VARCHAR(255),
+                    FOREIGN KEY (note_id) REFERENCES event_mgmt(id)
                 );
-            """
+                """
             )
 
             conn.commit()
         logger.info("Database initialization complete.")
     except psycopg.Error as caught_error:
         logger.info(f"Error occurred during database initialization: {caught_error}")
+
 
 
 async def set_span_attributes(

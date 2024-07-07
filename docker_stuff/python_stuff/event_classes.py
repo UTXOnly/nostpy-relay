@@ -139,8 +139,13 @@ class Event:
     async def mod_pubkey_perm(self, conn, cur, client, bool):
         await cur.execute(
             """
-            INSERT INTO allowlist (note_id, client_pub, allowed) VALUES (%s,%s,%s)
-        """,
+            INSERT INTO allowlist (note_id, client_pub, allowed) 
+            VALUES (%s, %s, %s)
+            ON CONFLICT (client_pub) 
+            DO UPDATE SET 
+                note_id = EXCLUDED.note_id,
+                allowed = EXCLUDED.allowed
+            """,
             (self.event_id, client, bool),
         )
         await conn.commit()
