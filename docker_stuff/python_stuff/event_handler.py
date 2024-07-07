@@ -204,7 +204,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                             return event_obj.evt_response(
                                 results_status="true",
                                 http_status_code=200,
-                                message="relay mgmt: user added to ban",
+                                message="relay mgmt: user added to ban list",
                             )
 
                     if event_obj.kind in [0, 3]:
@@ -227,10 +227,17 @@ async def handle_new_event(request: Request) -> JSONResponse:
                             )
                     else:
                         try:
-                            logger.debug(f"Adding event id: {event_obj.event_id}")
-                            await event_obj.add_event(conn, cur)
+                            if not event_obj.check_mgmt_allow(conn,cur):
+                                logger.debug(f"Adding event id: {event_obj.event_id}")
+                                await event_obj.add_event(conn, cur)
+                            else:
+                                return event_obj.evt_response(
+                                results_status="false",
+                                http_status_code=500,
+                                message="rejected: user is banned from posting on this relay",
+                            )
                         except psycopg.IntegrityError:
-                            conn.rollback()
+                            await conn.rollback()
                             logger.info(
                                 f"Event with ID {event_obj.event_id} already exists"
                             )
