@@ -200,11 +200,11 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     if event_obj.kind in [42069]:
                         if event_obj.verify_signature(logger):
                             await event_obj.add_mgmt_event(conn, cur)
-                            await event_obj.parse_mgmt_event(conn, cur)
+                            clt_msg = await event_obj.parse_mgmt_event(conn, cur)
                             return event_obj.evt_response(
                                 results_status="true",
                                 http_status_code=200,
-                                message="relay mgmt: user added to ban list",
+                                message=clt_msg,
                             )
 
                     if event_obj.kind in [0, 3]:
