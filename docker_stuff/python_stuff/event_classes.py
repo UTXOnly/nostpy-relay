@@ -121,8 +121,10 @@ class Event:
         for list in self.tags:
             if list[0] == "ban":
                 await self.mod_pubkey_perm(conn, cur, list[1], "false")
+                return f"banned: {list[1]} has been banned"
             if list[0] == "allow":
                 await self.mod_pubkey_perm(conn, cur, list[1], "true")
+                return f"allowed: {list[1]} has been allowed"
 
     async def check_mgmt_allow(self, conn, cur) -> bool:
     
