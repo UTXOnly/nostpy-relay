@@ -125,10 +125,10 @@ class Event:
             #    pass
 
     async def check_mgmt_allow(self, conn, cur) -> bool:
-        client_pub = self.tags[0][1]
+    
         await cur.execute(
             f"""
-            SELECT {client_pub} FROM allowlist WHERE allowed = false;
+            SELECT client_pub FROM allowlist WHERE client_pub = {self.pubkey} AND allowed = false;
 
         """
         )
