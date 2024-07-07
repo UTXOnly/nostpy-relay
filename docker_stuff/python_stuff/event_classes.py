@@ -120,9 +120,9 @@ class Event:
     async def parse_mgmt_event(self, conn, cur):
         for list in self.tags:
             if list[0] == "ban":
-                await self.ban_user(conn, cur, list[1])
-            #if action == "allow":
-            #    pass
+                await self.mod_pubkey_perm(conn, cur, list[1], "false")
+            if list[0] == "allow":
+                await self.mod_pubkey_perm(conn, cur, list[1], "true")
 
     async def check_mgmt_allow(self, conn, cur) -> bool:
     
@@ -134,12 +134,12 @@ class Event:
         )
         return await cur.fetchall()
 
-    async def ban_user(self, conn, cur, client):
+    async def mod_pubkey_perm(self, conn, cur, client, bool):
         await cur.execute(
             """
             INSERT INTO allowlist (note_id, client_pub, allowed) VALUES (%s,%s,%s)
         """,
-            (self.event_id, client, "false"),
+            (self.event_id, client, bool),
         )
         await conn.commit()
 
