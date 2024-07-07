@@ -120,7 +120,7 @@ class Event:
     async def parse_mgmt_event(self, conn, cur):
         for action, object in self.tags:
             if action == "ban":
-                self.ban_user(cur, conn, object)
+                await self.ban_user(cur, conn, object)
             if action == "allow":
                 pass
 
