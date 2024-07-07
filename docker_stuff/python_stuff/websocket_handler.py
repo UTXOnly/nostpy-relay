@@ -25,6 +25,8 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.instrumentation.aiohttp_client import AioHttpClientInstrumentor
 
+from event_classes import Event
+
 
 AioHttpClientInstrumentor().instrument()
 
@@ -46,6 +48,18 @@ EVENT_HANDLER_SVC = os.getenv("EVENT_HANDLER_SVC")
 EVENT_HANDLER_PORT = os.getenv("EVENT_HANDLER_PORT")
 
 
+async def nip42_auth(auth_resp):
+    auth_ev = Event(
+        event_id=auth_resp["id"],
+        pubkey=auth_resp["pubkey"],
+        kind=auth_resp["kind"],
+        created_at=auth_resp["created_at"],
+        tags=auth_resp["tags"],
+        content=auth_resp["content"],
+        sig=auth_resp["sig"],
+    )
+
+
 async def handle_websocket_connection(
     websocket: websockets.WebSocketServerProtocol,
 ) -> None:
@@ -56,6 +70,10 @@ async def handle_websocket_connection(
                 try:
                     logger.debug(f"message in loop is {message}")
                     ws_message = message
+                    await websocket.send(
+                        json.dumps(["AUTH", "nostpy-challenge-string"])
+                    )
+                    auth_response = await asyncio.wait_for(websocket.recv(), timeout=3)
                     if ws_message:
                         ws_message = WebsocketMessages(
                             message=json.loads(message),

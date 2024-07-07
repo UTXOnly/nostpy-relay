@@ -164,6 +164,14 @@ async def handle_new_event(request: Request) -> JSONResponse:
         f"New event loop iter, ev object is {event_obj.event_id} and {event_obj.kind}"
     )
 
+    if event_obj.kind == "42069":
+        if event_obj.verify_signature(logger):
+            return event_obj.evt_response(
+                results_status="true",
+                http_status_code=200,
+                message="dis shit: is werking",
+            )
+
     try:
         with tracer.start_as_current_span("add_event") as span:
             current_span = trace.get_current_span()
@@ -280,6 +288,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         return subscription_obj.sub_response_builder(
             "EOSE", subscription_obj.subscription_id, "", 500
         )
+
 
 if __name__ == "__main__":
     logger.info(f"Write conn string is: {get_conn_str('WRITE')}")
