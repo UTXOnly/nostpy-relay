@@ -134,14 +134,13 @@ def initialize_db() -> None:
                 );
                 """
             )
-
             cur.execute(
                 """
                 CREATE TABLE IF NOT EXISTS allowlist (
-                    client_pub VARCHAR(255) PRIMARY KEY,
+                    client_pub VARCHAR(255) UNIQUE,
                     note_id VARCHAR(255),
                     tags JSONB,
-                    kind INTEGER,
+                    kind INTEGER UNIQUE,
                     allowed BOOLEAN,
                     sig VARCHAR(255),
                     FOREIGN KEY (note_id) REFERENCES event_mgmt(id)
@@ -149,10 +148,12 @@ def initialize_db() -> None:
                 """
             )
 
+
             conn.commit()
         logger.info("Database initialization complete.")
     except psycopg.Error as caught_error:
         logger.info(f"Error occurred during database initialization: {caught_error}")
+
 
 
 async def set_span_attributes(
@@ -228,7 +229,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                             )
                     else:
                         try:
-                            q_res = await event_obj.check_mgmt_allow(conn, cur)
+                            q_res = await event_obj.check_mgmt_allow(conn,cur)
                             if not q_res:
                                 logger.debug(f"allow checlkpass: {q_res}")
                                 logger.debug(f"Adding event id: {event_obj.event_id}")
@@ -236,10 +237,10 @@ async def handle_new_event(request: Request) -> JSONResponse:
                             else:
                                 logger.debug(f"allow checlk: {q_res}")
                                 return event_obj.evt_response(
-                                    results_status="false",
-                                    http_status_code=500,
-                                    message="rejected: user is banned from posting on this relay",
-                                )
+                                results_status="false",
+                                http_status_code=500,
+                                message="rejected: user is banned from posting on this relay",
+                            )
                         except psycopg.IntegrityError:
                             await conn.rollback()
                             logger.info(
