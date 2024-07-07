@@ -100,6 +100,23 @@ class Event:
         )
         await conn.commit()
 
+    async def add_mgmt_event(self, conn, cur) -> None:
+        await cur.execute(
+            """
+            INSERT INTO mgmt_evt (id,pubkey,kind,created_at,tags,content,sig) VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                self.event_id,
+                self.pubkey,
+                self.kind,
+                self.created_at,
+                json.dumps(self.tags),
+                self.content,
+                self.sig,
+            ),
+        )
+        await conn.commit()
+
     def evt_response(self, results_status, http_status_code, message=""):
         response = {
             "event": "OK",
