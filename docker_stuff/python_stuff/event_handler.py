@@ -164,13 +164,6 @@ async def handle_new_event(request: Request) -> JSONResponse:
         f"New event loop iter, ev object is {event_obj.event_id} and {event_obj.kind}"
     )
 
-    if event_obj.kind == "42069":
-        if event_obj.verify_signature(logger):
-            return event_obj.evt_response(
-                results_status="true",
-                http_status_code=200,
-                message="dis shit: is werking",
-            )
 
     try:
         with tracer.start_as_current_span("add_event") as span:
@@ -178,6 +171,14 @@ async def handle_new_event(request: Request) -> JSONResponse:
             current_span.set_attribute(SpanAttributes.DB_SYSTEM, "postgresql")
             async with request.app.write_pool.connection() as conn:
                 async with conn.cursor() as cur:
+                    if event_obj.kind == "42069":
+                        if event_obj.verify_signature(logger):
+                            return event_obj.evt_response(
+                                results_status="true",
+                                http_status_code=200,
+                                message="dis shit: is werking",
+                            )
+
                     if event_obj.kind in [0, 3]:
                         await event_obj.delete_check(conn, cur)
                         logger.debug(f"Adding event id: {event_obj.event_id}")
