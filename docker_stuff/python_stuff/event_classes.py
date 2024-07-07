@@ -118,11 +118,11 @@ class Event:
         await conn.commit()
 
     async def parse_mgmt_event(self, conn, cur):
-        for action, object in self.tags:
-            if action == "ban":
-                await self.ban_user(cur, conn, object)
-            if action == "allow":
-                pass
+        for list in self.tags:
+            if list[0] == "ban":
+                await self.ban_user(cur, conn, list[1])
+            #if action == "allow":
+            #    pass
 
     async def check_mgmt_allow(self, conn, cur) -> None:
         await cur.execute(

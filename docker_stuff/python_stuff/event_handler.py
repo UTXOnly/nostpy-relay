@@ -250,7 +250,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         results_status="true", http_status_code=200
                     )
     except Exception as exc:
-        logger.debug("Entering gen exc: {exc}")
+        logger.debug(f"Entering gen exc: {exc}")
         await conn.rollback()
         return event_obj.evt_response(
             results_status="false",
