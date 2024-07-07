@@ -124,14 +124,15 @@ class Event:
             #if action == "allow":
             #    pass
 
-    async def check_mgmt_allow(self, conn, cur) -> None:
+    async def check_mgmt_allow(self, conn, cur) -> bool:
+        client_pub = self.tags[0][1]
         await cur.execute(
-            """
-            SELECT client_pub FROM allowlist WHERE allowed = false;
+            f"""
+            SELECT {client_pub} FROM allowlist WHERE allowed = false;
 
         """
         )
-        await conn.commit()
+        await cur.fetchall()
 
     async def ban_user(self, conn, cur, client):
         await cur.execute(
