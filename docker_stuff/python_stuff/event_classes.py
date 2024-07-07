@@ -120,11 +120,11 @@ class Event:
     async def parse_mgmt_event(self, conn, cur):
         for list in self.tags:
             if list[0] == "ban":
-                await self.mod_pubkey_perm(conn, cur, list[1], "false")
-                return f"banned: {list[1]} has been banned"
+                await self.mod_pubkey_perm(conn, cur, list[1], "false", list[2])
+                return f"banned: {list[2]} has been banned"
             if list[0] == "allow":
-                await self.mod_pubkey_perm(conn, cur, list[1], "true")
-                return f"allowed: {list[1]} has been allowed"
+                await self.mod_pubkey_perm(conn, cur, list[1], "true", list[2])
+                return f"allowed: {list[2]} has been allowed"
 
     async def check_mgmt_allow(self, conn, cur) -> bool:
         await cur.execute(
@@ -135,7 +135,7 @@ class Event:
         )
         return await cur.fetchall()
 
-    async def mod_pubkey_perm(self, conn, cur, conflict_target, bool):
+    async def mod_pubkey_perm(self, conn, cur, conflict_target, bool, conflict_value):
         if conflict_target not in ["client_pub", "kind"]:
             raise ValueError("Invalid conflict target. Must be 'client_pub' or 'kind'.")
 
@@ -148,7 +148,7 @@ class Event:
                 note_id = EXCLUDED.note_id,
                 allowed = EXCLUDED.allowed
         """,
-            (self.event_id, conflict_target, bool),
+            (self.event_id, conflict_value, bool),
         )
 
         await conn.commit()
