@@ -135,7 +135,7 @@ class Event:
         )
         return await cur.fetchall()
 
-    async def mod_pubkey_perm(self, conn, cur, client, bool, conflict_target):
+    async def mod_pubkey_perm(self, conn, cur, conflict_target, bool):
         if conflict_target not in ["client_pub", "kind"]:
             raise ValueError("Invalid conflict target. Must be 'client_pub' or 'kind'.")
 
