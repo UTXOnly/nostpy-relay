@@ -307,7 +307,7 @@ class Subscription:
         i = 0
         for item in record:
             # Replace None with an empty string
-            row_result[self.hard_col[i]] = item if item is not None else ""
+            row_result[self.hard_col[i]] = item if item is not None else "empty"
             i += 1
         column_added.append([row_result])
 
