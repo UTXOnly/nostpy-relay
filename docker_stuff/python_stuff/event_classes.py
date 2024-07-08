@@ -301,14 +301,16 @@ class Subscription:
             row_result[self.column_names[i]] = item
             i += 1
         column_added.append([row_result])
-    async def _parser_worker(self, record, column_added) -> None:
+    async def _parser_worker_hard(self, record, column_added) -> None:
         self.hard_col = ["client_pub", "kind", "allowed", "note_id"]
         row_result = {}
         i = 0
         for item in record:
-            row_result[self.hard_col[i]] = item
+            # Replace None with an empty string
+            row_result[self.hard_col[i]] = item if item is not None else ""
             i += 1
         column_added.append([row_result])
+
 
     async def query_result_parser(self, query_result) -> List:
         column_added = []
@@ -324,7 +326,7 @@ class Subscription:
         column_added = []
         try:
             tasks = [
-                self._parser_worker(record, column_added) for record in query_result
+                self._parser_worker_hard(record, column_added) for record in query_result
             ]
             await asyncio.gather(*tasks)
             return column_added
