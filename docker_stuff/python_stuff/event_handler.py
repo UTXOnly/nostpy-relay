@@ -290,7 +290,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         ) = await subscription_obj.parse_filters(subscription_obj.filters, logger)
 
         if subscription_obj.subscription_id == "nostpy_client":
-            sql_query= subscription_obj.query_allowlist
+            sql_query= "SELECT client_pub, kind , allowed, note_id from allowlist;"
             query_results = await execute_sql_with_tracing(app, sql_query, "select Allow")
             if query_results:
                 parsed_results = await subscription_obj.query_result_parser(
