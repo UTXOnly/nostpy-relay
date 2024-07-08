@@ -301,8 +301,26 @@ class Subscription:
             row_result[self.column_names[i]] = item
             i += 1
         column_added.append([row_result])
+    async def _parser_worker(self, record, column_added) -> None:
+        self.hard_col = ["client_pub", "kind", "allowed", "note_id"]
+        row_result = {}
+        i = 0
+        for item in record:
+            row_result[self.hard_col[i]] = item
+            i += 1
+        column_added.append([row_result])
 
     async def query_result_parser(self, query_result) -> List:
+        column_added = []
+        try:
+            tasks = [
+                self._parser_worker(record, column_added) for record in query_result
+            ]
+            await asyncio.gather(*tasks)
+            return column_added
+        except:
+            return None
+    async def query_result_parser_hard(self, query_result) -> List:
         column_added = []
         try:
             tasks = [
@@ -356,8 +374,8 @@ class Subscription:
             logger.error(f"Error building query: {exc}", exc_info=True)
             return None
         
-    async def query_allowlist(self):
-        return f"SELECT client_pub, kind , allowed, note_id from allowlist;"
+    #async def query_allowlist(self):
+        #return f"SELECT client_pub, kind , allowed, note_id from allowlist;"
 
     def sub_response_builder(
         self, event_type, subscription_id, results_json, http_status_code
