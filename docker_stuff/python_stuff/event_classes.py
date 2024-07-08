@@ -306,10 +306,15 @@ class Subscription:
         row_result = {}
         i = 0
         for item in record:
-            # Replace None with an empty string
-            row_result[self.hard_col[i]] = item if item is not None else "empty"
+            if item is None:
+                row_result[self.hard_col[i]] = "empty"
+            elif isinstance(item, bool):
+                row_result[self.hard_col[i]] = str(item)
+            else:
+                row_result[self.hard_col[i]] = item
             i += 1
         column_added.append([row_result])
+
 
 
     async def query_result_parser(self, query_result) -> List:
