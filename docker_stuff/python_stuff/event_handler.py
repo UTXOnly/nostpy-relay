@@ -293,7 +293,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
             sql_query= "SELECT client_pub, kind , allowed, note_id from allowlist;"
             query_results = await execute_sql_with_tracing(app, sql_query, "select Allow")
             if query_results:
-                parsed_results = await subscription_obj.query_result_parser(
+                parsed_results = await subscription_obj.query_result_parser_hard(
                     query_results
                 )
                 serialized_events = json.dumps(parsed_results)
