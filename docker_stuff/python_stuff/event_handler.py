@@ -289,6 +289,22 @@ async def handle_subscription(request: Request) -> JSONResponse:
             global_search,
         ) = await subscription_obj.parse_filters(subscription_obj.filters, logger)
 
+        if subscription_obj.subscription_id == "nostpy_client":
+            sql_query= subscription_obj.query_allowlist
+            query_results = await execute_sql_with_tracing(app, sql_query, "select Allow")
+            if query_results:
+                parsed_results = await subscription_obj.query_result_parser(
+                    query_results
+                )
+                serialized_events = json.dumps(parsed_results)
+                redis_client.setex(str(raw_filters_copy), 240, serialized_events)
+                logger.debug(
+                    f"Caching results, keys: {str(raw_filters_copy)} value is: {serialized_events}"
+                )
+                return subscription_obj.sub_response_builder(
+                    "EVENT", subscription_obj.subscription_id, serialized_events, 200
+                    )
+
         cached_results = subscription_obj.fetch_data_from_cache(
             str(raw_filters_copy), redis_client
         )

@@ -355,6 +355,9 @@ class Subscription:
         except Exception as exc:
             logger.error(f"Error building query: {exc}", exc_info=True)
             return None
+        
+    async def query_allowlist(self):
+        return f"SELECT client_pub, kind , allowed, note_id from allowlist;"
 
     def sub_response_builder(
         self, event_type, subscription_id, results_json, http_status_code
