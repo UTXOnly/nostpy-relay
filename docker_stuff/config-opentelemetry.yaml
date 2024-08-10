@@ -53,11 +53,9 @@ receivers:
 
 processors:
   batch:
-    timeout: 5s                      # Reduce the timeout to process batches more frequently
-    send_batch_size: 512             # Increase the batch size to send more data at once
-    send_batch_max_size: 4096        # Allow larger maximum batch size
-    sending_queue:
-      queue_size: 8192               # Increase the queue size to handle more pending data
+    timeout: 5s                   # Reduce the timeout to process batches more frequently
+    send_batch_size: 512          # Increase the batch size to send more data at once
+    send_batch_max_size: 4096     # Allow larger maximum batch size             # Increase the queue size to handle more pending data
 
   memory_limiter:
     check_interval: 1s
