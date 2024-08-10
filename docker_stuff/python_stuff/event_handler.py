@@ -44,11 +44,11 @@ set_logger_provider(logger_provider)
 log_exporter = OTLPLogExporter(endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"), insecure=True)
 logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
-handler = LoggingHandler(level=logging.DEBUG, logger_provider=logger_provider)
+handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
 
 # Create a single logger
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 logger.addHandler(handler)
 
 trace.set_tracer_provider(
