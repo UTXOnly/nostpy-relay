@@ -46,11 +46,7 @@ logging.getLogger().addHandler(handler)
 # Create a single logger
 logger = logging.getLogger("event_handler")
 
-# Example logging
-logger.debug("This is a debug message.")
-logger.info("This is an info message.")
-logger.warning("This is a warning message.")
-logger.error("This is an error message.")
+
 
 # Trace context correlation
 tracer = trace.get_tracer(__name__)
@@ -81,7 +77,7 @@ RedisInstrumentor().instrument(tracer_provider=redis_tracer_provider)
 redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"))
 
 # Example shutdown of logger provider
-logger_provider.shutdown()
+# logger_provider.shutdown()
 
 
 def get_conn_str(db_suffix: str) -> str:
