@@ -59,7 +59,7 @@ processors:
   memory_limiter:
     check_interval: 1s
     limit_mib: 500
-    spike_limit_mib: 800
+    spike_limit_mib: 450
 
   resourcedetection:
     detectors: [env, ec2, system]
