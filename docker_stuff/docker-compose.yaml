@@ -14,6 +14,11 @@ services:
     networks:
       nostpy_network:
         ipv4_address: 172.28.0.2
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   event_handler:
     build:
@@ -40,6 +45,11 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   postgres:
     image: postgres:14
@@ -57,10 +67,15 @@ services:
       - ./postgresql.conf:/postgresql.conf
       - ./postgresql/data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${PGUSER_WRITE}"] # database username here - nostr, should be changed if other user
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER_WRITE}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   redis:
     image: redis:latest
@@ -70,6 +85,11 @@ services:
     networks:
       nostpy_network:
         ipv4_address: 172.28.0.6
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   nginx-certbot:
     build:
@@ -90,6 +110,11 @@ services:
       - /var/lib/letsencrypt:/var/lib/letsencrypt
     depends_on:
       - websocket_handler
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   opentelemetry-collector:
     image: otel/opentelemetry-collector-contrib:0.103.1
@@ -108,6 +133,11 @@ services:
       - "55680:55680"
       - "4317:4317"
     command: ["--config=/etc/otel/config.yaml"]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   postgres_data:
@@ -119,5 +149,3 @@ networks:
       driver: default
       config:
         - subnet: 172.28.0.0/16
-
-
