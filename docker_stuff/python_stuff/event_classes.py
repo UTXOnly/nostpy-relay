@@ -222,13 +222,13 @@ class Subscription:
                 limit = filters.get("limit", 100)
                 filters.pop("limit")
             except Exception as exc:
-                logger.error(f"Exception is: {exc}")
+                logger.debug(f"Exception is: {exc}")
 
             try:
                 global_search = filters.get("search", {})
                 filters.pop("search")
             except Exception as exc:
-                logger.error(f"Exception is: {exc}")
+                logger.debug(f"Exception is: {exc}")
 
             key_mappings = {
                 "authors": "pubkey",

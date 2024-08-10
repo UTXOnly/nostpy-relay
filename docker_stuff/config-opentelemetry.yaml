@@ -53,14 +53,13 @@ receivers:
 
 processors:
   batch:
-    timeout: 2s                   # Reduce the timeout to process batches more frequently
-    # Allow larger maximum batch size             # Increase the queue size to handle more pending data
-
+    send_batch_max_size: 1000
+    send_batch_size: 100
+    timeout: 10s
   memory_limiter:
     check_interval: 1s
-    limit_mib: 500
-    spike_limit_mib: 450
-
+    limit_mib: 1000
+    spike_limit_mib: 800
   resourcedetection:
     detectors: [env, ec2, system]
     system:

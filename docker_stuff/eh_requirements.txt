@@ -7,7 +7,6 @@ opentelemetry-exporter-otlp-proto-grpc
 opentelemetry-instrumentation-fastapi
 opentelemetry-instrumentation-psycopg
 opentelemetry-instrumentation-redis
-opentelemetry-instrumentation-logging
 opentelemetry-sdk
 opentelemetry-semantic-conventions
 psycopg[binary,pool]
