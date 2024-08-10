@@ -37,7 +37,7 @@ app = FastAPI()
 
 # Set up logging
 logger_provider = LoggerProvider(
-    resource=Resource.create({"service.name": "event_handler_otel"})
+    resource=Resource.create()
 )
 set_logger_provider(logger_provider)
 
@@ -322,7 +322,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                     query_results
                 )
                 serialized_events = json.dumps(parsed_results)
-                redis_client.setex(str(raw_filters_copy), 240, serialized_events)
+                redis_client.setex(str(raw_filters_copy), 75, serialized_events)
                 logger.debug(
                     f"Caching results, keys: {str(raw_filters_copy)} value is: {serialized_events}"
                 )
