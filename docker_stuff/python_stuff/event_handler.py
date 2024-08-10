@@ -9,28 +9,22 @@ import redis
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from opentelemetry import trace
+from opentelemetry import trace, logs
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.exporter.otlp.proto.grpc.logging_exporter import OTLPLogExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.psycopg import PsycopgInstrumentor
 from opentelemetry.instrumentation.redis import RedisInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.logs import LoggerProvider, LoggingHandler, BatchLogProcessor
 from opentelemetry.semconv.trace import SpanAttributes
 from psycopg_pool import AsyncConnectionPool
 
 from event_classes import Event, Subscription
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-handler = logging.StreamHandler()
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-
-app = FastAPI()
-
+# Configure the OTLP exporter for tracing
 trace.set_tracer_provider(
     TracerProvider(resource=Resource.create({"service.name": "event_handler_otel"}))
 )
@@ -38,23 +32,44 @@ tracer = trace.get_tracer(__name__)
 
 otlp_exporter = OTLPSpanExporter(endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 span_processor = BatchSpanProcessor(otlp_exporter)
-otlp_tracer = trace.get_tracer_provider().add_span_processor(span_processor)
+trace.get_tracer_provider().add_span_processor(span_processor)
 
+# Configure the OTLP exporter for logging
+logs.set_logger_provider(
+    LoggerProvider(resource=Resource.create({"service.name": "event_handler_otel_logs"}))
+)
+log_exporter = OTLPLogExporter(endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
+log_processor = BatchLogProcessor(log_exporter)
+logs.get_logger_provider().add_log_processor(log_processor)
 
-# Set up a separate tracer provider for Redis
+# Set up Python logging to use OpenTelemetry
+logger = logs.get_logger(__name__)
+handler = LoggingHandler(level=logging.DEBUG, logger=otel_logger)
+logging.basicConfig(level=logging.DEBUG, handlers=[handler])
+
+# Instrument Redis with a separate tracer provider
 redis_tracer_provider = TracerProvider(
     resource=Resource.create({"service.name": "redis"})
 )
 redis_tracer = redis_tracer_provider.get_tracer(__name__)
 
 # Set up the OTLP exporter and span processor for Redis
-redis_otlp_exporter = OTLPSpanExporter()
+redis_otlp_exporter = OTLPSpanExporter(endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 redis_span_processor = BatchSpanProcessor(redis_otlp_exporter)
 redis_tracer_provider.add_span_processor(redis_span_processor)
 
 # Instrument Redis with the separate tracer provider
 RedisInstrumentor().instrument(tracer_provider=redis_tracer_provider)
 redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"))
+
+app = FastAPI()
+
+# FastAPI instrumentation
+FastAPIInstrumentor.instrument_app(app)
+
+# Database (Psycopg) instrumentation
+PsycopgInstrumentor().instrument()
+
 
 
 def get_conn_str(db_suffix: str) -> str:

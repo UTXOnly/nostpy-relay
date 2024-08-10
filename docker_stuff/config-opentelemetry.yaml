@@ -51,7 +51,6 @@ receivers:
       network:
       processes:
 
-
 processors:
   batch:
     send_batch_max_size: 1000
@@ -87,7 +86,6 @@ processors:
         value: nostpy-otel
         action: upsert
 
-
 connectors:
   datadog/connector:
 
@@ -99,6 +97,11 @@ exporters:
     traces:
       trace_buffer: 500
 
+  otlp:
+    endpoint: "http://opentelemetry-collector:4317"
+    tls:
+      insecure: true  # Only use insecure for testing purposes, remove in production
+
 service:
   pipelines:
     traces:
@@ -109,6 +112,11 @@ service:
       receivers: [datadog/connector, otlp, hostmetrics, docker_stats]
       processors: [memory_limiter, batch, resourcedetection, attributes]
       exporters: [datadog/exporter]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resourcedetection, attributes]
+      exporters: [datadog/connector, datadog/exporter, otlp]
+
   telemetry:
     logs:
       level: "debug"
