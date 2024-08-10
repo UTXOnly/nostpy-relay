@@ -115,7 +115,7 @@ service:
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch, resourcedetection, attributes]
-      exporters: [datadog/connector, datadog/exporter, otlp]
+      exporters: [ datadog/exporter, otlp]
 
   telemetry:
     logs:
