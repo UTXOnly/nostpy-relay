@@ -44,7 +44,7 @@ logs.get_logger_provider().add_log_processor(log_processor)
 
 # Set up Python logging to use OpenTelemetry
 logger = logs.get_logger(__name__)
-handler = LoggingHandler(level=logging.DEBUG, logger=otel_logger)
+handler = LoggingHandler(level=logging.DEBUG, logger=logger)
 logging.basicConfig(level=logging.DEBUG, handlers=[handler])
 
 # Instrument Redis with a separate tracer provider
