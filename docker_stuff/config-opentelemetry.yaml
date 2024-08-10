@@ -52,6 +52,8 @@ receivers:
       processes:
 
 processors:
+  probabilistic_sampler:
+    sampling_percentage: 15
   batch:
     send_batch_max_size: 1000
     send_batch_size: 100
