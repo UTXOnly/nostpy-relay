@@ -54,12 +54,11 @@ receivers:
 processors:
   batch:
     timeout: 2s                   # Reduce the timeout to process batches more frequently
-    send_batch_size: 512          # Increase the batch size to send more data at once
-    send_batch_max_size: 4096     # Allow larger maximum batch size             # Increase the queue size to handle more pending data
+    # Allow larger maximum batch size             # Increase the queue size to handle more pending data
 
   memory_limiter:
     check_interval: 1s
-    limit_mib: 4000
+    limit_mib: 1500
     spike_limit_mib: 800
 
   resourcedetection:
