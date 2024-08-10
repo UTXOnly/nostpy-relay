@@ -197,17 +197,23 @@ async def handle_new_event(request: Request) -> JSONResponse:
         with tracer.start_as_current_span("add_event") as span:
             current_span = trace.get_current_span()
             current_span.set_attribute(SpanAttributes.DB_SYSTEM, "postgresql")
+
+            # Verify signature for all events before proceeding
+            if not event_obj.verify_signature(logger):
+                return event_obj.evt_response(
+                    results_status="false", http_status_code=400, message="invalid: signature verification failed"
+                )
+
             async with request.app.write_pool.connection() as conn:
                 async with conn.cursor() as cur:
-                    if event_obj.kind in [42069]:
-                        if event_obj.verify_signature(logger):
-                            await event_obj.add_mgmt_event(conn, cur)
-                            clt_msg = await event_obj.parse_mgmt_event(conn, cur)
-                            return event_obj.evt_response(
-                                results_status="true",
-                                http_status_code=200,
-                                message=clt_msg,
-                            )
+                    if event_obj.kind == 42069:
+                        await event_obj.add_mgmt_event(conn, cur)
+                        clt_msg = await event_obj.parse_mgmt_event(conn, cur)
+                        return event_obj.evt_response(
+                            results_status="true",
+                            http_status_code=200,
+                            message=clt_msg,
+                        )
 
                     if event_obj.kind in [0, 3]:
                         await event_obj.delete_check(conn, cur)
@@ -216,31 +222,28 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         return event_obj.evt_response(
                             results_status="true", http_status_code=200
                         )
+
                     elif event_obj.kind == 5:
-                        if event_obj.verify_signature(logger):
-                            events_to_delete = event_obj.parse_kind5()
-                            await event_obj.delete_event(conn, cur, events_to_delete)
-                            return event_obj.evt_response(
-                                results_status="true", http_status_code=200
-                            )
-                        else:
-                            return event_obj.evt_response(
-                                results_status="flase", http_status_code=200
-                            )
+                        events_to_delete = event_obj.parse_kind5()
+                        await event_obj.delete_event(conn, cur, events_to_delete)
+                        return event_obj.evt_response(
+                            results_status="true", http_status_code=200
+                        )
+
                     else:
                         try:
-                            q_res = await event_obj.check_mgmt_allow(conn,cur)
+                            q_res = await event_obj.check_mgmt_allow(conn, cur)
                             if not q_res:
-                                logger.debug(f"allow checlkpass: {q_res}")
+                                logger.debug(f"allow check passed: {q_res}")
                                 logger.debug(f"Adding event id: {event_obj.event_id}")
                                 await event_obj.add_event(conn, cur)
                             else:
-                                logger.debug(f"allow checlk: {q_res}")
+                                logger.debug(f"allow check failed: {q_res}")
                                 return event_obj.evt_response(
-                                results_status="false",
-                                http_status_code=500,
-                                message="rejected: user is banned from posting on this relay",
-                            )
+                                    results_status="false",
+                                    http_status_code=500,
+                                    message="rejected: user is banned from posting on this relay",
+                                )
                         except psycopg.IntegrityError:
                             await conn.rollback()
                             logger.info(
@@ -258,17 +261,19 @@ async def handle_new_event(request: Request) -> JSONResponse:
                                 http_status_code=400,
                                 message="error: failed to add event",
                             )
+
                     return event_obj.evt_response(
                         results_status="true", http_status_code=200
                     )
     except Exception as exc:
-        logger.debug(f"Entering gen exc: {exc}")
+        logger.debug(f"Entering general exception: {exc}")
         await conn.rollback()
         return event_obj.evt_response(
             results_status="false",
             http_status_code=500,
             message="error: could not connect to the database",
         )
+
 
 
 @app.post("/subscription")
