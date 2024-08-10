@@ -37,14 +37,14 @@ app = FastAPI()
 
 # Set up logging
 logger_provider = LoggerProvider(
-    resource=Resource.create({"service.name": "event_handler_otel_logs"})
+    resource=Resource.create({"service.name": "event_handler_otel"})
 )
 set_logger_provider(logger_provider)
 
 exporter = OTLPLogExporter(endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"), insecure=True)
 logger_provider.add_log_record_processor(BatchLogRecordProcessor(exporter))
 
-handler = LoggingHandler(level=logging.NOTSET, logger_provider=logger_provider)
+handler = LoggingHandler(level=logging.DEBUG, logger_provider=logger_provider)
 logging.getLogger().addHandler(handler)
 
 # Create a single logger
