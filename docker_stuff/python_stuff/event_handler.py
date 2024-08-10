@@ -41,14 +41,13 @@ logger_provider = LoggerProvider(
 )
 set_logger_provider(logger_provider)
 
-exporter = OTLPLogExporter(endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"), insecure=True)
-logger_provider.add_log_record_processor(BatchLogRecordProcessor(exporter))
+log_exporter = OTLPLogExporter(endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"), insecure=True)
+logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
 handler = LoggingHandler(level=logging.DEBUG, logger_provider=logger_provider)
-logging.getLogger().addHandler(handler)
 
 # Create a single logger
-logger = logging.getLogger(__name__)
+logger = logging.getLogger().addHandler(handler)
 
 trace.set_tracer_provider(
     TracerProvider(resource=Resource.create({"service.name": "event_handler_otel"}))
