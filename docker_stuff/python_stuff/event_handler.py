@@ -37,7 +37,7 @@ app = FastAPI()
 
 # Set up logging
 logger_provider = LoggerProvider(
-    resource=Resource.create()
+    resource=Resource.create("event_handler_otel")
 )
 set_logger_provider(logger_provider)
 
