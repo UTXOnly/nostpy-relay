@@ -137,8 +137,8 @@ class Event:
                 return f"allowed: {list[2]} has been allowed"
             if list[0] == "delete_pub":
                 await self.admin_delete(conn, cur, list[1])
-                return f"deleted: {list[2]} notes have been deleted
-                "
+                return f"deleted: {list[2]} notes have been deleted"
+                
     async def check_mgmt_allow(self, conn, cur) -> bool:
         await cur.execute(
             f"""
