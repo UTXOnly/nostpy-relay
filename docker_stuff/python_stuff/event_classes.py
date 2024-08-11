@@ -150,7 +150,7 @@ class Event:
     async def check_kind_allow(self, conn, cur) -> bool:
         await cur.execute(
             f"""
-            SELECT kind FROM allowlist WHERE = '{self.kind}' AND allowed = true;
+            SELECT kind FROM allowlist WHERE kind = '{self.kind}' AND allowed = true;
 
         """
         )
