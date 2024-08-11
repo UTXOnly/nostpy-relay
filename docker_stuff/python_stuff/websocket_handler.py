@@ -56,6 +56,9 @@ async def handle_websocket_connection(
                 try:
                     logger.debug(f"message in loop is {message}")
                     ws_message = message
+                    # await websocket.send(
+                    #    json.dumps(["AUTH", "nostpy-challenge-string"])
+                    # )
                     if ws_message:
                         ws_message = WebsocketMessages(
                             message=json.loads(message),

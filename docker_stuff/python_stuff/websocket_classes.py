@@ -239,9 +239,7 @@ class WebsocketMessages:
             for item in raw_payload:
                 merged.update(item)
             logger.debug(f"merged is {merged} and type {type(merged)}")
-            self.event_payload = (
-                merged  
-            )
+            self.event_payload = merged
         else:
             self.event_payload: Dict[str, Any] = message[1]
         headers = websocket.request_headers

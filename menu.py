@@ -136,18 +136,6 @@ def decrypt_env():
             print_color("Invalid option. Please enter either 1, 2, or 3.", "31")
 
 
-def setup_dbm():
-    try:
-        subprocess.run(["python3", "-m", "venv", "snmpenv"], check=True)
-
-        activate_cmd = ". snmpenv/bin/activate && "
-        commands = ["python ./docker_stuff/dbm_setup.py"]
-        for cmd in commands:
-            subprocess.run(["bash", "-c", activate_cmd + cmd], check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"Error occurred while running dbm_setup.py: {e}")
-
-
 while True:
     print_color(
         "\n##########################################################################################",
@@ -172,8 +160,7 @@ while True:
     print_color("4) Destroy all docker containers and images", "31")
     print_color("5) Decrypt/encrypt .env file to edit", "33")
     print_color("6) Stop all containers", "33")
-    print_color("7) Setup database monitoring", "32")
-    print_color("8) Exit menu", "31")
+    print_color("7) Exit menu", "31")
 
     options = {
         "1": execute_setup_script,
@@ -182,15 +169,14 @@ while True:
         "4": destroy_containers_and_images,
         "5": decrypt_env,
         "6": stop_containers,
-        "7": setup_dbm,
-        "8": lambda: print_color("Exited menu", "31"),
+        "7": lambda: print_color("Exited menu", "31"),
     }
 
     try:
-        choice = input("\nEnter an option number (1-8): ")
+        choice = input("\nEnter an option number (1-7): ")
         if choice in options:
             options[choice]()
-            if choice == "8":
+            if choice == "7":
                 print()
                 break
     except ValueError:

@@ -83,6 +83,15 @@ class Event:
         await cur.execute(delete_statement, (event_ids, self.pubkey))
         await conn.commit()
 
+    async def admin_delete(self, conn, cur, delete_pub):
+        delete_statement = """
+        DELETE FROM events
+        WHERE pubkey = %s;
+        """
+        await cur.execute(delete_statement, (delete_pub,))
+        await conn.commit()
+
+
     async def add_event(self, conn, cur) -> None:
         await cur.execute(
             """
@@ -98,6 +107,71 @@ class Event:
                 self.sig,
             ),
         )
+        await conn.commit()
+
+    async def add_mgmt_event(self, conn, cur) -> None:
+        await cur.execute(
+            """
+            INSERT INTO event_mgmt (id,pubkey,kind,created_at,tags,content,sig) VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                self.event_id,
+                self.pubkey,
+                self.kind,
+                self.created_at,
+                json.dumps(self.tags),
+                self.content,
+                self.sig,
+            ),
+        )
+        await conn.commit()
+
+    async def parse_mgmt_event(self, conn, cur):
+        for list in self.tags:
+            if list[0] == "ban":
+                await self.mod_pubkey_perm(conn, cur, list[1], "false", list[2])
+                return f"banned: {list[2]} has been banned"
+            if list[0] == "allow":
+                await self.mod_pubkey_perm(conn, cur, list[1], "true", list[2])
+                return f"allowed: {list[2]} has been allowed"
+            if list[0] == "delete_pub":
+                await self.admin_delete(conn, cur, list[1])
+                return f"deleted: {list[1]} notes have been deleted"
+                
+    async def check_pub_allow(self, conn, cur) -> bool:
+        await cur.execute(
+            f"""
+            SELECT client_pub FROM allowlist WHERE client_pub = '{self.pubkey}' AND allowed = true;
+
+        """
+        )
+        return await cur.fetchall()
+    
+    async def check_kind_allow(self, conn, cur) -> bool:
+        await cur.execute(
+            f"""
+            SELECT kind FROM allowlist WHERE kind = '{self.kind}' AND allowed = true;
+
+        """
+        )
+        return await cur.fetchall()
+
+    async def mod_pubkey_perm(self, conn, cur, conflict_target, bool, conflict_value):
+        if conflict_target not in ["client_pub", "kind"]:
+            raise ValueError("Invalid conflict target. Must be 'client_pub' or 'kind'.")
+
+        await cur.execute(
+            f"""
+            INSERT INTO allowlist (note_id, {conflict_target}, allowed) 
+            VALUES (%s, %s, %s)
+            ON CONFLICT ({conflict_target}) 
+            DO UPDATE SET 
+                note_id = EXCLUDED.note_id,
+                allowed = EXCLUDED.allowed
+        """,
+            (self.event_id, conflict_value, bool),
+        )
+
         await conn.commit()
 
     def evt_response(self, results_status, http_status_code, message=""):
@@ -169,13 +243,13 @@ class Subscription:
                 limit = filters.get("limit", 100)
                 filters.pop("limit")
             except Exception as exc:
-                logger.error(f"Exception is: {exc}")
+                logger.debug(f"Exception is: {exc}")
 
             try:
                 global_search = filters.get("search", {})
                 filters.pop("search")
             except Exception as exc:
-                logger.error(f"Exception is: {exc}")
+                logger.debug(f"Exception is: {exc}")
 
             key_mappings = {
                 "authors": "pubkey",
@@ -249,11 +323,37 @@ class Subscription:
             i += 1
         column_added.append([row_result])
 
+    async def _parser_worker_hard(self, record, column_added) -> None:
+        self.hard_col = ["client_pub", "kind", "allowed", "note_id"]
+        row_result = {}
+        i = 0
+        for item in record:
+            if item is None:
+                row_result[self.hard_col[i]] = "empty"
+            elif isinstance(item, bool):
+                row_result[self.hard_col[i]] = str(item)
+            else:
+                row_result[self.hard_col[i]] = item
+            i += 1
+        column_added.append([row_result])
+
     async def query_result_parser(self, query_result) -> List:
         column_added = []
         try:
             tasks = [
                 self._parser_worker(record, column_added) for record in query_result
+            ]
+            await asyncio.gather(*tasks)
+            return column_added
+        except:
+            return None
+
+    async def query_result_parser_hard(self, query_result) -> List:
+        column_added = []
+        try:
+            tasks = [
+                self._parser_worker_hard(record, column_added)
+                for record in query_result
             ]
             await asyncio.gather(*tasks)
             return column_added
@@ -302,6 +402,9 @@ class Subscription:
         except Exception as exc:
             logger.error(f"Error building query: {exc}", exc_info=True)
             return None
+
+    # async def query_allowlist(self):
+    # return f"SELECT client_pub, kind , allowed, note_id from allowlist;"
 
     def sub_response_builder(
         self, event_type, subscription_id, results_json, http_status_code
