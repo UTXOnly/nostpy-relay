@@ -173,10 +173,10 @@ while True:
     }
 
     try:
-        choice = input("\nEnter an option number (1-8): ")
+        choice = input("\nEnter an option number (1-7): ")
         if choice in options:
             options[choice]()
-            if choice == "8":
+            if choice == "7":
                 print()
                 break
     except ValueError:
