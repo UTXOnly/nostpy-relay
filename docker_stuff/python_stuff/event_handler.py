@@ -26,35 +26,35 @@ from psycopg_pool import AsyncConnectionPool
 
 from event_classes import Event, Subscription
 
-# logger = logging.getLogger(__name__)
-# logger.setLevel(logging.DEBUG)
-# formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-# handler = logging.StreamHandler()
-# handler.setFormatter(formatter)
-# logger.addHandler(handler)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 app = FastAPI()
 
 # Set up logging
-logger_provider = LoggerProvider(
-    resource=Resource.create({"service.name": "event_handler_otel"})
-)
-set_logger_provider(logger_provider)
-
-log_exporter = OTLPLogExporter(
-    endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"), insecure=True
-)
-logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
-
-handler = LoggingHandler(
-    level=logging.INFO,
-    logger_provider=logger_provider,
-)
-
-# Create a single logger
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-logger.addHandler(handler)
+#logger_provider = LoggerProvider(
+#    resource=Resource.create({"service.name": "event_handler_otel"})
+#)
+#set_logger_provider(logger_provider)
+#
+#log_exporter = OTLPLogExporter(
+#    endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"), insecure=True
+#)
+#logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
+#
+#handler = LoggingHandler(
+#    level=logging.INFO,
+#    logger_provider=logger_provider,
+#)
+#
+## Create a single logger
+#logger = logging.getLogger(__name__)
+#logger.setLevel(logging.INFO)
+#logger.addHandler(handler)
 
 trace.set_tracer_provider(
     TracerProvider(resource=Resource.create({"service.name": "event_handler_otel"}))
@@ -267,11 +267,11 @@ async def handle_new_event(request: Request) -> JSONResponse:
                             query_res = await event_obj.check_pub_allow(conn, cur)
                             kind_res = await event_obj.check_kind_allow(conn,cur)
                             if  query_res and kind_res:
-                                logger.debug(f"allow check passed: {query_res}")
+                                logger.debug(f"allow check passed: {query_res} ---  {kind_res}")
                                 logger.debug(f"Adding event id: {event_obj.event_id}")
                                 await event_obj.add_event(conn, cur)
                             else:
-                                logger.debug(f"allow check failed: {query_res}")
+                                logger.debug(f"allow check failed: {query_res} --- {kind_res}")
                                 return event_obj.evt_response(
                                     results_status="false",
                                     http_status_code=500,
