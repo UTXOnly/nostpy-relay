@@ -25,14 +25,10 @@ server {
             add_header 'Content-Type' 'application/json';
         }
 
-        if ($http_content_type ~* "application/nostr\\+json\\+rpc") {
-            proxy_pass http://${DOCKER_SVC}:${SVC_PORT};  # Use environment variables
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "Upgrade";
-            proxy_set_header Host $host;
-        }
-
-        proxy_pass http://${DOCKER_SVC}:${SVC_PORT};  # Default proxy pass
+        proxy_pass http://${DOCKER_SVC}:${SVC_PORT};  # Use the environment variables
+        proxy_http_version 1.1;
+        proxy_read_timeout 1d;
+        proxy_send_timeout 1d;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "Upgrade";
         proxy_set_header Host $host;
