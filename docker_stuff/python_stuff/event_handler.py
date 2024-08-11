@@ -53,7 +53,7 @@ handler = LoggingHandler(
 
 # Create a single logger
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 logger.addHandler(handler)
 
 trace.set_tracer_provider(
