@@ -26,12 +26,12 @@ from psycopg_pool import AsyncConnectionPool
 
 from event_classes import Event, Subscription
 
-#logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
-#formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-#handler = logging.StreamHandler()
-#handler.setFormatter(formatter)
-#logger.addHandler(handler)
+# logger = logging.getLogger(__name__)
+# logger.setLevel(logging.DEBUG)
+# formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+# handler = logging.StreamHandler()
+# handler.setFormatter(formatter)
+# logger.addHandler(handler)
 
 app = FastAPI()
 
@@ -41,10 +41,15 @@ logger_provider = LoggerProvider(
 )
 set_logger_provider(logger_provider)
 
-log_exporter = OTLPLogExporter(endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"), insecure=True)
+log_exporter = OTLPLogExporter(
+    endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"), insecure=True
+)
 logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
-handler = LoggingHandler(level=logging.INFO, logger_provider=logger_provider)
+handler = LoggingHandler(
+    level=logging.INFO,
+    logger_provider=logger_provider,
+)
 
 # Create a single logger
 logger = logging.getLogger(__name__)
@@ -168,12 +173,10 @@ def initialize_db() -> None:
                 """
             )
 
-
             conn.commit()
         logger.info("Database initialization complete.")
     except psycopg.Error as caught_error:
         logger.info(f"Error occurred during database initialization: {caught_error}")
-
 
 
 async def set_span_attributes(
@@ -221,19 +224,28 @@ async def handle_new_event(request: Request) -> JSONResponse:
             # Verify signature for all events before proceeding
             if not event_obj.verify_signature(logger):
                 return event_obj.evt_response(
-                    results_status="false", http_status_code=400, message="invalid: signature verification failed"
+                    results_status="false",
+                    http_status_code=400,
+                    message="invalid: signature verification failed",
                 )
 
             async with request.app.write_pool.connection() as conn:
                 async with conn.cursor() as cur:
                     if event_obj.kind == 42069:
-                        await event_obj.add_mgmt_event(conn, cur)
-                        clt_msg = await event_obj.parse_mgmt_event(conn, cur)
-                        return event_obj.evt_response(
-                            results_status="true",
-                            http_status_code=200,
-                            message=clt_msg,
-                        )
+                        if event_obj.pubkey != os.getenv("HEX_PUBKEY"):
+                            return event_obj.evt_response(
+                                results_status="false",
+                                http_status_code=400,
+                                message="error: failed to add event invalid admin pubkey",
+                            )
+                        else:
+                            await event_obj.add_mgmt_event(conn, cur)
+                            clt_msg = await event_obj.parse_mgmt_event(conn, cur)
+                            return event_obj.evt_response(
+                                results_status="true",
+                                http_status_code=200,
+                                message=clt_msg,
+                            )
 
                     if event_obj.kind in [0, 3]:
                         await event_obj.delete_check(conn, cur)
@@ -295,7 +307,6 @@ async def handle_new_event(request: Request) -> JSONResponse:
         )
 
 
-
 @app.post("/subscription")
 async def handle_subscription(request: Request) -> JSONResponse:
     try:
@@ -315,8 +326,10 @@ async def handle_subscription(request: Request) -> JSONResponse:
         ) = await subscription_obj.parse_filters(subscription_obj.filters, logger)
 
         if subscription_obj.subscription_id == "nostpy_client":
-            sql_query= "SELECT client_pub, kind , allowed, note_id from allowlist;"
-            query_results = await execute_sql_with_tracing(app, sql_query, "select Allow")
+            sql_query = "SELECT client_pub, kind , allowed, note_id from allowlist;"
+            query_results = await execute_sql_with_tracing(
+                app, sql_query, "select Allow"
+            )
             if query_results:
                 parsed_results = await subscription_obj.query_result_parser_hard(
                     query_results
@@ -328,7 +341,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 )
                 return subscription_obj.sub_response_builder(
                     "EVENT", subscription_obj.subscription_id, serialized_events, 200
-                    )
+                )
 
         cached_results = subscription_obj.fetch_data_from_cache(
             str(raw_filters_copy), redis_client
