@@ -264,13 +264,14 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
                     else:
                         try:
-                            q_res = await event_obj.check_mgmt_allow(conn, cur)
-                            if not q_res:
-                                logger.debug(f"allow check passed: {q_res}")
+                            query_res = await event_obj.check_pub_allow(conn, cur)
+                            kind_res = await event_obj.check_kind_allow(conn,cur)
+                            if  query_res and kind_res:
+                                logger.debug(f"allow check passed: {query_res}")
                                 logger.debug(f"Adding event id: {event_obj.event_id}")
                                 await event_obj.add_event(conn, cur)
                             else:
-                                logger.debug(f"allow check failed: {q_res}")
+                                logger.debug(f"allow check failed: {query_res}")
                                 return event_obj.evt_response(
                                     results_status="false",
                                     http_status_code=500,

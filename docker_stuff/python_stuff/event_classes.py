@@ -138,10 +138,19 @@ class Event:
                 await self.admin_delete(conn, cur, list[1])
                 return f"deleted: {list[1]} notes have been deleted"
                 
-    async def check_mgmt_allow(self, conn, cur) -> bool:
+    async def check_pub_allow(self, conn, cur) -> bool:
         await cur.execute(
             f"""
-            SELECT client_pub FROM allowlist WHERE client_pub = '{self.pubkey}' AND allowed = false;
+            SELECT client_pub FROM allowlist WHERE client_pub = '{self.pubkey}' AND allowed = true;
+
+        """
+        )
+        return await cur.fetchall()
+    
+    async def check_kind_allow(self, conn, cur) -> bool:
+        await cur.execute(
+            f"""
+            SELECT kind FROM allowlist WHERE = '{self.kind}' AND allowed = true;
 
         """
         )
