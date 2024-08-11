@@ -36,7 +36,7 @@ server {
 
     # LNURL pay route
     location /lnurl-pay {
-        proxy_pass http://127.0.0.1:5555;  # Assuming your Flask app is running on port 5555
+        proxy_pass http://${DOCKER_SVC}:5555;  # Assuming your Flask app is running on port 5555
         proxy_http_version 1.1;
         proxy_read_timeout 1d;
         proxy_send_timeout 1d;
@@ -48,7 +48,7 @@ server {
 
     # LNURLp identity route
     location ~* ^/.well-known/lnurlp/ {
-        proxy_pass http://127.0.0.1:5555;  # Assuming your Flask app is running on port 5555
+        proxy_pass http://${DOCKER_SVC}:5555;  # Assuming your Flask app is running on port 5555
         proxy_http_version 1.1;
         proxy_read_timeout 1d;
         proxy_send_timeout 1d;
