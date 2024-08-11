@@ -21,7 +21,7 @@ mkdir -p /etc/nginx/sites-enabled
 # Check if the certificate already exists
 if [ ! -f /etc/letsencrypt/live/$DOMAIN/fullchain.pem ] || [ ! -f /etc/letsencrypt/live/$DOMAIN/privkey.pem ]; then
     echo "Certificate does not exist, requesting a new one..."
-    certbot certonly --nginx -d $DOMAIN --agree-tos --email bh419@protonmail.com --non-interactive -v
+    certbot certonly --nginx -d $DOMAIN --agree-tos --email $CONTACT --non-interactive -v
     CERTBOT_EXIT_CODE=$?
 
     if [ $CERTBOT_EXIT_CODE -ne 0 ]; then

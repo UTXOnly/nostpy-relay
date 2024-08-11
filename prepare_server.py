@@ -8,7 +8,7 @@ def print_color(text, color):
     print(f"\033[1;{color}m{text}\033[0m")
 
 
-dotenv_path = "./docker_stuff/.env"
+dotenv_path = "./docker/.env"
 load_dotenv(dotenv_path, override=True)
 
 env_file_path = os.getenv("ENV_FILE_PATH")
