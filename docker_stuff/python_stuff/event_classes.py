@@ -83,6 +83,16 @@ class Event:
         await cur.execute(delete_statement, (event_ids, self.pubkey))
         await conn.commit()
 
+    async def admin_delete(self, conn, cur, delete_pub):
+        delete_statement = """
+        DELETE FROM events
+        WHERE pubkey = %s;
+        """
+        #event_ids = [event_id for event_id in delete_pub]
+        await cur.execute(delete_statement, delete_pub)
+        await conn.commit()
+
+
     async def add_event(self, conn, cur) -> None:
         await cur.execute(
             """
@@ -125,7 +135,10 @@ class Event:
             if list[0] == "allow":
                 await self.mod_pubkey_perm(conn, cur, list[1], "true", list[2])
                 return f"allowed: {list[2]} has been allowed"
-
+            if list[0] == "delete_pub":
+                await self.admin_delete(conn, cur, list[1])
+                return f"deleted: {list[2]} notes have been deleted
+                "
     async def check_mgmt_allow(self, conn, cur) -> bool:
         await cur.execute(
             f"""

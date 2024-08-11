@@ -232,7 +232,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
             async with request.app.write_pool.connection() as conn:
                 async with conn.cursor() as cur:
                     if event_obj.kind == 42069:
-                        if event_obj.pubkey != os.getenv("HEX_PUBKEY"):
+                        if event_obj.pubkey != os.getenv("ADMIN_HEX_PUBKEY"):
                             return event_obj.evt_response(
                                 results_status="false",
                                 http_status_code=400,
