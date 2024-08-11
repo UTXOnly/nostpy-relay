@@ -25,12 +25,46 @@ server {
             add_header 'Content-Type' 'application/json';
         }
 
-        proxy_pass http://${DOCKER_SVC}:${SVC_PORT};  # Use the environment variables
+        if ($http_content_type ~* "application/nostr\\+json\\+rpc") {
+            proxy_pass http://${DOCKER_SVC}:${SVC_PORT};  # Use environment variables
+            proxy_http_version 1.1;
+            proxy_read_timeout 1d;
+            proxy_send_timeout 1d;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "Upgrade";
+            proxy_set_header Host $host;
+        }
+
+        proxy_pass http://${DOCKER_SVC}:${SVC_PORT};  # Default proxy pass
         proxy_http_version 1.1;
         proxy_read_timeout 1d;
         proxy_send_timeout 1d;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "Upgrade";
         proxy_set_header Host $host;
+    }
+
+    # LNURL pay route
+    location /lnurl-pay {
+        proxy_pass http://127.0.0.1:5555;  # Assuming your Flask app is running on port 5555
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # LNURLp identity route
+    location ~* ^/.well-known/lnurlp/ {
+        proxy_pass http://127.0.0.1:5555;  # Assuming your Flask app is running on port 5555
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
