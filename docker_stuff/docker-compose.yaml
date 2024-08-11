@@ -39,7 +39,7 @@ services:
       - PGPASSWORD_READ=${PGPASSWORD_READ}
       - PGPORT_READ=${PGPORT_READ}
       - PGHOST_READ=${PGHOST_READ}
-      - ADMIN_HEX_PUBKEY=b05ec62a98702e0c202759eac905550dd9e4a2af9a3df856159207925b4f1c50
+      - ADMIN_HEX_PUBKEY=${ADMIN_HEX_PUBKEY}
     networks:
       nostpy_network:
         ipv4_address: 172.28.0.3
