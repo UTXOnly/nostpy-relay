@@ -89,7 +89,7 @@ class Event:
         WHERE pubkey = %s;
         """
         #event_ids = [event_id for event_id in delete_pub]
-        await cur.execute(delete_statement, delete_pub)
+        await cur.execute(delete_statement, (delete_pub,))
         await conn.commit()
 
 
