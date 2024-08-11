@@ -36,7 +36,7 @@ server {
         }
 
         proxy_pass http://${DOCKER_SVC}:${SVC_PORT};  # Default proxy pass
-        proxy_http_version 1.1;
+        proxy_http_version 1.1;  # Moved out of the if block
         proxy_read_timeout 1d;
         proxy_send_timeout 1d;
         proxy_set_header Upgrade $http_upgrade;
