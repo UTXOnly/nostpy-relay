@@ -117,28 +117,61 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  opentelemetry-collector:
-    image: otel/opentelemetry-collector-contrib:0.103.1
+  #opentelemetry-collector:
+  #  image: otel/opentelemetry-collector-contrib:0.103.1
+  #  environment:
+  #    - DD_API_KEY=${DD_API_KEY}
+  #  volumes:
+  #    - /var/run/docker.sock:/var/run/docker.sock
+  #    - /proc/:/host/proc/:ro
+  #    - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
+  #    - /sys/kernel/debug:/sys/kernel/debug
+  #    - ./config-opentelemetry.yaml:/etc/otel/config.yaml
+  #  networks:
+  #    nostpy_network:
+  #      ipv4_address: 172.28.0.7
+  #  ports:
+  #    - "55680:55680"
+  #    - "4317:4317"
+  #  command: ["--config=/etc/otel/config.yaml"]
+  #  logging:
+  #    driver: "json-file"
+  #    options:
+  #      max-size: "10m"
+  #      max-file: "3"
+
+  datadog:
+    image: gcr.io/datadoghq/agent:7
     environment:
       - DD_API_KEY=${DD_API_KEY}
+      - DD_LOGS_ENABLED=true
+      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
+      - DD_PROCESS_AGENT_ENABLED=true
+      - DD_HOSTNAME=nostpy-dev
+      #- DD_PROCESS_AGENT_CONTAINER_COLLECTION_ENABLED=true
+      - DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENDPOINT=0.0.0.0:4317
+      - DD_OTLP_CONFIG_ENABLED=true
+      - DD_CONTAINER_EXCLUDE="name:datadog-agent"
+      - DD_SYSTEM_PROBE_NETWORK_ENABLED=true 
+      - DD_PROCESS_AGENT_ENABLED=true 
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /proc/:/host/proc/:ro
       - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
       - /sys/kernel/debug:/sys/kernel/debug
-      - ./config-opentelemetry.yaml:/etc/otel/config.yaml
+      - /opt/datadog-agent/run:/opt/datadog-agent/run:rw
+    ports:
+      - "4317:4317"  # OTLP ingest port
     networks:
       nostpy_network:
         ipv4_address: 172.28.0.7
-    ports:
-      - "55680:55680"
-      - "4317:4317"
-    command: ["--config=/etc/otel/config.yaml"]
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
+
+
 
 volumes:
   postgres_data:
