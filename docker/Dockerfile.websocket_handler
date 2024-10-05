@@ -13,6 +13,6 @@ RUN apt-get update \
 COPY ws_requirements.txt .
 RUN pip install --no-cache-dir -r ws_requirements.txt
 
-COPY ./python_stuff/websocket*.py ./
+COPY ./src/websocket*.py ./
 
 CMD ["python", "websocket_handler.py"]

@@ -3,22 +3,13 @@ import os
 import file_encryption
 
 
-# Function to print colored text to the console
 def print_color(text, color):
     print(f"\033[1;{color}m{text}\033[0m")
 
 
-# Function to start Nostpy relay
 def start_nostpy_relay():
     try:
-        #success, pass_holder = file_encryption.decrypt_file("./docker_stuff/.env")
-        #if not success:
-        #    print(
-        #        "Decryption failed, file is not encrypted please encrypt file and rerun command"
-        #    )
-        #    return
-
-        os.chdir("./docker_stuff")
+        os.chdir("./docker")
         file_path = "./postgresql/"
 
         if os.path.exists(file_path):
@@ -36,8 +27,6 @@ def start_nostpy_relay():
         )
         os.chdir("..")
 
-        # Re-encrypt env file to keep it encrypted when not in use
-        #file_encryption.encrypt_file(filename="./docker_stuff/.env", key=pass_holder)
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
     except Exception as e:
@@ -45,20 +34,18 @@ def start_nostpy_relay():
         return
 
 
-# Function to destroy all Docker containers and images
 def destroy_containers_and_images():
     try:
-        # Change directory to the Docker stuff folder
-        os.chdir("./docker_stuff")
+        os.chdir("./docker")
         subprocess.run(
             ["sudo", "-u", "relay_service", "docker-compose", "down"], check=True
         )
 
         # Delete container images by their name
         image_names = [
-            "docker_stuff_nostr_query:latest",
-            "docker_stuff_event_handler:latest",
-            "docker_stuff_websocket_handler:latest",
+            "docker_nostr_query:latest",
+            "docker_event_handler:latest",
+            "docker_websocket_handler:latest",
             "redis:latest",
             "postgres:latest",
             "datadog/agent:latest",
@@ -85,8 +72,7 @@ def destroy_containers_and_images():
 
 def stop_containers():
     try:
-        # Change directory to the Docker stuff folder
-        os.chdir("./docker_stuff")
+        os.chdir("./docker")
         subprocess.run(
             ["sudo", "-u", "relay_service", "docker-compose", "down"], check=True
         )
@@ -95,18 +81,14 @@ def stop_containers():
         print_color(f"Error occurred: {e}", "31")
 
 
-# Function to switch branches
 def switch_branches():
     try:
         branch_name = input("Enter the name of the branch you want to switch to: ")
-
-        # Change branch
         subprocess.run(["git", "checkout", branch_name], check=True)
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
 
 
-# Function to execute setup.py script
 def execute_setup_script():
     try:
         subprocess.run(["python3", "build_env.py"], check=True)
@@ -136,18 +118,6 @@ def decrypt_env():
             print_color("Invalid option. Please enter either 1, 2, or 3.", "31")
 
 
-def setup_dbm():
-    try:
-        subprocess.run(["python3", "-m", "venv", "snmpenv"], check=True)
-
-        activate_cmd = ". snmpenv/bin/activate && "
-        commands = ["python ./docker_stuff/dbm_setup.py"]
-        for cmd in commands:
-            subprocess.run(["bash", "-c", activate_cmd + cmd], check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"Error occurred while running dbm_setup.py: {e}")
-
-
 while True:
     print_color(
         "\n##########################################################################################",
@@ -172,8 +142,7 @@ while True:
     print_color("4) Destroy all docker containers and images", "31")
     print_color("5) Decrypt/encrypt .env file to edit", "33")
     print_color("6) Stop all containers", "33")
-    print_color("7) Setup database monitoring", "32")
-    print_color("8) Exit menu", "31")
+    print_color("7) Exit menu", "31")
 
     options = {
         "1": execute_setup_script,
@@ -182,15 +151,14 @@ while True:
         "4": destroy_containers_and_images,
         "5": decrypt_env,
         "6": stop_containers,
-        "7": setup_dbm,
-        "8": lambda: print_color("Exited menu", "31"),
+        "7": lambda: print_color("Exited menu", "31"),
     }
 
     try:
-        choice = input("\nEnter an option number (1-8): ")
+        choice = input("\nEnter an option number (1-7): ")
         if choice in options:
             options[choice]()
-            if choice == "8":
+            if choice == "7":
                 print()
                 break
     except ValueError:
