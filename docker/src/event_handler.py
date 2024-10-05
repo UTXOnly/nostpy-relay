@@ -89,9 +89,6 @@ FastAPIInstrumentor.instrument_app(app)
 init_conn_str = get_conn_str("WRITE")
 
 
-initialize_db(logger=logger, write_str=init_conn_str)
-
-
 async def set_span_attributes(
     span, db_system: str, db_statement: str, service_name: str, operation_name: str
 ):
@@ -295,5 +292,5 @@ async def handle_subscription(request: Request) -> JSONResponse:
 if __name__ == "__main__":
     logger.info(f"Write conn string is: {get_conn_str('WRITE')}")
     logger.info(f"Read conn string is: {get_conn_str('READ')}")
-    initialize_db()
+    initialize_db(logger=logger, write_str=init_conn_str)
     uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("EVENT_HANDLER_PORT")))
