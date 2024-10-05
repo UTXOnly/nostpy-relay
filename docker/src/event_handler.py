@@ -21,6 +21,7 @@ from opentelemetry.semconv.trace import SpanAttributes
 from psycopg_pool import AsyncConnectionPool
 
 from event_classes import Event, Subscription
+from init_db import initialize_db
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -85,73 +86,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 FastAPIInstrumentor.instrument_app(app)
+init_conn_str = get_conn_str("WRITE")
 
 
-def initialize_db() -> None:
-    """
-    Initialize the database by creating the necessary tables if they don't exist,
-    and creating indexes on the pubkey and kind columns.
-
-    """
-    try:
-        logger.info(f"conn string is {get_conn_str('WRITE')}")
-        conn = psycopg.connect(get_conn_str("WRITE"))
-        with conn.cursor() as cur:
-            # Create events table if it doesn't already exist
-            cur.execute(
-                """
-                CREATE TABLE IF NOT EXISTS events (
-                    id VARCHAR(255) PRIMARY KEY,
-                    pubkey VARCHAR(255),
-                    kind INTEGER,
-                    created_at INTEGER,
-                    tags JSONB,
-                    content TEXT,
-                    sig VARCHAR(255)
-                );
-                """
-            )
-
-            index_columns = ["pubkey", "kind"]
-            for column in index_columns:
-                cur.execute(
-                    f"""
-                    CREATE INDEX IF NOT EXISTS idx_{str(column)}
-                    ON events ({str(column)});
-                    """
-                )
-
-            cur.execute(
-                """
-                CREATE TABLE IF NOT EXISTS event_mgmt (
-                    id VARCHAR(255) PRIMARY KEY,
-                    pubkey VARCHAR(255),
-                    kind INTEGER,
-                    created_at INTEGER,
-                    tags JSONB,
-                    content TEXT,
-                    sig VARCHAR(255)
-                );
-                """
-            )
-            cur.execute(
-                """
-                CREATE TABLE IF NOT EXISTS allowlist (
-                    client_pub VARCHAR(255) UNIQUE,
-                    note_id VARCHAR(255),
-                    tags JSONB,
-                    kind INTEGER UNIQUE,
-                    allowed BOOLEAN,
-                    sig VARCHAR(255),
-                    FOREIGN KEY (note_id) REFERENCES event_mgmt(id)
-                );
-                """
-            )
-
-            conn.commit()
-        logger.info("Database initialization complete.")
-    except psycopg.Error as caught_error:
-        logger.info(f"Error occurred during database initialization: {caught_error}")
+initialize_db(logger=logger, write_str=init_conn_str)
 
 
 async def set_span_attributes(
@@ -232,17 +170,18 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
                     else:
                         try:
-                            q_res = await event_obj.check_mgmt_allow(conn, cur)
-                            if not q_res:
-                                logger.debug(f"allow check passed: {q_res}")
-                                logger.debug(f"Adding event id: {event_obj.event_id}")
+                            ban_check = await event_obj.check_mgmt_allow(conn, cur)
+                            if not ban_check:
+                                logger.debug(
+                                    f"Allow check passed: {ban_check}, adding event id: {event_obj.event_id}"
+                                )
                                 await event_obj.add_event(conn, cur)
                             else:
-                                logger.debug(f"allow check failed: {q_res}")
+                                logger.debug(f"allow check failed: {ban_check}")
                                 return event_obj.evt_response(
                                     results_status="false",
-                                    http_status_code=500,
-                                    message="rejected: user is banned from posting on this relay",
+                                    http_status_code=403,
+                                    message="rejected: user is not permitted to post to this relay",
                                 )
                         except psycopg.IntegrityError:
                             await conn.rollback()
