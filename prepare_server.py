@@ -50,7 +50,7 @@ except subprocess.CalledProcessError as e:
     print(f"An error occurred while changing the group of the file: {e}")
 
 
-try:
-    file_encryption.encrypt_file(env_file_path)
-except Exception as e:
-    print("Encryption failed:", str(e))
+#try:
+#    file_encryption.encrypt_file(env_file_path)
+#except Exception as e:
+#    print("Encryption failed:", str(e))

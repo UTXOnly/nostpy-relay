@@ -107,10 +107,10 @@ def decrypt_env():
 
         if option == "1":
             print_color("Decrypting your .env file", "32")
-            file_encryption.decrypt_file(encrypted_filename="./docker_stuff/.env")
+            file_encryption.decrypt_file(encrypted_filename="./docker/.env")
         elif option == "2":
             print_color("Encrypting your .env file", "32")
-            file_encryption.encrypt_file(filename="./docker_stuff/.env")
+            file_encryption.encrypt_file(filename="./docker/.env")
         elif option == "3":
             print_color("Returning to main menu", "31")
             break
