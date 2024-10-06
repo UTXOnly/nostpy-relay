@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import asyncio
@@ -13,8 +13,9 @@ import bech32
 import secp256k1
 import gc
 
-app = FastAPI()
 gc.set_threshold(100, 10, 5)
+app = FastAPI()
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
@@ -56,7 +57,7 @@ class NoteUpdater:
     def process_pubkey(self):
         if self.pubkey_to_query.startswith("npub"):
             hex_pubkey = self.bech32_to_hex(self.pubkey_to_query)
-            logger.info(f"Converted npub to hex: {hex_pubkey}")
+            print(f"Converted npub to hex: {hex_pubkey}")
             self.pubkey_to_query = hex_pubkey
         else:
             logger.debug(f"Hex value provided: {self.pubkey_to_query}")
@@ -73,18 +74,35 @@ class NoteUpdater:
         self.all_good_relays.clear()
         gc.collect()
 
+    def sign_event_id(self, event_id: str, private_key_hex: str) -> str:
+        private_key = secp256k1.PrivateKey(bytes.fromhex(private_key_hex))
+        sig = private_key.schnorr_sign(
+            bytes.fromhex(event_id), bip340tag=None, raw=True
+        )
+        return sig.hex()
+
     def _get_online_relays(self):
         URL = "https://api.nostr.watch/v1/online"
         response = requests.get(URL, timeout=5)
+
         if response.status_code == 200:
             data = response.json()
+            items_list = []
             for item in data:
-                yield item  # Yield each relay one by one
-            logger.info(f"{len(data)} online relays discovered")
+                items_list.append(item)
+            logger.info(f"{len(items_list)} online relays discovered")
         else:
             logger.error("Error: Unable to fetch data from API")
+        return items_list
 
-    def calc_event_id(self, public_key: str, created_at: int, kind_number: int, tags: list, content: str) -> str:
+    def calc_event_id(
+        self,
+        public_key: str,
+        created_at: int,
+        kind_number: int,
+        tags: list,
+        content: str,
+    ) -> str:
         data = [0, public_key, created_at, kind_number, tags, content]
         data_str = json.dumps(data, separators=(",", ":"), ensure_ascii=False)
         return hashlib.sha256(data_str.encode("UTF-8")).hexdigest()
@@ -105,6 +123,27 @@ class NoteUpdater:
             logger.error(f"Error verifying signature for event {event_id}: {e}")
             return False
 
+    async def _send_event_to_relay(self, relay, event_data):
+        try:
+            async with websockets.connect(relay) as ws:
+                event_json = json.dumps(("EVENT", event_data))
+                await ws.send(event_json)
+                logger.debug(f"Event sent to {relay}: {event_json}")
+
+                response = await asyncio.wait_for(ws.recv(), timeout=10)
+                response_data = json.loads(response)
+                logger.debug(f"Response data is {response_data}")
+
+        except asyncio.TimeoutError:
+            logger.error(f"Timeout waiting for response from {relay}.")
+            self.bad_relays.append(relay)
+        except websockets.WebSocketException as wse:
+            logger.error(f"WebSocket error with {relay}: {wse}")
+            self.bad_relays.append(relay)
+        except Exception as exc:
+            logger.error(f"Error with {relay}: {exc}")
+            self.bad_relays.append(relay)
+
     async def query_relay(self, relay, kinds=None):
         try:
             async with websockets.connect(relay) as ws:
@@ -112,57 +151,86 @@ class NoteUpdater:
                     "kinds": kinds or [0],
                     "limit": 3,
                     "since": 179340343,
-                    "authors": [self.pubkey_to_query],
                 }
+
+                query_dict["authors"] = [self.pubkey_to_query]
+
                 query_ws = json.dumps(("REQ", "metadataupdater", query_dict))
+
                 await ws.send(query_ws)
                 logger.info(f"Query sent to relay {relay}: {query_ws}")
+                try:
+                    response = json.loads(await asyncio.wait_for(ws.recv(), timeout=3))
 
-                # Now await for the response, return only the first valid result
-                async for message in ws:
-                    response = json.loads(message)
-                    if response[0] == "EVENT" and response[2]["kind"] == 0:
-                        event = response[2]
-                        event_id = self.calc_event_id(
-                            event["pubkey"], event["created_at"], event["kind"], event["tags"], event["content"]
-                        )
-                        if self.verify_signature(event_id, event["pubkey"], event["sig"]):
+                    if response[0] == "EVENT":
+                        if response[2]["kind"] == 0:
                             self.relay_event_pair[relay] = response
-                            return event  # Return the verified event
-        except asyncio.TimeoutError:
-            logger.info(f"Timeout waiting for response from {relay}")
-            self.unreachable_relays.append(relay)
+                            return response[2]
+                except asyncio.TimeoutError:
+                    logger.info("No response within 1 second, continuing...")
+                    self.unreachable_relays.append(relay)
         except Exception as exc:
-            logger.error(f"Error querying {relay}: {exc}")
-            self.unreachable_relays.append(relay)
+            logger.error(f"Exception is {exc}, error querying {relay}")
+
+    def integrity_check_whole(self):
+        for relay in self.relay_event_pair:
+            value = self.relay_event_pair[relay]
+            note = value[2]
+            if (
+                note is not None
+                and note["pubkey"] == self.pubkey_to_query
+                and note["kind"] == 0
+            ):
+                try:
+                    # verified = self.verify_signature(
+                    #    note["id"], note["pubkey"], note["sig"]
+                    # )
+                    # if verified:
+                    self.good_relays.append(relay)
+                    self.timestamp_set.add(note["created_at"])
+                    self.calculate_latest_event(note)
+                    self.all_good_relays[relay] = note["created_at"]
+                    # else:
+                    #    self.bad_relays.append(relay)
+                    #    logger.info(f"Relay : {relay} is not verified?")
+                except Exception as exc:
+                    logger.error(f"Error verifying sig: {exc}")
+                    self.bad_relays.append(relay)
+
+            else:
+                self.bad_relays.append(relay)
 
     async def gather_queries(self):
-        online_relays = list(self._get_online_relays())  # Convert generator to a list
-        tasks = [asyncio.create_task(self.query_relay(relay)) for relay in online_relays]  # Create tasks
-
-        # Process each task as it's completed
-        for task in asyncio.as_completed(tasks):
-            result = await task
-            if result:
-                yield result  # Yield each verified result
+        self.online_relays = self._get_online_relays()
+        tasks = [
+            asyncio.create_task(self.query_relay(relay)) for relay in self.online_relays
+        ]
+        await asyncio.gather(*tasks)
 
     async def rebroadcast(self, relay):
         try:
             async with websockets.connect(relay) as ws:
                 event_json = json.dumps(("EVENT", self.latest_note))
                 await ws.send(event_json)
-                logger.info(f"Rebroadcasting latest kind 0 event to {relay}")
-                response = await ws.recv()
-                response_data = json.loads(response)
-                logger.debug(f"Relay {relay} returned response {response_data}")
-                if str(response_data[2]) in ["true", "True"]:
+                print(
+                    f"Rebroadcasting latest kind 0: {event_json} note to:  \033[1;32m{relay}\033[0m"
+                )
+                response = json.loads(await asyncio.wait_for(ws.recv(), timeout=3))
+                logger.debug(f"Realy {relay} returned response {response}")
+                if str(response[2]) in ["true", "True"]:
                     self.updated_relays.append(relay)
         except asyncio.TimeoutError:
-            logger.error(f"Timeout waiting for response from {relay}")
-            self.bad_relays.append(relay)
+            logger.error(f"Timeout waiting for response from {relay}.")
+        except websockets.WebSocketException as wse:
+            logger.error(f"WebSocket error with {relay}: {wse}")
         except Exception as exc:
             logger.error(f"Error rebroadcasting to {relay}: {exc}")
-            self.bad_relays.append(relay)
+
+    async def gather_rebroadcast(self):
+        tasks = [
+            asyncio.create_task(self.rebroadcast(relay)) for relay in self.old_relays
+        ]
+        await asyncio.gather(*tasks)
 
     def calculate_latest_event(self, note):
         if note["created_at"] > self.high_time:
@@ -170,22 +238,19 @@ class NoteUpdater:
             self.latest_note = note
 
     def calc_old_relays(self):
-        logger.info(f"Newest timestamp is: {self.high_time}")
+        print(f"Newest timestamp is: {self.high_time}")
         for relay in self.all_good_relays:
             if self.all_good_relays[relay] < self.high_time:
-                logger.debug(f"Relay has old timestamp {relay}: {self.all_good_relays[relay]}")
+                message = (
+                    f"Relay has old timestamp {relay} : {self.all_good_relays[relay]}"
+                )
+                logger.debug(message)
                 self.old_relays.append(relay)
+            elif self.all_good_relays[relay] == self.high_time:
+                pass
 
-    def integrity_check_whole(self):
-        for relay, value in self.relay_event_pair.items():
-            note = value[2]
-            if note and note["pubkey"] == self.pubkey_to_query and note["kind"] == 0:
-                self.good_relays.append(relay)
-                self.timestamp_set.add(note["created_at"])
-                self.calculate_latest_event(note)
-                self.all_good_relays[relay] = note["created_at"]
-            else:
-                self.bad_relays.append(relay)
+
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
 @app.post("/updater/scan")
@@ -198,18 +263,21 @@ async def handle_pubkey_scan(request: Request):
 
     updater = NoteUpdater(pubkey)
     updater.process_pubkey()
+    await updater.gather_queries()
+    updater.integrity_check_whole()
+    updater.calc_old_relays()
+    latest_note = updater.latest_note
 
-    async def event_stream():
-        async for event in updater.gather_queries():
-            updater.integrity_check_whole()
-            yield json.dumps({
-                "good_relays": updater.good_relays,
-                "bad_relays": updater.bad_relays,
-                "old_relays": updater.old_relays,
-                "updated_relays": updater.updated_relays,
-            }) + "\n"
+    if updater.old_relays and updater.verify_signature(
+        latest_note["id"], latest_note["pubkey"], latest_note["sig"]
+    ):
+        await updater.gather_rebroadcast()
 
-    return StreamingResponse(event_stream(), media_type="application/json")
+    results = {
+        "good_relays": updater.good_relays,
+        "bad_relays": updater.bad_relays,
+        "old_relays": updater.old_relays,
+        "updated_relays": updater.updated_relays,
+    }
 
-
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    return JSONResponse(content=results)
