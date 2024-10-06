@@ -165,7 +165,7 @@ services:
       - DD_PROCESS_AGENT_ENABLED=true
       - DD_ENV=nostpy-profile 
       - DD_APM_NONLOCAL_TRAFFIC=true
-      - DD_DOGSTATSD_NONLOCAL_TRAFFIC=true
+      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /proc/:/host/proc/:ro
