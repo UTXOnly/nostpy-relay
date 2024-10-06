@@ -194,7 +194,6 @@ class NoteUpdater:
                     # else:
                     #    self.bad_relays.append(relay)
                     #    logger.info(f"Relay : {relay} is not verified?")
-                    self.relay_event_pair.clear()
                 except Exception as exc:
                     logger.error(f"Error verifying sig: {exc}")
                     self.bad_relays.append(relay)
