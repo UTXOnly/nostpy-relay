@@ -60,6 +60,18 @@ class NoteUpdater:
         else:
             logger.debug(f"Hex value provided: {self.pubkey_to_query}")
 
+    def cleanup_memory(self):
+        """Function to explicitly clean up large attributes."""
+        self.events_found.clear()
+        self.good_relays.clear()
+        self.bad_relays.clear()
+        self.updated_relays.clear()
+        self.unreachable_relays.clear()
+        self.relay_event_pair.clear()
+        self.old_relays.clear()
+        self.all_good_relays.clear()
+
+
     def sign_event_id(self, event_id: str, private_key_hex: str) -> str:
         private_key = secp256k1.PrivateKey(bytes.fromhex(private_key_hex))
         sig = private_key.schnorr_sign(
@@ -258,5 +270,7 @@ async def handle_pubkey_scan(request: Request):
         "old_relays": updater.old_relays,
         "updated_relays": updater.updated_relays,
     }
+
+    updater.cleanup_memory()
 
     return JSONResponse(content=results)
