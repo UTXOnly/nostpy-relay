@@ -25,7 +25,7 @@ server {
             add_header 'Content-Type' 'application/json';
         }
 
-        proxy_pass http://${DOCKER_SVC}:${SVC_PORT};  # Use the environment variables
+        proxy_pass http://${DOCKER_SVC}:${SVC_PORT};
         proxy_http_version 1.1;
         proxy_read_timeout 1d;
         proxy_send_timeout 1d;
@@ -33,4 +33,15 @@ server {
         proxy_set_header Connection "Upgrade";
         proxy_set_header Host $host;
     }
+
+    location /updater {
+        proxy_pass http://${DOCKER_SVC}:${MU_PORT};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+        proxy_read_timeout 60;
+        proxy_send_timeout 60;
+    }
 }
+

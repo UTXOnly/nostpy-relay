@@ -99,6 +99,7 @@ services:
       - DOMAIN=${DOMAIN}
       - DOCKER_SVC=172.17.0.1
       - SVC_PORT=${WS_PORT}
+      - MU_PORT=8000
       - VERSION=${VERSION}
       - CONTACT=${CONTACT}
       - HEX_PUBKEY=${HEX_PUBKEY}
@@ -138,6 +139,14 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  metadata-updater:
+    build:
+      context: .
+      dockerfile: Dockerfile.updater
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
 
 volumes:
   postgres_data:

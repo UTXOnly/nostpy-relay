@@ -33,7 +33,7 @@ else
 fi
 
 # Replace placeholders in the Nginx configuration template with the actual environment variables
-envsubst '${DOMAIN} ${DOCKER_SVC} ${SVC_PORT} ${HEX_PUBKEY} ${CONTACT} ${VERSION} ' < /etc/nginx/nginx.conf.template > /etc/nginx/sites-available/$DOMAIN.conf
+envsubst '${DOMAIN} ${DOCKER_SVC} ${SVC_PORT} ${HEX_PUBKEY} ${CONTACT} ${VERSION} ${MU_PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/sites-available/$DOMAIN.conf
 
 # Create a symbolic link to the sites-enabled directory if it doesn't already exist
 if [ ! -f /etc/nginx/sites-enabled/$DOMAIN.conf ]; then
