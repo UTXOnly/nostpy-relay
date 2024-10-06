@@ -32,6 +32,18 @@ server {
         proxy_set_header Upgrade "";
     }
 
+    location = /scan {
+        proxy_pass http://${DOCKER_SVC}:${MU_PORT};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_read_timeout 60;
+        proxy_send_timeout 60;
+
+        # Ensure this path doesn't upgrade to WebSocket
+        proxy_set_header Connection "keep-alive";
+        proxy_set_header Upgrade "";
+    }
+
     # WebSocket handling for other routes
     location / {
         if ($http_accept ~* "application/nostr\\+json") {
