@@ -273,6 +273,7 @@ async def handle_pubkey_scan(request: Request):
         "updated_relays": updater.updated_relays,
     }
 
-    updater.cleanup_memory()
+    del updater
+    gc.collect()
 
     return JSONResponse(content=results)
