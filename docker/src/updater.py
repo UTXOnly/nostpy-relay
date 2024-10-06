@@ -193,7 +193,7 @@ class NoteUpdater:
                     # else:
                     #    self.bad_relays.append(relay)
                     #    logger.info(f"Relay : {relay} is not verified?")
-                    #self.relay_event_pair.clear
+                    self.relay_event_pair.clear()
                 except Exception as exc:
                     logger.error(f"Error verifying sig: {exc}")
                     self.bad_relays.append(relay)
@@ -222,10 +222,13 @@ class NoteUpdater:
                     self.updated_relays.append(relay)
         except asyncio.TimeoutError:
             logger.error(f"Timeout waiting for response from {relay}.")
+            self.bad_relays.append(relay)
         except websockets.WebSocketException as wse:
             logger.error(f"WebSocket error with {relay}: {wse}")
+            self.bad_relays.append(relay)
         except Exception as exc:
             logger.error(f"Error rebroadcasting to {relay}: {exc}")
+            self.bad_relays.append(relay)
 
     async def gather_rebroadcast(self):
         tasks = [
@@ -280,5 +283,4 @@ async def handle_pubkey_scan(request: Request):
         "old_relays": updater.old_relays,
         "updated_relays": updater.updated_relays,
     }
-    updater.cleanup_memory()
     return JSONResponse(content=results)
