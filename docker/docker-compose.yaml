@@ -152,8 +152,6 @@ services:
       - DD_SERVICE=metadata-updater
       - DD_ENV=nostpy-otel
       - DD_PROFILING_ENABLED=true
-    networks:
-      - nostpy_network
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
