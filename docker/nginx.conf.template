@@ -35,13 +35,10 @@ server {
     }
 
     location /updater {
-        proxy_pass http://${DOCKER_SVC}:${MU_PORT};
+        proxy_pass http://${DOCKER_SVC}:${MU_PORT};  # HTTP connection for the updater
         proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "Upgrade";
         proxy_set_header Host $host;
         proxy_read_timeout 60;
         proxy_send_timeout 60;
     }
 }
-
