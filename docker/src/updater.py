@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import asyncio
@@ -77,7 +77,7 @@ class NoteUpdater:
     async def gather_queries(self):
         online_relays = await self._get_online_relays()
         tasks = [self.query_relay(relay) for relay in online_relays]
-        return tasks
+        return tasks  # Return the list of coroutine objects
 
     async def _get_online_relays(self):
         URL = "https://api.nostr.watch/v1/online"
@@ -106,7 +106,7 @@ async def handle_pubkey_scan(request: Request):
     async def result_generator():
         """Generator to stream results back to the client."""
         tasks = await updater.gather_queries()
-        for task in asyncio.as_completed(tasks):
+        for task in asyncio.as_completed(tasks):  # Now tasks are awaitable
             async for result in await task:
                 yield json.dumps(result) + "\n"
 
