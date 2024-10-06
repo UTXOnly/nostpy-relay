@@ -134,14 +134,14 @@ class NoteUpdater:
                 response_data = json.loads(response)
                 logger.debug(f"Response data is {response_data}")
 
-        except asyncio.TimeoutError:
-            logger.error(f"Timeout waiting for response from {relay}.")
-            self.bad_relays.append(relay)
-        except websockets.WebSocketException as wse:
-            logger.error(f"WebSocket error with {relay}: {wse}")
-            self.bad_relays.append(relay)
+        #except asyncio.TimeoutError:
+        #    logger.error(f"Timeout waiting for response from {relay}.")
+        #    self.bad_relays.append(relay)
+        #except websockets.WebSocketException as wse:
+        #    logger.error(f"WebSocket error with {relay}: {wse}")
+        #    self.bad_relays.append(relay)
         except Exception as exc:
-            logger.error(f"Error with {relay}: {exc}")
+            #logger.error(f"Error with {relay}: {exc}")
             self.bad_relays.append(relay)
 
     async def query_relay(self, relay, kinds=None):
@@ -170,7 +170,8 @@ class NoteUpdater:
                     logger.info("No response within 1 second, continuing...")
                     self.unreachable_relays.append(relay)
         except Exception as exc:
-            logger.error(f"Exception is {exc}, error querying {relay}")
+            self.unreachable_relays.append(relay)
+            #logger.error(f"Exception is {exc}, error querying {relay}")
 
     def integrity_check_whole(self):
         for relay in self.relay_event_pair:
