@@ -18,7 +18,7 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/updater", response_class=HTMLResponse)
 async def read_root():
     file_path = Path("static/index.html")
     return file_path.read_text()
