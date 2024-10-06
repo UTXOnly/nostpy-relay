@@ -147,6 +147,15 @@ services:
     ports:
       - "8000:8000"
     restart: unless-stopped
+    environment:
+      - DD_AGENT_HOST=docker.host.internal
+      - DD_SERVICE=metadata-updater
+      - DD_ENV=nostpy-otel
+      - DD_PROFILING_ENABLED=true
+    networks:
+      - nostpy_network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 volumes:
   postgres_data:
