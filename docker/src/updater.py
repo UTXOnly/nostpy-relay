@@ -11,6 +11,7 @@ import hashlib
 import logging
 import bech32
 import secp256k1
+import gc
 
 
 app = FastAPI()
@@ -70,6 +71,7 @@ class NoteUpdater:
         self.relay_event_pair.clear()
         self.old_relays.clear()
         self.all_good_relays.clear()
+        gc.collect()
 
 
     def sign_event_id(self, event_id: str, private_key_hex: str) -> str:
