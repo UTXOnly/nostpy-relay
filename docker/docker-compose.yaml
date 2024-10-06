@@ -151,7 +151,7 @@ services:
       - DD_AGENT_HOST=datadog
       - DD_SERVICE=metadata-updater
       - DD_ENV=nostpy-profile
-      - DD_PROFILING_ENABLED=true
+      #- DD_PROFILING_ENABLED=true
       - DD_RUNTIME_METRICS_ENABLED=true
 
   datadog:
