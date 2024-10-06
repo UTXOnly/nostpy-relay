@@ -35,10 +35,14 @@ server {
     }
 
     location /updater {
-        proxy_pass http://${DOCKER_SVC}:${MU_PORT};  # HTTP connection for the updater
+        proxy_pass http://${DOCKER_SVC}:${MU_PORT};
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_read_timeout 60;
         proxy_send_timeout 60;
+
+        # Remove WebSocket headers (if present) to ensure it's treated as a regular HTTP request
+        proxy_set_header Upgrade "";
+        proxy_set_header Connection "";
     }
 }
