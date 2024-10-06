@@ -193,6 +193,7 @@ class NoteUpdater:
                     # else:
                     #    self.bad_relays.append(relay)
                     #    logger.info(f"Relay : {relay} is not verified?")
+                    #self.relay_event_pair.clear
                 except Exception as exc:
                     logger.error(f"Error verifying sig: {exc}")
                     self.bad_relays.append(relay)
@@ -279,5 +280,5 @@ async def handle_pubkey_scan(request: Request):
         "old_relays": updater.old_relays,
         "updated_relays": updater.updated_relays,
     }
-
+    updater.cleanup_memory()
     return JSONResponse(content=results)
