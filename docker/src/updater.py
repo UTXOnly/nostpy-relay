@@ -182,15 +182,15 @@ class NoteUpdater:
                 and note["kind"] == 0
             ):
                 try:
-                    #verified = self.verify_signature(
+                    # verified = self.verify_signature(
                     #    note["id"], note["pubkey"], note["sig"]
-                    #)
-                    #if verified:
+                    # )
+                    # if verified:
                     self.good_relays.append(relay)
                     self.timestamp_set.add(note["created_at"])
                     self.calculate_latest_event(note)
                     self.all_good_relays[relay] = note["created_at"]
-                    #else:
+                    # else:
                     #    self.bad_relays.append(relay)
                     #    logger.info(f"Relay : {relay} is not verified?")
                 except Exception as exc:
@@ -268,7 +268,9 @@ async def handle_pubkey_scan(request: Request):
     updater.calc_old_relays()
     latest_note = updater.latest_note
 
-    if updater.old_relays and updater.verify_signature(latest_note["id"], latest_note["pubkey"], latest_note["sig"]):
+    if updater.old_relays and updater.verify_signature(
+        latest_note["id"], latest_note["pubkey"], latest_note["sig"]
+    ):
         await updater.gather_rebroadcast()
 
     results = {
