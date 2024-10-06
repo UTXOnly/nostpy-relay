@@ -40,7 +40,7 @@ class NoteUpdater:
         self.good_relays = []
         self.bad_relays = []
         self.updated_relays = []
-        self.unreachable_relays = []
+        #self.unreachable_relays = []
         self.pubkey_to_query = pubkey_to_query
         self.timestamp_set = set()
         self.high_time = 1
@@ -166,9 +166,11 @@ class NoteUpdater:
                         if response[2]["kind"] == 0:
                             self.relay_event_pair[relay] = response
                             return response[2]
+                    else:
+                        self.bad_relays.append(relay)
                 except asyncio.TimeoutError:
                     logger.info("No response within 1 second, continuing...")
-                    self.unreachable_relays.append(relay)
+                    #self.unreachable_relays.append(relay)
         except Exception as exc:
             logger.error(f"Exception is {exc}, error querying {relay}")
 
@@ -264,6 +266,7 @@ async def handle_pubkey_scan(request: Request):
     updater = NoteUpdater(pubkey)
     updater.process_pubkey()
     await updater.gather_queries()
+    updater.online_relays.clear()
     updater.integrity_check_whole()
     updater.calc_old_relays()
     latest_note = updater.latest_note
