@@ -13,6 +13,9 @@ COPY up_requirements.txt .
 RUN pip install --no-cache-dir -r up_requirements.txt
 
 COPY ./src/updater.py ./
+COPY ./src/static ./static
+COPY ./src/index.html ./static/index.html
+
 
 EXPOSE 8000
 
