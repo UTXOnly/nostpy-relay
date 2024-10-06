@@ -14,7 +14,7 @@ import secp256k1
 import gc
 
 app = FastAPI()
-
+gc.set_threshold(100, 10, 5)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
