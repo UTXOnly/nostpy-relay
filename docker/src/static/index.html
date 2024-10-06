@@ -183,7 +183,7 @@
 
             // Send pubkey to backend via POST request
             try {
-                const response = await fetch('/scan', {
+                const response = await fetch('/updater/scan', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
