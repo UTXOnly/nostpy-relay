@@ -74,7 +74,6 @@ class NoteUpdater:
         self.all_good_relays.clear()
         gc.collect()
 
-
     def sign_event_id(self, event_id: str, private_key_hex: str) -> str:
         private_key = secp256k1.PrivateKey(bytes.fromhex(private_key_hex))
         sig = private_key.schnorr_sign(
@@ -137,17 +136,20 @@ class NoteUpdater:
 
         except asyncio.TimeoutError:
             logger.error(f"Timeout waiting for response from {relay}.")
+            self.bad_relays.append(relay)
         except websockets.WebSocketException as wse:
             logger.error(f"WebSocket error with {relay}: {wse}")
+            self.bad_relays.append(relay)
         except Exception as exc:
             logger.error(f"Error with {relay}: {exc}")
+            self.bad_relays.append(relay)
 
     async def query_relay(self, relay, kinds=None):
         try:
             async with websockets.connect(relay) as ws:
                 query_dict = {
                     "kinds": kinds or [0],
-                    "limit": 300,
+                    "limit": 3,
                     "since": 179340343,
                 }
 
@@ -180,19 +182,20 @@ class NoteUpdater:
                 and note["kind"] == 0
             ):
                 try:
-                    verified = self.verify_signature(
-                        note["id"], note["pubkey"], note["sig"]
-                    )
-                    if verified:
-                        self.good_relays.append(relay)
-                        self.timestamp_set.add(note["created_at"])
-                        self.calculate_latest_event(note)
-                        self.all_good_relays[relay] = note["created_at"]
-                    else:
-                        self.bad_relays.append(relay)
-                        logger.info(f"Relay : {relay} is not verified?")
+                    #verified = self.verify_signature(
+                    #    note["id"], note["pubkey"], note["sig"]
+                    #)
+                    #if verified:
+                    self.good_relays.append(relay)
+                    self.timestamp_set.add(note["created_at"])
+                    self.calculate_latest_event(note)
+                    self.all_good_relays[relay] = note["created_at"]
+                    #else:
+                    #    self.bad_relays.append(relay)
+                    #    logger.info(f"Relay : {relay} is not verified?")
                 except Exception as exc:
                     logger.error(f"Error verifying sig: {exc}")
+                    self.bad_relays.append(relay)
 
             else:
                 self.bad_relays.append(relay)
@@ -263,8 +266,9 @@ async def handle_pubkey_scan(request: Request):
     await updater.gather_queries()
     updater.integrity_check_whole()
     updater.calc_old_relays()
+    latest_note = updater.latest_note
 
-    if updater.old_relays:
+    if updater.old_relays and updater.verify_signature(latest_note["id"], latest_note["pubkey"], latest_note["sig"]):
         await updater.gather_rebroadcast()
 
     results = {
@@ -275,5 +279,3 @@ async def handle_pubkey_scan(request: Request):
     }
 
     return JSONResponse(content=results)
-
-
