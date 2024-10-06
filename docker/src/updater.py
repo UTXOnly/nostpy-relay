@@ -138,13 +138,14 @@ class NoteUpdater:
 
     async def gather_queries(self):
         online_relays = list(self._get_online_relays())  # Convert generator to a list
-        tasks = [self.query_relay(relay) for relay in online_relays]
-
+        tasks = [asyncio.create_task(self.query_relay(relay)) for relay in online_relays]  # Create tasks
+    
         # Process each task as it's completed
         for task in asyncio.as_completed(tasks):
             result = await task
             if result:
                 yield result  # Yield each verified result
+
 
     async def rebroadcast(self, relay):
         try:
