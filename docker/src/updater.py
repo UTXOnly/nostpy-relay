@@ -235,7 +235,7 @@ class NoteUpdater:
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
-@app.post("/scan")
+@app.post("/updater/scan")
 async def handle_pubkey_scan(request: Request):
     data = await request.json()
     pubkey = data.get("pubkey")
