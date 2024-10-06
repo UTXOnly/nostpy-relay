@@ -118,6 +118,7 @@ class NoteUpdater:
                 await ws.send(query_ws)
                 logger.info(f"Query sent to relay {relay}: {query_ws}")
 
+                # Now await for the response, return only the first valid result
                 async for message in ws:
                     response = json.loads(message)
                     if response[0] == "EVENT" and response[2]["kind"] == 0:
@@ -127,8 +128,7 @@ class NoteUpdater:
                         )
                         if self.verify_signature(event_id, event["pubkey"], event["sig"]):
                             self.relay_event_pair[relay] = response
-                            yield event  # Yield the verified event as it's received
-                        break  # Exit after one valid event
+                            return event  # Return the verified event
         except asyncio.TimeoutError:
             logger.info(f"Timeout waiting for response from {relay}")
             self.unreachable_relays.append(relay)
@@ -139,13 +139,12 @@ class NoteUpdater:
     async def gather_queries(self):
         online_relays = list(self._get_online_relays())  # Convert generator to a list
         tasks = [asyncio.create_task(self.query_relay(relay)) for relay in online_relays]  # Create tasks
-    
+
         # Process each task as it's completed
         for task in asyncio.as_completed(tasks):
             result = await task
             if result:
                 yield result  # Yield each verified result
-
 
     async def rebroadcast(self, relay):
         try:
