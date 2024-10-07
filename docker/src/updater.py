@@ -38,7 +38,7 @@ class NoteUpdater:
     def __init__(self, pubkey_to_query) -> None:
         self.events_found = []
         self.good_relays = []
-        self.bad_relays = []
+        self.failed_update = []
         self.updated_relays = []
         #self.unreachable_relays = []
         self.pubkey_to_query = pubkey_to_query
@@ -62,17 +62,6 @@ class NoteUpdater:
         else:
             logger.debug(f"Hex value provided: {self.pubkey_to_query}")
 
-    def cleanup_memory(self):
-        """Function to explicitly clean up large attributes."""
-        self.events_found.clear()
-        self.good_relays.clear()
-        self.bad_relays.clear()
-        self.updated_relays.clear()
-        self.unreachable_relays.clear()
-        self.relay_event_pair.clear()
-        self.old_relays.clear()
-        self.all_good_relays.clear()
-        gc.collect()
 
     def sign_event_id(self, event_id: str, private_key_hex: str) -> str:
         private_key = secp256k1.PrivateKey(bytes.fromhex(private_key_hex))
@@ -163,11 +152,8 @@ class NoteUpdater:
                         if response[2]["kind"] == 0:
                             self.relay_event_pair[relay] = response
                             return response[2]
-                    else:
-                        self.bad_relays.append(relay)
                 except asyncio.TimeoutError:
                     logger.info("No response within 1 second, continuing...")
-                    #self.unreachable_relays.append(relay)
         except Exception as exc:
             logger.error(f"Exception is {exc}, error querying {relay}")
 
@@ -194,10 +180,8 @@ class NoteUpdater:
                     #    logger.info(f"Relay : {relay} is not verified?")
                 except Exception as exc:
                     logger.error(f"Error verifying sig: {exc}")
-                    self.bad_relays.append(relay)
 
-            else:
-                self.bad_relays.append(relay)
+
 
     async def gather_queries(self):
         self.online_relays = self._get_online_relays()
@@ -205,6 +189,7 @@ class NoteUpdater:
             asyncio.create_task(self.query_relay(relay)) for relay in self.online_relays
         ]
         await asyncio.gather(*tasks)
+        self.online_relays.clear()
 
     async def rebroadcast(self, relay):
         try:
@@ -219,11 +204,9 @@ class NoteUpdater:
                 if str(response[2]) in ["true", "True"]:
                     self.updated_relays.append(relay)
                 else:
-                    self.bad_relays.append(relay)
+                    self.failed_update(relay)
         except asyncio.TimeoutError:
             logger.error(f"Timeout waiting for response from {relay}.")
-        except websockets.WebSocketException as wse:
-            logger.error(f"WebSocket error with {relay}: {wse}")
         except Exception as exc:
             logger.error(f"Error rebroadcasting to {relay}: {exc}")
 
@@ -251,7 +234,7 @@ class NoteUpdater:
                 pass
 
 
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
 @app.post("/updater/scan")
@@ -277,7 +260,7 @@ async def handle_pubkey_scan(request: Request):
 
     results = {
         "good_relays": updater.good_relays,
-        "bad_relays": updater.bad_relays,
+        "bad_relays": updater.failed_update,
         "old_relays": updater.old_relays,
         "updated_relays": updater.updated_relays,
     }
