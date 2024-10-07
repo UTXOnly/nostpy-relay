@@ -136,13 +136,10 @@ class NoteUpdater:
 
         except asyncio.TimeoutError:
             logger.error(f"Timeout waiting for response from {relay}.")
-            self.bad_relays.append(relay)
         except websockets.WebSocketException as wse:
             logger.error(f"WebSocket error with {relay}: {wse}")
-            self.bad_relays.append(relay)
         except Exception as exc:
             logger.error(f"Error with {relay}: {exc}")
-            self.bad_relays.append(relay)
 
     async def query_relay(self, relay, kinds=None):
         try:
@@ -158,7 +155,7 @@ class NoteUpdater:
                 query_ws = json.dumps(("REQ", "metadataupdater", query_dict))
 
                 await ws.send(query_ws)
-                logger.info(f"Query sent to relay {relay}: {query_ws}")
+                logger.debug(f"Query sent to relay {relay}: {query_ws}")
                 try:
                     response = json.loads(await asyncio.wait_for(ws.recv(), timeout=3))
 
@@ -218,9 +215,11 @@ class NoteUpdater:
                     f"Rebroadcasting latest kind 0: {event_json} note to:  \033[1;32m{relay}\033[0m"
                 )
                 response = json.loads(await asyncio.wait_for(ws.recv(), timeout=3))
-                logger.debug(f"Realy {relay} returned response {response}")
+                logger.debug(f"Relay {relay} returned response {response}")
                 if str(response[2]) in ["true", "True"]:
                     self.updated_relays.append(relay)
+                else:
+                    self.bad_relays.append(relay)
         except asyncio.TimeoutError:
             logger.error(f"Timeout waiting for response from {relay}.")
         except websockets.WebSocketException as wse:
