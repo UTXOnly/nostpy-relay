@@ -22,7 +22,7 @@ server {
 
     location / {
         if ($http_accept ~* "application/nostr\\+json") {
-            return 200 '{"name": "${DOMAIN}", "description": "NostPy relay ${VERSION}", "pubkey": "${ADMIN_PUBKEY}", "contact": "${CONTACT}", "supported_nips": [1, 2, 4, 9, 15, 16, 25, 50, 99], "software": "git+https://github.com/UTXOnly/nost-py.git", "version": "${VERSION}", "site": "${ICON}", "icon" : "${ICON}"';
+            return 200 '{"name": "${DOMAIN}", "description": "NostPy relay ${VERSION}", "pubkey": "${ADMIN_PUBKEY}", "contact": "${CONTACT}", "supported_nips": [1, 2, 4, 9, 15, 16, 25, 50, 99], "software": "git+https://github.com/UTXOnly/nost-py.git", "version": "${VERSION}", "site": "${ICON}", "icon" : "${ICON}"}';
             add_header 'Content-Type' 'application/json';
         }
 
