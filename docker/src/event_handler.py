@@ -169,7 +169,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         try:
                             #ban_check = await event_obj.check_mgmt_allow(conn, cur)
                             wot_check = await event_obj.check_wot(conn, cur)
-                            if not wot_check:
+                            if wot_check:
                                 logger.debug(
                                     f"Allow check passed: {wot_check}, adding event id: {event_obj.event_id}"
                                 )
