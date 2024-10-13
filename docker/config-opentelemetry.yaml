@@ -51,16 +51,17 @@ receivers:
       network:
       processes:
 
-
 processors:
+  probabilistic_sampler:
+    sampling_percentage: 15
   batch:
     send_batch_max_size: 1000
     send_batch_size: 100
     timeout: 10s
   memory_limiter:
     check_interval: 1s
-    limit_mib: 4000
-    spike_limit_mib: 800
+    limit_percentage: 80
+    spike_limit_percentage: 60
   resourcedetection:
     detectors: [env, ec2, system]
     system:
@@ -81,12 +82,15 @@ processors:
           enabled: true
         host.cpu.cache.l2.size:
           enabled: true
+
   attributes:
     actions:
       - key: deployment.environment
         value: nostpy-otel
         action: upsert
-
+      - key: dd.env
+        value: nostpy-otel
+        action: upsert
 
 connectors:
   datadog/connector:
@@ -99,6 +103,11 @@ exporters:
     traces:
       trace_buffer: 500
 
+  otlp:
+    endpoint: "http://opentelemetry-collector:4317"
+    tls:
+      insecure: true  # Only use insecure for testing purposes, remove in production
+
 service:
   pipelines:
     traces:
@@ -109,6 +118,11 @@ service:
       receivers: [datadog/connector, otlp, hostmetrics, docker_stats]
       processors: [memory_limiter, batch, resourcedetection, attributes]
       exporters: [datadog/exporter]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resourcedetection, attributes]
+      exporters: [ datadog/exporter, otlp]
+
   telemetry:
     logs:
       level: "debug"

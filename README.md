@@ -48,6 +48,7 @@ REDIS_PORT=6379
 DD_API_KEY=<DATADOG_API_KEY_> (If using Datadog exporter for OTel collector)
 DOMAIN=<YOUR_DOMAIN_NAME>
 HEX_PUBKEY=<RELAY_ADMIN_HEX_PUBKEY>
+ADMIN_HEX_PUBKEY=<THE_PUBKEY_FOR _REMOTE_RELAY_ADMINISTRATION> #This can be differnt than your pubkey for nip 11
 CONTACT=<RELAY_ADMIN_EMAIL>
 ENV_FILE_PATH=./docker_stuff/.env
 NGINX_FILE_PATH=/etc/nginx/sites-available/default
@@ -91,6 +92,14 @@ Will be adding log support soon, giving you full visibility into the health of y
 
 ![Screenshot from 2024-06-15 10-45-06](https://github.com/UTXOnly/nost-py/assets/49233513/36afbaf4-cf7d-497b-8bb1-d2a90b7fa0af)
 
+
+## Remote Relay Administration
+
+You can use [nostpy-gui](https://github.com/UTXOnly/nostpy-gui) as a remote relay admin client to manage the following using notes:
+
+* Ban `pubkey` from posting events
+* Ban `kinds` from being posted
+* Delete all stored notes from a given `pubkey`
 
 ### Future plans
 

@@ -10,10 +10,14 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from opentelemetry import trace
+from opentelemetry._logs import set_logger_provider
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.psycopg import PsycopgInstrumentor
 from opentelemetry.instrumentation.redis import RedisInstrumentor
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -21,6 +25,7 @@ from opentelemetry.semconv.trace import SpanAttributes
 from psycopg_pool import AsyncConnectionPool
 
 from event_classes import Event, Subscription
+<<<<<<< HEAD:docker/nostpy_relay/event_handler.py
 from init_db import initialize_db
 
 logger = logging.getLogger(__name__)
@@ -29,10 +34,40 @@ formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
 logger.addHandler(handler)
+=======
+#Uncomment below for local debugging"
+#logger = logging.getLogger(__name__)
+#logger.setLevel(logging.DEBUG)
+#formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+#handler = logging.StreamHandler()
+#handler.setFormatter(formatter)
+#logger.addHandler(handler)
+>>>>>>> main:docker_stuff/python_stuff/event_handler.py
 
 WOT_ENABLED = os.getenv("WOT_ENABLED")
 
 app = FastAPI()
+
+ #Set up logging
+logger_provider = LoggerProvider(
+    resource=Resource.create({"service.name": "event_handler_otel"})
+)
+set_logger_provider(logger_provider)
+
+log_exporter = OTLPLogExporter(
+    endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"), insecure=True
+)
+logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
+
+handler = LoggingHandler(
+    level=logging.INFO,
+    logger_provider=logger_provider,
+)
+
+# Create a single logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
 
 trace.set_tracer_provider(
     TracerProvider(resource=Resource.create({"service.name": "event_handler_otel"}))

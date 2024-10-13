@@ -39,7 +39,11 @@ services:
       - PGPASSWORD_READ=${PGPASSWORD_READ}
       - PGPORT_READ=${PGPORT_READ}
       - PGHOST_READ=${PGHOST_READ}
+<<<<<<< HEAD:docker/docker-compose.yaml
       - WOT_ENABLED=${WOT_ENABLED}
+=======
+      - ADMIN_HEX_PUBKEY=${ADMIN_HEX_PUBKEY}
+>>>>>>> main:docker_stuff/docker-compose.yaml
     networks:
       nostpy_network:
         ipv4_address: 172.28.0.3
@@ -134,8 +138,11 @@ services:
       - "55680:55680"
       - "4317:4317"
     command: ["--config=/etc/otel/config.yaml"]
+<<<<<<< HEAD:docker/docker-compose.yaml
     group_add:
       - "999"  # Add to docker group to access docker socket
+=======
+>>>>>>> main:docker_stuff/docker-compose.yaml
     logging:
       driver: "json-file"
       options:

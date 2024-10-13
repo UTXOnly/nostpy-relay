@@ -83,6 +83,15 @@ class Event:
         await cur.execute(delete_statement, (event_ids, self.pubkey))
         await conn.commit()
 
+    async def admin_delete(self, conn, cur, delete_pub):
+        delete_statement = """
+        DELETE FROM events
+        WHERE pubkey = %s;
+        """
+        await cur.execute(delete_statement, (delete_pub,))
+        await conn.commit()
+
+
     async def add_event(self, conn, cur) -> None:
         await cur.execute(
             """
@@ -230,13 +239,13 @@ class Subscription:
                 limit = filters.get("limit", 100)
                 filters.pop("limit")
             except Exception as exc:
-                logger.error(f"Exception is: {exc}")
+                logger.debug(f"Exception is: {exc}")
 
             try:
                 global_search = filters.get("search", {})
                 filters.pop("search")
             except Exception as exc:
-                logger.error(f"Exception is: {exc}")
+                logger.debug(f"Exception is: {exc}")
 
             key_mappings = {
                 "authors": "pubkey",
@@ -389,6 +398,9 @@ class Subscription:
         except Exception as exc:
             logger.error(f"Error building query: {exc}", exc_info=True)
             return None
+
+    # async def query_allowlist(self):
+    # return f"SELECT client_pub, kind , allowed, note_id from allowlist;"
 
     def sub_response_builder(
         self, event_type, subscription_id, results_json, http_status_code
