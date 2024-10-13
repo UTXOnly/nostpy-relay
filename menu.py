@@ -122,7 +122,7 @@ def menu():
         )
 
         if tor_address:
-            print_color(f"Your tor .onion address is: {tor_address}", "31")
+            print_color(f"Your tor .onion address is: {tor_address.stdout.strip()}", "31")
         print("\nPlease select an option:\n")
         print_color("1) Execute server setup script", "33")
         print_color("2) Start Nostpy relay (Clearnet only)", "32")
