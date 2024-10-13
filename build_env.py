@@ -9,16 +9,16 @@ try:
             "install",
             "-y",
             "docker-compose",
-            "python3.10-venv",
+            "python3.11-venv",
             "acl",
         ],
         check=True,
     )
 
-    subprocess.run(["python3", "-m", "venv", "snmpenv"], check=True)
+    subprocess.run(["python3", "-m", "venv", "nostpyenv"], check=True)
 
     # Activate the virtual environment and run subsequent commands within it (runs prepare server script in venv)
-    activate_cmd = ". snmpenv/bin/activate && "
+    activate_cmd = ". nostpyenv/bin/activate && "
     commands = [
         "pip install --upgrade pip",
         "pip install -r requirements.txt",

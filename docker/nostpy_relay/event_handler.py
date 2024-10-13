@@ -25,6 +25,16 @@ from opentelemetry.semconv.trace import SpanAttributes
 from psycopg_pool import AsyncConnectionPool
 
 from event_classes import Event, Subscription
+<<<<<<< HEAD:docker/nostpy_relay/event_handler.py
+from init_db import initialize_db
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+=======
 #Uncomment below for local debugging"
 #logger = logging.getLogger(__name__)
 #logger.setLevel(logging.DEBUG)
@@ -32,6 +42,9 @@ from event_classes import Event, Subscription
 #handler = logging.StreamHandler()
 #handler.setFormatter(formatter)
 #logger.addHandler(handler)
+>>>>>>> main:docker_stuff/python_stuff/event_handler.py
+
+WOT_ENABLED = os.getenv("WOT_ENABLED")
 
 app = FastAPI()
 
@@ -110,73 +123,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 FastAPIInstrumentor.instrument_app(app)
-
-
-def initialize_db() -> None:
-    """
-    Initialize the database by creating the necessary tables if they don't exist,
-    and creating indexes on the pubkey and kind columns.
-
-    """
-    try:
-        logger.info(f"conn string is {get_conn_str('WRITE')}")
-        conn = psycopg.connect(get_conn_str("WRITE"))
-        with conn.cursor() as cur:
-            # Create events table if it doesn't already exist
-            cur.execute(
-                """
-                CREATE TABLE IF NOT EXISTS events (
-                    id VARCHAR(255) PRIMARY KEY,
-                    pubkey VARCHAR(255),
-                    kind INTEGER,
-                    created_at INTEGER,
-                    tags JSONB,
-                    content TEXT,
-                    sig VARCHAR(255)
-                );
-                """
-            )
-
-            index_columns = ["pubkey", "kind"]
-            for column in index_columns:
-                cur.execute(
-                    f"""
-                    CREATE INDEX IF NOT EXISTS idx_{str(column)}
-                    ON events ({str(column)});
-                    """
-                )
-
-            cur.execute(
-                """
-                CREATE TABLE IF NOT EXISTS event_mgmt (
-                    id VARCHAR(255) PRIMARY KEY,
-                    pubkey VARCHAR(255),
-                    kind INTEGER,
-                    created_at INTEGER,
-                    tags JSONB,
-                    content TEXT,
-                    sig VARCHAR(255)
-                );
-                """
-            )
-            cur.execute(
-                """
-                CREATE TABLE IF NOT EXISTS allowlist (
-                    client_pub VARCHAR(255) UNIQUE,
-                    note_id VARCHAR(255),
-                    tags JSONB,
-                    kind INTEGER UNIQUE,
-                    allowed BOOLEAN,
-                    sig VARCHAR(255),
-                    FOREIGN KEY (note_id) REFERENCES event_mgmt(id)
-                );
-                """
-            )
-
-            conn.commit()
-        logger.info("Database initialization complete.")
-    except psycopg.Error as caught_error:
-        logger.info(f"Error occurred during database initialization: {caught_error}")
+init_conn_str = get_conn_str("WRITE")
 
 
 async def set_span_attributes(
@@ -231,21 +178,14 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
             async with request.app.write_pool.connection() as conn:
                 async with conn.cursor() as cur:
-                    if event_obj.kind == 42021:
-                        if event_obj.pubkey != os.getenv("ADMIN_HEX_PUBKEY"):
-                            return event_obj.evt_response(
-                                results_status="false",
-                                http_status_code=400,
-                                message="error: failed to add event invalid admin pubkey",
-                            )
-                        else:
-                            await event_obj.add_mgmt_event(conn, cur)
-                            clt_msg = await event_obj.parse_mgmt_event(conn, cur)
-                            return event_obj.evt_response(
-                                results_status="true",
-                                http_status_code=200,
-                                message=clt_msg,
-                            )
+                    if event_obj.kind == 42069:
+                        await event_obj.add_mgmt_event(conn, cur)
+                        clt_msg = await event_obj.parse_mgmt_event(conn, cur)
+                        return event_obj.evt_response(
+                            results_status="true",
+                            http_status_code=200,
+                            message=clt_msg,
+                        )
 
                     if event_obj.kind in [0, 3]:
                         await event_obj.delete_check(conn, cur)
@@ -264,19 +204,22 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
                     else:
                         try:
-                            query_res = await event_obj.check_pub_allow(conn, cur)
-                            kind_res = await event_obj.check_kind_allow(conn,cur)
-                            if  query_res and kind_res:
-                                logger.debug(f"allow check passed: {query_res} ---  {kind_res}")
-                                logger.debug(f"Adding event id: {event_obj.event_id}")
-                                await event_obj.add_event(conn, cur)
+                            if WOT_ENABLED in ["True", "true"]:
+                                wot_check = await event_obj.check_wot(cur)
+                                if wot_check:
+                                    logger.debug(
+                                        f"Allow check passed: {wot_check}, adding event id: {event_obj.event_id}"
+                                    )
+                                    await event_obj.add_event(conn, cur)
+                                else:
+                                    logger.debug(f"allow check failed: {wot_check}")
+                                    return event_obj.evt_response(
+                                        results_status="false",
+                                        http_status_code=403,
+                                        message="rejected: user is not permitted to post to this relay",
+                                    )
                             else:
-                                logger.debug(f"allow check failed: {query_res} --- {kind_res}")
-                                return event_obj.evt_response(
-                                    results_status="false",
-                                    http_status_code=500,
-                                    message="rejected: user is banned from posting on this relay",
-                                )
+                                await event_obj.add_event(conn, cur)
                         except psycopg.IntegrityError:
                             await conn.rollback()
                             logger.info(
@@ -336,7 +279,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                     query_results
                 )
                 serialized_events = json.dumps(parsed_results)
-                redis_client.setex(str(raw_filters_copy), 75, serialized_events)
+                redis_client.setex(str(raw_filters_copy), 240, serialized_events)
                 logger.debug(
                     f"Caching results, keys: {str(raw_filters_copy)} value is: {serialized_events}"
                 )
@@ -389,5 +332,5 @@ async def handle_subscription(request: Request) -> JSONResponse:
 if __name__ == "__main__":
     logger.info(f"Write conn string is: {get_conn_str('WRITE')}")
     logger.info(f"Read conn string is: {get_conn_str('READ')}")
-    initialize_db()
+    initialize_db(logger=logger, write_str=init_conn_str)
     uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("EVENT_HANDLER_PORT")))

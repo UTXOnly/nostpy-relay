@@ -1,3 +1,18 @@
+## v1.2.0
+
+### Enhancements
+**Added**
+* Web of Trust authentication (Optional feature)
+  * Users who have 3 mutal follows from the relay admin's 1st hop follows can post here
+
+
+* Restructured project to use fit python standards
+* Added more accurate HTTP response codes and relay ws replies 
+
+
+**Removed**
+* `.env` file encryption (may return at some point)
+
 ## v1.0.0
 
 ### Enhancements

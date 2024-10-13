@@ -8,7 +8,7 @@ def print_color(text, color):
     print(f"\033[1;{color}m{text}\033[0m")
 
 
-dotenv_path = "./docker_stuff/.env"
+dotenv_path = "./docker/.env"
 load_dotenv(dotenv_path, override=True)
 
 env_file_path = os.getenv("ENV_FILE_PATH")
@@ -48,4 +48,3 @@ try:
     subprocess.run(add_home_directory_ex, check=True)
 except subprocess.CalledProcessError as e:
     print(f"An error occurred while changing the group of the file: {e}")
-

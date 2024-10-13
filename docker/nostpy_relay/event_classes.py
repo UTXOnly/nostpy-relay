@@ -134,23 +134,11 @@ class Event:
             if list[0] == "allow":
                 await self.mod_pubkey_perm(conn, cur, list[1], "true", list[2])
                 return f"allowed: {list[2]} has been allowed"
-            if list[0] == "delete_pub":
-                await self.admin_delete(conn, cur, list[1])
-                return f"deleted: {list[1]} notes have been deleted"
-                
-    async def check_pub_allow(self, conn, cur) -> bool:
-        await cur.execute(
-            f"""
-            SELECT client_pub FROM allowlist WHERE client_pub = '{self.pubkey}' AND allowed = true;
 
-        """
-        )
-        return await cur.fetchall()
-    
-    async def check_kind_allow(self, conn, cur) -> bool:
+    async def check_mgmt_allow(self, cur) -> bool:
         await cur.execute(
             f"""
-            SELECT kind FROM allowlist WHERE kind = '{self.kind}' AND allowed = true;
+            SELECT client_pub FROM allowlist WHERE client_pub = '{self.pubkey}' AND allowed = false;
 
         """
         )
@@ -173,6 +161,14 @@ class Event:
         )
 
         await conn.commit()
+
+    async def check_wot(self, cur):
+        await cur.execute(
+            f"""
+            SELECT pubkey FROM trust_network WHERE pubkey = '{self.pubkey}';
+            """
+        )
+        return await cur.fetchone()
 
     def evt_response(self, results_status, http_status_code, message=""):
         response = {
