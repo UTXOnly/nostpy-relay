@@ -7,8 +7,11 @@ import os
 import time
 from collections import defaultdict
 
+from dotenv import load_dotenv
 import websockets
 from asyncpg import create_pool
+
+load_dotenv("/home/ubuntu/nostpy-relay/docker/.env")
 
 
 logging.basicConfig(
