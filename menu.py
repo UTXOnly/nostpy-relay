@@ -119,7 +119,7 @@ def menu():
         print_color("4) Destroy all docker containers and images (Clearnet)", "31")
         print_color("5) Destroy all docker containers and images (Clearnet + Tor)", "31")
         print_color("6) Stop all containers (Clearnet)", "33")
-        print_color("7) Stop all containers (Tor)", "33")
+        print_color("7) Stop all containers (Clearnet + Tor)", "33")
         print_color("8) Exit menu", "31")
 
         options = {

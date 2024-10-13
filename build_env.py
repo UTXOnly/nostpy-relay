@@ -9,7 +9,8 @@ try:
             "install",
             "-y",
             "docker-compose",
-            #"python3.10-venv",
+            "python3-venv",
+            "python3-pip"
             "acl",
         ],
         check=True,
