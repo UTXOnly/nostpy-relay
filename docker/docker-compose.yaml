@@ -103,6 +103,7 @@ services:
       - VERSION=${VERSION}
       - CONTACT=${CONTACT}
       - ADMIN_PUBKEY=${ADMIN_PUBKEY}
+      - ICON=${ICON}
     ports:
       - "80:80"
       - "443:443"
