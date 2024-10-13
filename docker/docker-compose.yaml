@@ -135,6 +135,8 @@ services:
       - "55680:55680"
       - "4317:4317"
     command: ["--config=/etc/otel/config.yaml"]
+    group_add:
+      - "999"  # Add to docker group to access docker socket
     logging:
       driver: "json-file"
       options:
