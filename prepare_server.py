@@ -1,7 +1,6 @@
 import os
 import subprocess
 from dotenv import load_dotenv
-import file_encryption
 
 
 def print_color(text, color):
@@ -13,10 +12,7 @@ load_dotenv(dotenv_path, override=True)
 
 env_file_path = os.getenv("ENV_FILE_PATH")
 
-try:
-    file_encryption.change_file_permissions(env_file_path)
-except Exception as e:
-    print(f"An error occurred: {e}")
+
 
 try:
     subprocess.check_call(["sudo", "apt", "install", "python3-pip", "-y"])
