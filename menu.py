@@ -93,6 +93,12 @@ def execute_setup_script():
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
 
+def manual_wot_run():
+    try:
+        subprocess.run(["python3", "./docker/nostpy_relay/wot_builder.py"], check=True)
+    except subprocess.CalledProcessError as e:
+        print_color(f"Error occurred: {e}", "31")
+
 
 def menu():
 
@@ -125,23 +131,25 @@ def menu():
             print_color(f"Your tor .onion address is: ws://{tor_address.stdout.strip()}", "31")
         print("\nPlease select an option:\n")
         print_color("1) Execute server setup script", "33")
-        print_color("2) Start Nostpy relay (Clearnet only)", "32")
-        print_color("3) Start Nostpy relay (Clearnet + Tor)", "32")
-        print_color("4) Destroy all docker containers and images (Clearnet)", "31")
-        print_color("5) Destroy all docker containers and images (Clearnet + Tor)", "31")
-        print_color("6) Stop all containers (Clearnet)", "33")
-        print_color("7) Stop all containers (Clearnet + Tor)", "33")
-        print_color("8) Exit menu", "31")
+        print_color("2) Manually execute web of trust", "33")
+        print_color("3) Start Nostpy relay (Clearnet only)", "32")
+        print_color("4) Start Nostpy relay (Clearnet + Tor)", "32")
+        print_color("5) Destroy all docker containers and images (Clearnet)", "31")
+        print_color("6) Destroy all docker containers and images (Clearnet + Tor)", "31")
+        print_color("7) Stop all containers (Clearnet)", "33")
+        print_color("8) Stop all containers (Clearnet + Tor)", "33")
+        print_color("9) Exit menu", "31")
 
         options = {
             "1": execute_setup_script,
-            "2": lambda: start_nostpy_relay(tor_flag=False),
-            "3": lambda: start_nostpy_relay(tor_flag=True),
-            "4": lambda: destroy_containers_and_images(tor_flag=False),
-            "5": lambda: destroy_containers_and_images(tor_flag=True),
-            "6": lambda: stop_containers(tor_flag=False),
-            "7": lambda: stop_containers(tor_flag=True),
-            "8": lambda: print_color("Exited menu", "31"),
+            "2": manual_wot_run,
+            "3": lambda: start_nostpy_relay(tor_flag=False),
+            "4": lambda: start_nostpy_relay(tor_flag=True),
+            "5": lambda: destroy_containers_and_images(tor_flag=False),
+            "6": lambda: destroy_containers_and_images(tor_flag=True),
+            "7": lambda: stop_containers(tor_flag=False),
+            "8": lambda: stop_containers(tor_flag=True),
+            "9": lambda: print_color("Exited menu", "31"),
         }
 
         try:
