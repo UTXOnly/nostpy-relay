@@ -126,7 +126,7 @@ class Event:
                 await self.mod_pubkey_perm(conn, cur, list[1], "true", list[2])
                 return f"allowed: {list[2]} has been allowed"
 
-    async def check_mgmt_allow(self, conn, cur) -> bool:
+    async def check_mgmt_allow(self, cur) -> bool:
         await cur.execute(
             f"""
             SELECT client_pub FROM allowlist WHERE client_pub = '{self.pubkey}' AND allowed = false;
@@ -152,6 +152,14 @@ class Event:
         )
 
         await conn.commit()
+
+    async def check_wot(self, conn, cur):
+        await cur.execute(
+            f"""
+            SELECT pubkey FROM trust_network WHERE pubkey = {self.pubkey}
+            """
+        )
+        return await cur.fetchone()
 
     def evt_response(self, results_status, http_status_code, message=""):
         response = {
