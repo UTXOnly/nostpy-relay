@@ -156,7 +156,7 @@ services:
     ports:
       - "9050:9050" # Expose Tor control port if needed
     depends_on:
-      - websocket-service
+      - websocket_handler
 
 volumes:
   postgres_data:
