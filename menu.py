@@ -130,7 +130,7 @@ while True:
     }
 
     try:
-        choice = input("\nEnter an option number (1-7): ")
+        choice = input("\nEnter an option number (1-6): ")
         if choice in options:
             options[choice]()
             if choice == "6":
