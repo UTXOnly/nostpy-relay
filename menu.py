@@ -47,7 +47,6 @@ def destroy_containers_and_images():
             "docker_websocket_handler:latest",
             "redis:latest",
             "postgres:latest",
-            "datadog/agent:latest",
         ]
 
         for image_name in image_names:
