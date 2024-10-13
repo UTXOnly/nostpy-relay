@@ -99,7 +99,6 @@ services:
       - DOMAIN=${DOMAIN}
       - DOCKER_SVC=172.17.0.1
       - SVC_PORT=${WS_PORT}
-      - MU_PORT=8000
       - VERSION=${VERSION}
       - CONTACT=${CONTACT}
       - ADMIN_PUBKEY=${ADMIN_PUBKEY}
