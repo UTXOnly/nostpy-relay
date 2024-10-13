@@ -9,7 +9,7 @@ try:
             "install",
             "-y",
             "docker-compose",
-            "python3.10-venv",
+            #"python3.10-venv",
             "acl",
         ],
         check=True,
@@ -22,7 +22,7 @@ try:
     commands = [
         "pip install --upgrade pip",
         "pip install -r requirements.txt",
-        "python prepare_server.py",
+        "python3 prepare_server.py",
     ]
     for cmd in commands:
         subprocess.run(["sudo", "bash", "-c", cmd], check=True)
