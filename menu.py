@@ -96,26 +96,6 @@ def execute_setup_script():
         print_color(f"Error occurred: {e}", "31")
 
 
-def decrypt_env():
-    while True:
-        print_color("\n1) Decrypt file", "32")
-        print_color("2) Encrypt file", "31")
-        print_color("3) Return to main menu", "33")
-        option = input(
-            "\nEnter 1 to decrypt, 2 to encrypt the file, or 3 to return to the main menu: \n"
-        )
-
-        if option == "1":
-            print_color("Decrypting your .env file", "32")
-            file_encryption.decrypt_file(encrypted_filename="./docker/.env")
-        elif option == "2":
-            print_color("Encrypting your .env file", "32")
-            file_encryption.encrypt_file(filename="./docker/.env")
-        elif option == "3":
-            print_color("Returning to main menu", "31")
-            break
-        else:
-            print_color("Invalid option. Please enter either 1, 2, or 3.", "31")
 
 
 while True:
@@ -140,25 +120,23 @@ while True:
     print_color("2) Start Nostpy relay", "32")
     print_color("3) Switch branches", "33")
     print_color("4) Destroy all docker containers and images", "31")
-    print_color("5) Decrypt/encrypt .env file to edit", "33")
-    print_color("6) Stop all containers", "33")
-    print_color("7) Exit menu", "31")
+    print_color("5) Stop all containers", "33")
+    print_color("6) Exit menu", "31")
 
     options = {
         "1": execute_setup_script,
         "2": start_nostpy_relay,
         "3": switch_branches,
         "4": destroy_containers_and_images,
-        "5": decrypt_env,
-        "6": stop_containers,
-        "7": lambda: print_color("Exited menu", "31"),
+        "5": stop_containers,
+        "6": lambda: print_color("Exited menu", "31"),
     }
 
     try:
         choice = input("\nEnter an option number (1-7): ")
         if choice in options:
             options[choice]()
-            if choice == "7":
+            if choice == "6":
                 print()
                 break
     except ValueError:

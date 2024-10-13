@@ -101,7 +101,7 @@ services:
       - MU_PORT=8000
       - VERSION=${VERSION}
       - CONTACT=${CONTACT}
-      - HEX_PUBKEY=${HEX_PUBKEY}
+      - ADMIN_PUBKEY=${ADMIN_PUBKEY}
     ports:
       - "80:80"
       - "443:443"
