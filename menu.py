@@ -45,8 +45,9 @@ def destroy_containers_and_images():
             "docker_nostr_query:latest",
             "docker_event_handler:latest",
             "docker_websocket_handler:latest",
+            "docker_nginx-certbot:latest"
             "redis:latest",
-            "postgres:latest",
+            "postgres:14",
         ]
 
         for image_name in image_names:
