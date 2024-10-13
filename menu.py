@@ -117,7 +117,7 @@ def menu():
         print_color("2) Start Nostpy relay (Clearnet only)", "32")
         print_color("3) Start Nostpy relay (Clearnet + Tor)", "32")
         print_color("4) Destroy all docker containers and images (Clearnet)", "31")
-        print_color("5) Destroy all docker containers and images (Tor)", "31")
+        print_color("5) Destroy all docker containers and images (Clearnet + Tor)", "31")
         print_color("6) Stop all containers (Clearnet)", "33")
         print_color("7) Stop all containers (Tor)", "33")
         print_color("8) Exit menu", "31")
