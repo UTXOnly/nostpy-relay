@@ -25,24 +25,14 @@ from opentelemetry.semconv.trace import SpanAttributes
 from psycopg_pool import AsyncConnectionPool
 
 from event_classes import Event, Subscription
-<<<<<<< HEAD:docker/nostpy_relay/event_handler.py
 from init_db import initialize_db
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-=======
-#Uncomment below for local debugging"
-#logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
-#formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-#handler = logging.StreamHandler()
-#handler.setFormatter(formatter)
-#logger.addHandler(handler)
->>>>>>> main:docker_stuff/python_stuff/event_handler.py
 
 WOT_ENABLED = os.getenv("WOT_ENABLED")
 
