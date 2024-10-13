@@ -22,15 +22,15 @@ except subprocess.CalledProcessError as e:
 
 try:
     user = os.getlogin()
-    add_to_docker_group_command = [f"sudo", "usermod", "-aG", "docker", "{user}"]
+    add_to_docker_group_command = ["sudo", "usermod", "-aG", "docker", user]
     subprocess.run(add_to_docker_group_command, check=True)
 except subprocess.CalledProcessError as e:
     print(f"An error occurred while adding the user: {e}")
 
 try:
-    change_group_env = [f"sudo", "setfacl", "-m", "g:{user}:r", dotenv_path]
+    change_group_env = ["sudo", "setfacl", "-m", f"g:{user}:r", dotenv_path]
     subprocess.run(change_group_env, check=True)
-    add_home_directory_ex = ["sudo", "setfacl", "-m", "g:{user}:x", r"../"]
+    add_home_directory_ex = ["sudo", "setfacl", "-m", f"g:{user}:x", r"../"]
     subprocess.run(add_home_directory_ex, check=True)
 except subprocess.CalledProcessError as e:
     print(f"An error occurred while changing the group of the file: {e}")
