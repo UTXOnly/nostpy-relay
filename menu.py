@@ -116,23 +116,27 @@ def menu():
         print_color("1) Execute server setup script", "33")
         print_color("2) Start Nostpy relay (Clearnet only)", "32")
         print_color("3) Start Nostpy relay (Clearnet + Tor)", "32")
-        print_color("4) Destroy all docker containers and images", "31")
-        print_color("5) Stop all containers", "33")
-        print_color("6) Exit menu", "31")
+        print_color("4) Destroy all docker containers and images (Clearnet)", "31")
+        print_color("5) Destroy all docker containers and images (Tor)", "31")
+        print_color("6) Stop all containers (Clearnet)", "33")
+        print_color("7) Stop all containers (Tor)", "33")
+        print_color("8) Exit menu", "31")
 
         options = {
             "1": execute_setup_script,
             "2": lambda: start_nostpy_relay(tor_flag=False),
             "3": lambda: start_nostpy_relay(tor_flag=True),
             "4": lambda: destroy_containers_and_images(tor_flag=False),
-            "5": lambda: stop_containers(tor_flag=False),
-            "6": lambda: print_color("Exited menu", "31"),
+            "5": lambda: destroy_containers_and_images(tor_flag=True),
+            "6": lambda: stop_containers(tor_flag=False),
+            "7": lambda: stop_containers(tor_flag=True),
+            "8": lambda: print_color("Exited menu", "31"),
         }
 
         try:
-            choice = input("\nEnter an option number (1-6): ")
+            choice = input("\nEnter an option number (1-8): ")
             if choice in options:
-                if choice == "6":
+                if choice == "8":
                     print_color("Exiting...", "31")
                     break
                 else:
