@@ -146,6 +146,16 @@ def menu():
         except ValueError:
             print_color("Invalid input. Please enter a valid option number.", "31")
 
+         
+        tor_address = subprocess.run(
+                ["sudo", "cat","./docker/tor/data/hidden_service/hostname"],
+                check=True,
+            )
+        
+        if tor_address:
+            print_color(f"Your tor .onion address is: {tor_address}", "31")
+
+
 
 if __name__ == "__main__":
     menu()
