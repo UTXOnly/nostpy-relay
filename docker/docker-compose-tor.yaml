@@ -150,7 +150,8 @@ services:
       - ./tor/torrc:/etc/tor/torrc
       - ./tor/data:/var/lib/tor 
     networks:
-      - nostpy_network
+      nostpy_network:
+        ipv4_address: 172.28.0.8
     expose:
       - "80"
     ports:
