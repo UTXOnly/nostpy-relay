@@ -48,4 +48,3 @@ try:
     subprocess.run(add_home_directory_ex, check=True)
 except subprocess.CalledProcessError as e:
     print(f"An error occurred while changing the group of the file: {e}")
-

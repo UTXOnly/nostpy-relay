@@ -1,6 +1,5 @@
 import subprocess
 import os
-import file_encryption
 
 
 def print_color(text, color):
@@ -94,8 +93,6 @@ def execute_setup_script():
         subprocess.run(["python3", "build_env.py"], check=True)
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
-
-
 
 
 while True:
