@@ -168,6 +168,21 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
             async with request.app.write_pool.connection() as conn:
                 async with conn.cursor() as cur:
+
+                    if WOT_ENABLED in ["True", "true"]:
+                        wot_check = await event_obj.check_wot(cur)
+                        if wot_check:
+                            logger.debug(
+                                f"Allow check passed: {wot_check}, adding event id: {event_obj.event_id}"
+                            )
+                            await event_obj.add_event(conn, cur)
+                        else:
+                            logger.debug(f"allow check failed: {wot_check}")
+                            return event_obj.evt_response(
+                                results_status="false",
+                                http_status_code=403,
+                                message="rejected: user is not permitted to post to this relay",
+                            )
                     if event_obj.kind == 42069:
                         await event_obj.add_mgmt_event(conn, cur)
                         clt_msg = await event_obj.parse_mgmt_event(conn, cur)
@@ -194,22 +209,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
                     else:
                         try:
-                            if WOT_ENABLED in ["True", "true"]:
-                                wot_check = await event_obj.check_wot(cur)
-                                if wot_check:
-                                    logger.debug(
-                                        f"Allow check passed: {wot_check}, adding event id: {event_obj.event_id}"
-                                    )
-                                    await event_obj.add_event(conn, cur)
-                                else:
-                                    logger.debug(f"allow check failed: {wot_check}")
-                                    return event_obj.evt_response(
-                                        results_status="false",
-                                        http_status_code=403,
-                                        message="rejected: user is not permitted to post to this relay",
-                                    )
-                            else:
-                                await event_obj.add_event(conn, cur)
+                            await event_obj.add_event(conn, cur)
                         except psycopg.IntegrityError:
                             await conn.rollback()
                             logger.info(
