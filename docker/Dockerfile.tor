@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y tor && apt-get clean
 RUN mkdir -p /var/lib/tor/hidden_service /etc/tor
 
 # Copy the Tor configuration file
-COPY torrc /etc/tor/torrc
+COPY ./tor/torrc /etc/tor/torrc
 
 # Set permissions for the hidden service
 RUN chown -R debian-tor:debian-tor /var/lib/tor/hidden_service
