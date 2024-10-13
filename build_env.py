@@ -10,7 +10,7 @@ try:
             "-y",
             "docker-compose",
             "python3-venv",
-            "python3-pip"
+            "python3-pip",
             "acl",
         ],
         check=True,
