@@ -173,7 +173,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                                 logger.debug(
                                     f"Allow check passed: {wot_check}, adding event id: {event_obj.event_id}"
                                 )
-                                await event_obj.add_event(cur)
+                                await event_obj.add_event(conn, cur)
                             else:
                                 logger.debug(f"allow check failed: {wot_check}")
                                 return event_obj.evt_response(
