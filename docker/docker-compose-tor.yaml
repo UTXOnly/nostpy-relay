@@ -150,7 +150,7 @@ services:
       - ./tor/torrc:/etc/tor/torrc
       - ./tor/data:/var/lib/tor 
     networks:
-      - tor-network
+      - nostpy_network
     expose:
       - "80"
     ports:
