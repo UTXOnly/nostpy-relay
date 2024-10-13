@@ -156,7 +156,7 @@ class Event:
     async def check_wot(self, conn, cur):
         await cur.execute(
             f"""
-            SELECT pubkey FROM trust_network WHERE pubkey = '{self.pubkey}'
+            SELECT pubkey FROM trust_network WHERE pubkey = '{self.pubkey}';
             """
         )
         return await cur.fetchone()
