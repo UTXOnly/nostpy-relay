@@ -6,7 +6,20 @@ def print_color(text, color):
     print(f"\033[1;{color}m{text}\033[0m")
 
 
+def run_docker_compose(tor_flag=None, command="up", detach=True):
+    """Run docker-compose with appropriate file based on tor_flag"""
+    docker_compose_file = "docker-compose.yaml" if not tor_flag else "docker-compose-tor.yaml"
+    
+    cmd = ["docker-compose", "-f", docker_compose_file, command]
+    
+    if command == "up" and detach:
+        cmd.append("-d")  # Add -d only for 'up' command if detaching
+    
+    subprocess.run(cmd, check=True)
+
+
 def start_nostpy_relay(tor_flag=None):
+    """Start the relay based on clearnet or tor flag"""
     try:
         os.chdir("./docker")
         file_path = "./postgresql/"
@@ -19,17 +32,10 @@ def start_nostpy_relay(tor_flag=None):
         else:
             print_color("File does not exist. Skipping the command.", "33")
 
-        if tor_flag:
-            pwd = os.getcwd()
-            print_color(f"Current working directory: {pwd}", "34")
-            subprocess.run(
-                ["docker-compose", "-f", "docker-compose-tor.yaml", "up", "-d"],
-                check=True,
-            )
-        else:
-            subprocess.run(
-                ["docker-compose", "-f", "docker-compose.yaml", "up", "-d"], check=True
-            )
+        pwd = os.getcwd()
+        print_color(f"Current working directory: {pwd}", "34")
+
+        run_docker_compose(tor_flag=tor_flag, command="up", detach=True)
         os.chdir("..")
 
     except subprocess.CalledProcessError as e:
@@ -38,10 +44,12 @@ def start_nostpy_relay(tor_flag=None):
         print_color(f"Unexpected error occurred: {e}", "31")
 
 
-def destroy_containers_and_images():
+def destroy_containers_and_images(tor_flag=None):
+    """Destroy containers and images based on clearnet or tor flag"""
     try:
         os.chdir("./docker")
-        subprocess.run(["docker-compose", "down"], check=True)
+        
+        run_docker_compose(tor_flag=tor_flag, command="down", detach=False)
 
         image_names = [
             "docker_nostr_query:latest",
@@ -69,10 +77,11 @@ def destroy_containers_and_images():
         print_color(f"Error occurred: {e}", "31")
 
 
-def stop_containers():
+def stop_containers(tor_flag=None):
+    """Stop the running containers"""
     try:
         os.chdir("./docker")
-        subprocess.run(["docker-compose", "down"], check=True)
+        run_docker_compose(tor_flag=tor_flag, command="down", detach=False)
         os.chdir("..")
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
@@ -113,10 +122,10 @@ def menu():
 
         options = {
             "1": execute_setup_script,
-            "2": start_nostpy_relay,
+            "2": lambda: start_nostpy_relay(tor_flag=False),
             "3": lambda: start_nostpy_relay(tor_flag=True),
-            "4": destroy_containers_and_images,
-            "5": stop_containers,
+            "4": lambda: destroy_containers_and_images(tor_flag=False),
+            "5": lambda: stop_containers(tor_flag=False),
             "6": lambda: print_color("Exited menu", "31"),
         }
 
