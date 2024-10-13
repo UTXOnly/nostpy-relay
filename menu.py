@@ -99,6 +99,8 @@ def menu():
     tor_address = subprocess.run(
         ["sudo", "cat","./docker/tor/data/hidden_service/hostname"],
         check=True,
+        capture_output=True,
+        text=True
     )
         
     while True:
