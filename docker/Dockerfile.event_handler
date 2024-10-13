@@ -13,6 +13,6 @@ WORKDIR /app
 COPY eh_requirements.txt .
 RUN pip install --no-cache-dir -r eh_requirements.txt
 
-COPY ./src/init_db.py ./src/event*.py ./
+COPY ./nostpy_relay/init_db.py ./nostpy_relay/event*.py ./
 
 CMD ["python", "event_handler.py"]

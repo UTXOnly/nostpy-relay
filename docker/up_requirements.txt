@@ -1,7 +1,0 @@
-fastapi
-uvicorn
-requests
-uvloop
-websockets
-secp256k1
-bech32
