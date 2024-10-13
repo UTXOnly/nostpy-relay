@@ -95,6 +95,12 @@ def execute_setup_script():
 
 
 def menu():
+
+    tor_address = subprocess.run(
+        ["sudo", "cat","./docker/tor/data/hidden_service/hostname"],
+        check=True,
+    )
+        
     while True:
         print_color(
             "\n##########################################################################################",
@@ -112,6 +118,9 @@ def menu():
         """,
             "34",
         )
+
+        if tor_address:
+            print_color(f"Your tor .onion address is: {tor_address}", "31")
         print("\nPlease select an option:\n")
         print_color("1) Execute server setup script", "33")
         print_color("2) Start Nostpy relay (Clearnet only)", "32")
@@ -145,15 +154,6 @@ def menu():
                 print_color("Invalid choice. Please enter a valid option number.", "31")
         except ValueError:
             print_color("Invalid input. Please enter a valid option number.", "31")
-
-         
-        tor_address = subprocess.run(
-                ["sudo", "cat","./docker/tor/data/hidden_service/hostname"],
-                check=True,
-            )
-        
-        if tor_address:
-            print_color(f"Your tor .onion address is: {tor_address}", "31")
 
 
 
