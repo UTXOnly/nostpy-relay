@@ -153,7 +153,7 @@ class Event:
 
         await conn.commit()
 
-    async def check_wot(self, conn, cur):
+    async def check_wot(self, cur):
         await cur.execute(
             f"""
             SELECT pubkey FROM trust_network WHERE pubkey = '{self.pubkey}';
