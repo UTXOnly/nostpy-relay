@@ -38,7 +38,7 @@ WOT_ENABLED = os.getenv("WOT_ENABLED")
 
 app = FastAPI()
 
- #Set up logging
+# Set up logging
 logger_provider = LoggerProvider(
     resource=Resource.create({"service.name": "event_handler_otel"})
 )
@@ -168,7 +168,6 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
             async with request.app.write_pool.connection() as conn:
                 async with conn.cursor() as cur:
-
                     if WOT_ENABLED in ["True", "true"]:
                         wot_check = await event_obj.check_wot(cur)
                         if wot_check:

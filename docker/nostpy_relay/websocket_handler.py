@@ -39,7 +39,7 @@ otlp_tracer = trace.get_tracer_provider().add_span_processor(span_processor)
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
 EVENT_HANDLER_SVC = os.getenv("EVENT_HANDLER_SVC")
