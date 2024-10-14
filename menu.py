@@ -102,12 +102,16 @@ def manual_wot_run():
 
 def menu():
 
-    tor_address = subprocess.run(
-        ["sudo", "cat","./docker/tor/data/hidden_service/hostname"],
-        check=True,
-        capture_output=True,
-        text=True
-    )
+    try:
+
+        tor_address = subprocess.run(
+            ["sudo", "cat","./docker/tor/data/hidden_service/hostname"],
+            check=True,
+            capture_output=True,
+            text=True
+        )
+    except:
+        print("Tor has not been initialized yet")
         
     while True:
         print_color(
