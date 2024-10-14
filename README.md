@@ -84,7 +84,8 @@ This will bring up the menu below and you can control the program from there!
 
 
 
-![Image 2023-09-15 at 8 44 45 AM](https://github.com/UTXOnly/nost-py/assets/49233513/ee40d91c-2e6a-48a8-a0a8-c14e25e8ff07)
+![image](https://github.com/user-attachments/assets/c662940b-9832-44fc-8993-ae982a0ab0d7)
+
 
 
 ![Screenshot from 2024-02-23 21-15-49](https://github.com/UTXOnly/nost-py/assets/49233513/2119a053-3ebf-42b5-a996-2ccb87651c9e)
