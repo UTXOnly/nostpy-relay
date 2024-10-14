@@ -13,7 +13,6 @@ load_dotenv(dotenv_path, override=True)
 env_file_path = os.getenv("ENV_FILE_PATH")
 
 
-
 try:
     subprocess.check_call(["sudo", "apt", "install", "python3-pip", "-y"])
     print("Pip installed successfully!")

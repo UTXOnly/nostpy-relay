@@ -91,7 +91,6 @@ class Event:
         await cur.execute(delete_statement, (delete_pub,))
         await conn.commit()
 
-
     async def add_event(self, conn, cur) -> None:
         await cur.execute(
             """
