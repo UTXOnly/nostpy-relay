@@ -12,8 +12,6 @@ import websockets
 from asyncpg import create_pool
 
 
-
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s: %(message)s",
@@ -91,7 +89,9 @@ class NostrFollowFetcher:
             message = await asyncio.wait_for(websocket.recv(), timeout=timeout)
             return message
         except asyncio.TimeoutError:
-            logger.error(f"Timeout reached after {timeout} seconds, closing connection.")
+            logger.error(
+                f"Timeout reached after {timeout} seconds, closing connection."
+            )
             return None
 
     async def handle_event(self, event):
@@ -211,7 +211,6 @@ if __name__ == "__main__":
     load_dotenv(dotenv_path)
     db_conn_str = os.getenv("DB_CONN_STRING")
     pubkey = os.getenv("ADMIN_PUBKEY")
-
 
     fetcher = NostrFollowFetcher(
         pubkey=pubkey, db_conn_str=db_conn_str, seed_relays=seed_relays
