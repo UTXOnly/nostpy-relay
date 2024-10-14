@@ -1,20 +1,13 @@
-# Base image with Tor installed
 FROM debian:bullseye-slim
 
-# Install Tor
 RUN apt-get update && apt-get install -y tor && apt-get clean
 
-# Create directories for the Tor service
 RUN mkdir -p /var/lib/tor/hidden_service /etc/tor
 
-# Copy the Tor configuration file
 COPY ./tor/torrc /etc/tor/torrc
 
-# Set permissions for the hidden service
 RUN chown -R debian-tor:debian-tor /var/lib/tor/hidden_service
 
-# Expose ports
 EXPOSE 80
 
-# Start the Tor service
 CMD ["tor", "-f", "/etc/tor/torrc"]
