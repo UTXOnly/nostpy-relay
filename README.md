@@ -23,6 +23,7 @@ A containerized, fully Python-based Nostr relay designed for portability and eas
 To setup this relay:
 
 * Git repo should be cloned in user's `$HOME` directory (you can install elsewhere but will need to adjust a number of variables w/ filepaths to function properly)
+  * After setup script is run you will need to exit your terminal and start a new session or refresh your terminal to reflect your user being added to the `docker` group.
 * Copy example env file:
 
 ```
