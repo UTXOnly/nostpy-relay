@@ -158,9 +158,9 @@ def menu():
         }
 
         try:
-            choice = input("\nEnter an option number (1-8): ")
+            choice = input("\nEnter an option number (1-9): ")
             if choice in options:
-                if choice == "8":
+                if choice == "9":
                     print_color("Exiting...", "31")
                     break
                 else:
