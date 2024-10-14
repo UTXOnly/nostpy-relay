@@ -34,6 +34,7 @@ handler = logging.StreamHandler()
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
+
 WOT_ENABLED = os.getenv("WOT_ENABLED")
 
 app = FastAPI()
