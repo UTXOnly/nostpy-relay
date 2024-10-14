@@ -180,7 +180,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                             return event_obj.evt_response(
                                 results_status="false",
                                 http_status_code=403,
-                                message="rejected: user is not permitted to post to this relay",
+                                message="rejected: user is not in relay's web of trust",
                             )
                     if event_obj.kind == 42069:
                         await event_obj.add_mgmt_event(conn, cur)

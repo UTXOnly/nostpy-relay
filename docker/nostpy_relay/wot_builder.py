@@ -207,7 +207,8 @@ if __name__ == "__main__":
         "wss://purplepag.es",
         "wss://relay.damus.io",
     ]
-    load_dotenv("/home/ubuntu/nostpy-relay/docker/.env")
+    dotenv_path = os.path.expanduser("~/nostpy-relay/docker/.env")
+    load_dotenv(dotenv_path)
     db_conn_str = os.getenv("DB_CONN_STRING")
     pubkey = os.getenv("ADMIN_PUBKEY")
 
