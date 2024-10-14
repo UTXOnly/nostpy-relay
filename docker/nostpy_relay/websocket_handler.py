@@ -12,7 +12,6 @@ import websockets.exceptions
 
 from websocket_classes import (
     ExtractedResponse,
-    TokenBucketRateLimiter,
     WebsocketMessages,
 )
 
@@ -56,9 +55,6 @@ async def handle_websocket_connection(
                 try:
                     logger.debug(f"message in loop is {message}")
                     ws_message = message
-                    # await websocket.send(
-                    #    json.dumps(["AUTH", "nostpy-challenge-string"])
-                    # )
                     if ws_message:
                         ws_message = WebsocketMessages(
                             message=json.loads(message),
@@ -68,23 +64,6 @@ async def handle_websocket_connection(
                 except json.JSONDecodeError as json_error:
                     logger.error(f"Error decoding JSON message: {json_error}")
                     continue
-
-                if not await rate_limiter.check_request(
-                    ws_message.obfuscated_client_ip
-                ):
-                    logger.warning(
-                        f"Rate limit exceeded for client: {ws_message.obfuscated_client_ip}"
-                    )
-                    rate_limit_response = (
-                        "OK",
-                        "nostafarian419",
-                        "false",
-                        "rate-limited: slow your roll nostrich",
-                    )
-
-                    await websocket.send(json.dumps(rate_limit_response))
-                    await websocket.close()
-                    return
 
                 if ws_message.event_type == "EVENT":
                     logger.debug(
@@ -211,8 +190,6 @@ async def send_subscription_to_handler(
 
 
 if __name__ == "__main__":
-    rate_limiter = TokenBucketRateLimiter(tokens_per_second=1, max_tokens=50000)
-
     try:
         start_server = websockets.serve(
             handle_websocket_connection, "0.0.0.0", os.getenv("WS_PORT")
