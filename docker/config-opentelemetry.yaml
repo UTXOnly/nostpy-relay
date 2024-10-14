@@ -118,11 +118,8 @@ service:
       receivers: [datadog/connector, otlp, hostmetrics, docker_stats]
       processors: [memory_limiter, batch, resourcedetection, attributes]
       exporters: [datadog/exporter]
-    logs:
-      receivers: [otlp]
-      processors: [memory_limiter, batch, resourcedetection, attributes]
-      exporters: [ datadog/exporter, otlp]
-
-  telemetry:
-    logs:
-      level: "debug"
+    # Logs are commented out as they use considerable resources, enable at your own discretion 
+    #logs:
+    #  receivers: [otlp]
+    #  processors: [memory_limiter, batch, resourcedetection, attributes]
+    #  exporters: [ datadog/exporter, otlp]

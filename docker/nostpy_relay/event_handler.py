@@ -28,7 +28,7 @@ from event_classes import Event, Subscription
 from init_db import initialize_db
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
@@ -181,7 +181,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                             return event_obj.evt_response(
                                 results_status="false",
                                 http_status_code=403,
-                                message="rejected: user is not permitted to post to this relay",
+                                message="rejected: user is not in relay's web of trust",
                             )
                     if event_obj.kind == 42069:
                         await event_obj.add_mgmt_event(conn, cur)
