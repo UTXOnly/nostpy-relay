@@ -209,7 +209,7 @@ if __name__ == "__main__":
     ]
     load_dotenv("/home/ubuntu/nostpy-relay/docker/.env")
     db_conn_str = os.getenv("DB_CONN_STRING")
-    pubkey = os.getenv("ADMIN_PUBKEY")
+    pubkey = os.getenv("ADMIN_PUBKEY").strip('"')
 
 
     fetcher = NostrFollowFetcher(
