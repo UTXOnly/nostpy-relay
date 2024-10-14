@@ -176,6 +176,9 @@ async def handle_new_event(request: Request) -> JSONResponse:
                                 f"Allow check passed: {wot_check}, adding event id: {event_obj.event_id}"
                             )
                             await event_obj.add_event(conn, cur)
+                            return event_obj.evt_response(
+                                results_status="true", http_status_code=200
+                            )
                         else:
                             logger.debug(f"allow check failed: {wot_check}")
                             return event_obj.evt_response(

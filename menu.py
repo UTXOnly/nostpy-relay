@@ -8,13 +8,15 @@ def print_color(text, color):
 
 def run_docker_compose(tor_flag=None, command="up", detach=True):
     """Run docker-compose with appropriate file based on tor_flag"""
-    docker_compose_file = "docker-compose.yaml" if not tor_flag else "docker-compose-tor.yaml"
-    
+    docker_compose_file = (
+        "docker-compose.yaml" if not tor_flag else "docker-compose-tor.yaml"
+    )
+
     cmd = ["docker-compose", "-f", docker_compose_file, command]
-    
+
     if command == "up" and detach:
         cmd.append("-d")  # Add -d only for 'up' command if detaching
-    
+
     subprocess.run(cmd, check=True)
 
 
@@ -48,7 +50,7 @@ def destroy_containers_and_images(tor_flag=None):
     """Destroy containers and images based on clearnet or tor flag"""
     try:
         os.chdir("./docker")
-        
+
         run_docker_compose(tor_flag=tor_flag, command="down", detach=False)
 
         image_names = [
@@ -93,6 +95,7 @@ def execute_setup_script():
     except subprocess.CalledProcessError as e:
         print_color(f"Error occurred: {e}", "31")
 
+
 def manual_wot_run():
     try:
         subprocess.run(["python3", "./docker/nostpy_relay/wot_builder.py"], check=True)
@@ -101,19 +104,17 @@ def manual_wot_run():
 
 
 def menu():
-
     try:
-
         tor_address = subprocess.run(
-            ["sudo", "cat","./docker/tor/data/hidden_service/hostname"],
+            ["sudo", "cat", "./docker/tor/data/hidden_service/hostname"],
             check=True,
             capture_output=True,
-            text=True
+            text=True,
         )
     except:
         tor_address = None
         print("Tor has not been initialized yet")
-        
+
     while True:
         print_color(
             "\n##########################################################################################",
@@ -133,14 +134,18 @@ def menu():
         )
 
         if tor_address:
-            print_color(f"Your tor .onion address is: ws://{tor_address.stdout.strip()}", "31")
+            print_color(
+                f"Your tor .onion address is: ws://{tor_address.stdout.strip()}", "31"
+            )
         print("\nPlease select an option:\n")
         print_color("1) Execute server setup script", "33")
         print_color("2) Manually build Web of Trust", "33")
         print_color("3) Start Nostpy relay (Clearnet only)", "32")
         print_color("4) Start Nostpy relay (Clearnet + Tor)", "32")
         print_color("5) Destroy all docker containers and images (Clearnet)", "31")
-        print_color("6) Destroy all docker containers and images (Clearnet + Tor)", "31")
+        print_color(
+            "6) Destroy all docker containers and images (Clearnet + Tor)", "31"
+        )
         print_color("7) Stop all containers (Clearnet)", "33")
         print_color("8) Stop all containers (Clearnet + Tor)", "33")
         print_color("9) Exit menu", "31")
@@ -169,7 +174,6 @@ def menu():
                 print_color("Invalid choice. Please enter a valid option number.", "31")
         except ValueError:
             print_color("Invalid input. Please enter a valid option number.", "31")
-
 
 
 if __name__ == "__main__":
