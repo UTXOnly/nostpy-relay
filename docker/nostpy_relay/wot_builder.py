@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 import websockets
 from asyncpg import create_pool
 
-load_dotenv("/home/ubuntu/nostpy-relay/docker/.env")
+
 
 
 logging.basicConfig(
@@ -207,7 +207,7 @@ if __name__ == "__main__":
         "wss://purplepag.es",
         "wss://relay.damus.io",
     ]
-
+    load_dotenv("/home/ubuntu/nostpy-relay/docker/.env")
     db_conn_str = os.getenv("DB_CONN_STRING")
     pubkey = os.getenv("ADMIN_PUBKEY")
 
