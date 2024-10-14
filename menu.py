@@ -111,6 +111,7 @@ def menu():
             text=True
         )
     except:
+        tor_address = None
         print("Tor has not been initialized yet")
         
     while True:
