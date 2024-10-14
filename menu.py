@@ -131,7 +131,7 @@ def menu():
             print_color(f"Your tor .onion address is: ws://{tor_address.stdout.strip()}", "31")
         print("\nPlease select an option:\n")
         print_color("1) Execute server setup script", "33")
-        print_color("2) Manually execute web of trust", "33")
+        print_color("2) Manually build Web of Trust", "33")
         print_color("3) Start Nostpy relay (Clearnet only)", "32")
         print_color("4) Start Nostpy relay (Clearnet + Tor)", "32")
         print_color("5) Destroy all docker containers and images (Clearnet)", "31")
