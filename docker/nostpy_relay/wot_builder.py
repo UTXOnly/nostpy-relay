@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 import websockets
 from asyncpg import create_pool
 
-load_dotenv("~/nostpy-relay/docker/.env")
+load_dotenv("/home/ubuntu/nostpy-relay/docker/.env")
 
 
 logging.basicConfig(
