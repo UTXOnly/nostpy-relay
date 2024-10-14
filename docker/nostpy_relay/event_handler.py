@@ -25,30 +25,20 @@ from opentelemetry.semconv.trace import SpanAttributes
 from psycopg_pool import AsyncConnectionPool
 
 from event_classes import Event, Subscription
-<<<<<<< HEAD:docker/nostpy_relay/event_handler.py
 from init_db import initialize_db
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-=======
-#Uncomment below for local debugging"
-#logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
-#formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-#handler = logging.StreamHandler()
-#handler.setFormatter(formatter)
-#logger.addHandler(handler)
->>>>>>> main:docker_stuff/python_stuff/event_handler.py
 
 WOT_ENABLED = os.getenv("WOT_ENABLED")
 
 app = FastAPI()
 
- #Set up logging
+# Set up logging
 logger_provider = LoggerProvider(
     resource=Resource.create({"service.name": "event_handler_otel"})
 )
@@ -178,6 +168,20 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
             async with request.app.write_pool.connection() as conn:
                 async with conn.cursor() as cur:
+                    if WOT_ENABLED in ["True", "true"]:
+                        wot_check = await event_obj.check_wot(cur)
+                        if wot_check:
+                            logger.debug(
+                                f"Allow check passed: {wot_check}, adding event id: {event_obj.event_id}"
+                            )
+                            await event_obj.add_event(conn, cur)
+                        else:
+                            logger.debug(f"allow check failed: {wot_check}")
+                            return event_obj.evt_response(
+                                results_status="false",
+                                http_status_code=403,
+                                message="rejected: user is not in relay's web of trust",
+                            )
                     if event_obj.kind == 42069:
                         await event_obj.add_mgmt_event(conn, cur)
                         clt_msg = await event_obj.parse_mgmt_event(conn, cur)
@@ -204,22 +208,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
                     else:
                         try:
-                            if WOT_ENABLED in ["True", "true"]:
-                                wot_check = await event_obj.check_wot(cur)
-                                if wot_check:
-                                    logger.debug(
-                                        f"Allow check passed: {wot_check}, adding event id: {event_obj.event_id}"
-                                    )
-                                    await event_obj.add_event(conn, cur)
-                                else:
-                                    logger.debug(f"allow check failed: {wot_check}")
-                                    return event_obj.evt_response(
-                                        results_status="false",
-                                        http_status_code=403,
-                                        message="rejected: user is not permitted to post to this relay",
-                                    )
-                            else:
-                                await event_obj.add_event(conn, cur)
+                            await event_obj.add_event(conn, cur)
                         except psycopg.IntegrityError:
                             await conn.rollback()
                             logger.info(

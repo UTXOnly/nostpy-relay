@@ -2,8 +2,9 @@
 
 ### Enhancements
 **Added**
-* Web of Trust authentication (Optional feature)
+* Web of Trust authentication (optional)
   * Users who have 3 mutal follows from the relay admin's 1st hop follows can post here
+* Tor proxy container (optional)
 
 
 * Restructured project to use fit python standards
@@ -12,6 +13,7 @@
 
 **Removed**
 * `.env` file encryption (may return at some point)
+* `relay_service` user
 
 ## v1.0.0
 

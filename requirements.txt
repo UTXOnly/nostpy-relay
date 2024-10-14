@@ -1,3 +1,4 @@
 python-dotenv==0.19.2
 cryptography==3.4.8
-psycopg2-binary==2.9.7
+asyncpg
+websockets

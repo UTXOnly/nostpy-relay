@@ -2,23 +2,17 @@
 
 ![Pylint_score](./pylint.svg) 
 
-A purely Python, easy to deploy nostr relay using `asyncio` & `websockets` to serve Nostr clients
+A containerized, fully Python-based Nostr relay designed for portability and ease of deployment. It leverages asyncio and websockets to efficiently serve Nostr clients, making it simple to deploy and manage across various environments.
 
-## Description
 
 ![Image 2023-09-15 at 9 53 46 AM](https://github.com/UTXOnly/nost-py/assets/49233513/724cfbeb-03a0-4d10-b0d1-6b638ac153c4)
 
-
-
-A 100% containerized Python relay backed by a Postgres database, behind a NGINX reverse proxy. This has been tested on [Nostrudel](https://nostrudel.ninja/), [Iris.to](https://Iris.to) and [Snort.social](https://Snort.social, [Damus.io](https://damus.io/)) clients and works for the NIPS listed below.
-
-Numerous branches in development, trying to improve performance, reliability and ease of use. 
 
 ### Requirements
 
 * Ubuntu 22.04 server (Will likely work on other versions but this is all that has been tested)
   * Both `arm64` and `amd64` supported
-* At least 2 GB of available RAM
+* At least 2 GB of available RAM (2 vCPU and 4GB RAM for heavy load)
 * Your own domain
 
 
@@ -26,33 +20,51 @@ Numerous branches in development, trying to improve performance, reliability and
 
 ### Setup
 
-To setup this program, you need to update the variables in the `nostpy/docker_stuff/.env`, for example:
+To setup this relay:
+
+* Git repo should be cloned in user's `$HOME` directory (you can install elsewhere but will need to adjust a number of variables w/ filepaths to function properly)
+* Copy example env file:
 
 ```
-PGDATABASE_WRITE=<POSTGRES_WRITE_DATABASE>
-PGUSER_WRITE=<POSTGRES_WRITE_USER>
-PGPASSWORD_WRITE=<POSTGRES_WRITE_PASSWORD>
-PGPORT_WRITE=<POSTGRES_WRITE_PORT>
-PGHOST_WRITE=<POSTGRES_WRITE_HOST>
-PGDATABASE_READ=<POSTGRES_READ_DATABASE>
-PGUSER_READ=<POSTGRES_READ_USER>
-PGPASSWORD_READ=<POSTGRES_READ_PASSWORD>
-PGPORT_READ=<POSTGRES_READ_PORT>
-PGHOST_READ=<POSTGRES_READ_HOST>
-DD_ENV=<DATADOG_ENV_TAG>
+cp ~/nostpy-relay/docker/env.example ~/nostpy-relay/docker/.env 
+```
+
+Update variables in the `~/nostpy-relay/docker/.env`, for example:
+* All fields except for `DD_API_KEY` are mandatory
+* Most of the existing values can be left but you will need to update/add:
+  * Postgres `read/write` passwords:
+    * `PGPASSWORD_WRITE`
+    * `PGPASSWORD_READ`
+  * `ADMIN_PUBKEY`
+  * `DOMAIN`
+  * `CONTACT`
+
+```
+PGDATABASE_WRITE=nostr
+PGUSER_WRITE=nostr
+PGPASSWORD_WRITE=nostr #CHANGEME
+PGPORT_WRITE=5432
+PGHOST_WRITE=172.28.0.4
+PGDATABASE_READ=nostr
+PGUSER_READ=nostr
+PGPASSWORD_READ=nostr #CHANGEME
+PGPORT_READ=5432
+PGHOST_READ=172.28.0.4
 EVENT_HANDLER_PORT=8009
 EVENT_HANDLER_SVC=172.28.0.3 # hostname or IP for event handler service
 WS_PORT=8008 #Websocket handler port
 REDIS_HOST=redis
 REDIS_PORT=6379
-DD_API_KEY=<DATADOG_API_KEY_> (If using Datadog exporter for OTel collector)
-DOMAIN=<YOUR_DOMAIN_NAME>
-HEX_PUBKEY=<RELAY_ADMIN_HEX_PUBKEY>
-ADMIN_HEX_PUBKEY=<THE_PUBKEY_FOR _REMOTE_RELAY_ADMINISTRATION> #This can be differnt than your pubkey for nip 11
-CONTACT=<RELAY_ADMIN_EMAIL>
-ENV_FILE_PATH=./docker_stuff/.env
+DD_API_KEY=#(If using Datadog exporter for OTel collector)
+DOMAIN= #update to your own 
+ADMIN_PUBKEY= #hexidecimal format
+CONTACT= #YOUR_EMAIL, must be valid email for certbot to issue you a TLS certificate
+ENV_FILE_PATH=./docker/.env
 NGINX_FILE_PATH=/etc/nginx/sites-available/default
-VERSION=v1.0.0
+VERSION=v1.2.0
+WOT_ENABLED=True #True or False
+ICON="https://image.nostr.build/ca2fd20bdd90fe91525ffdd752a2773eb85c2d5a144154d4a0e6227835fa4ae1.jpg" #link to image or relay NIP11 doc, can replace with your own
+DB_CONN_STRING="postgresql://nostr:nostr@127.0.0.1:5432/nostr"
 
 ```
 
@@ -67,13 +79,13 @@ python3 menu.py
 This will bring up the menu below and you can control the program from there!
 
 **Usage notes**
-* Option 1 `Execute server setup script` needs to be run to create the `relay_service` user and set proper file permissions
-* After creating the `.env` that file is meant to stay encrypted(encrypted suring `Execute server script`), option2 `Start Nostpy relay` will not run unless the file is encypted
-  * You can encrypt/decrypt the file with option 5 
+* Option 1 `Execute server setup script` needs to be run to install all dependencies!!!
 
 
 
-![Image 2023-09-15 at 8 44 45 AM](https://github.com/UTXOnly/nost-py/assets/49233513/ee40d91c-2e6a-48a8-a0a8-c14e25e8ff07)
+
+![image](https://github.com/user-attachments/assets/c662940b-9832-44fc-8993-ae982a0ab0d7)
+
 
 
 ![Screenshot from 2024-02-23 21-15-49](https://github.com/UTXOnly/nost-py/assets/49233513/2119a053-3ebf-42b5-a996-2ccb87651c9e)
@@ -93,13 +105,34 @@ Will be adding log support soon, giving you full visibility into the health of y
 ![Screenshot from 2024-06-15 10-45-06](https://github.com/UTXOnly/nost-py/assets/49233513/36afbaf4-cf7d-497b-8bb1-d2a90b7fa0af)
 
 
-## Remote Relay Administration
+## Web of Trust
 
-You can use [nostpy-gui](https://github.com/UTXOnly/nostpy-gui) as a remote relay admin client to manage the following using notes:
+Web of Trust (WoT) filters which users can post based on social connections.
+* The relay scans the admin's follows and the follow lists of those users to build a trust network
+* Only public keys followed by the admin and/or at least three others from this network can post
+* This approach ensures that only trusted users can interact with the relay, preventing spam
 
-* Ban `pubkey` from posting events
-* Ban `kinds` from being posted
-* Delete all stored notes from a given `pubkey`
+### Web of Trust Setup
+
+There are 2 options for setting up the web of trust:
+* Select option 2 `Manually build Web of Trust` from `menu.py`
+  * You should run this when you first deploy the relay if `WOT_ENABLED=True` otherwise no one will be able to write to the relay
+
+* Set the `wot_builder.py` to run as a cronjob so your WoT is updated daily
+
+To set the script to run every 24 hours a cronjob using the below example as a guide:
+
+```bash
+crontab -e
+```
+```bash
+0 * * * * /usr/bin/python3 /home/ubuntu/nostpy-relay/docker/nostpy_relay/wot_builder.py >> /home/ubuntu/nostpy-relay/wot.log 2>&1
+```
+
+## Tor
+
+Nostpy relay supports serving clients over clearnet and tor simultaneously. Simply select option 3 `Start Nostpy relay (Clearnet + Tor)` to spin up the comose stack with a tor proxy. Your tor hidden service name will be shared in the `menu.py` landing page or you can run `sudo cat ~/nostpy-relay/docker/tor/data/hidden_service/hostname` to find it.
+
 
 ### Future plans
 
