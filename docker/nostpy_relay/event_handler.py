@@ -22,6 +22,7 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.semconv.trace import SpanAttributes
+from otel_metric_base.otel_metrics import OtelMetricBase
 from psycopg_pool import AsyncConnectionPool
 
 from event_classes import Event, Subscription
@@ -84,6 +85,8 @@ redis_tracer_provider.add_span_processor(redis_span_processor)
 # Instrument Redis with the separate tracer provider
 RedisInstrumentor().instrument(tracer_provider=redis_tracer_provider)
 redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"))
+
+otel_metrics = OtelMetricBase(otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 
 
 def get_conn_str(db_suffix: str) -> str:
@@ -169,32 +172,21 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
             async with request.app.write_pool.connection() as conn:
                 async with conn.cursor() as cur:
+                    otel_tags = {"kind": event_obj.kind, "pubkey": event_obj.pubkey}
                     if WOT_ENABLED in ["True", "true"]:
                         wot_check = await event_obj.check_wot(cur)
-                        if wot_check:
-                            logger.debug(
-                                f"Allow check passed: {wot_check}, adding event id: {event_obj.event_id}"
-                            )
-                            await event_obj.add_event(conn, cur)
-                            return event_obj.evt_response(
-                                results_status="true", http_status_code=200
-                            )
-                        else:
+                        if not wot_check:
                             logger.debug(f"allow check failed: {wot_check}")
+                            wot_reject_counter = otel_metrics.create_metric(
+                                "counter", name="wot_reject", description="Rejected note from WoT filter"
+                            )
+                            wot_reject_counter.add(1, attributes=otel_tags)
                             return event_obj.evt_response(
                                 results_status="false",
                                 http_status_code=403,
                                 message="rejected: user is not in relay's web of trust",
                             )
-                    if event_obj.kind == 42069:
-                        await event_obj.add_mgmt_event(conn, cur)
-                        clt_msg = await event_obj.parse_mgmt_event(conn, cur)
-                        return event_obj.evt_response(
-                            results_status="true",
-                            http_status_code=200,
-                            message=clt_msg,
-                        )
-
+    
                     if event_obj.kind in [0, 3]:
                         await event_obj.delete_check(conn, cur)
                         logger.debug(f"Adding event id: {event_obj.event_id}")
@@ -203,7 +195,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                             results_status="true", http_status_code=200
                         )
 
-                    elif event_obj.kind == 5:
+                    if event_obj.kind == 5:
                         events_to_delete = event_obj.parse_kind5()
                         await event_obj.delete_event(conn, cur, events_to_delete)
                         return event_obj.evt_response(
@@ -213,6 +205,11 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     else:
                         try:
                             await event_obj.add_event(conn, cur)
+                            
+                            event_add_counter = otel_metrics.create_metric(
+                                "counter", name="wot_reject", description="Rejected note from WoT filter"
+                            )
+                            event_add_counter.add(1, attributes=otel_tags)
                         except psycopg.IntegrityError:
                             await conn.rollback()
                             logger.info(
