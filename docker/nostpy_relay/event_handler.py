@@ -87,6 +87,21 @@ RedisInstrumentor().instrument(tracer_provider=redis_tracer_provider)
 redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"))
 
 otel_metrics = OtelMetricBase(otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
+wot_reject_counter = otel_metrics.create_metric(
+    "counter",
+    name="wot_event_reject",
+    description="Rejected note from WoT filter",
+)
+
+event_add_counter = otel_metrics.create_metric(
+    "counter", name="event_added", description="Event added"
+)
+
+sub_query_counter = otel_metrics.create_metric(
+    "counter",
+    name="event_query",
+    description="event query",
+)
 
 
 def get_conn_str(db_suffix: str) -> str:
@@ -177,11 +192,6 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         wot_check = await event_obj.check_wot(cur)
                         if not wot_check:
                             logger.debug(f"allow check failed: {wot_check}")
-                            wot_reject_counter = otel_metrics.create_metric(
-                                "counter",
-                                name="wot_event_reject",
-                                description="Rejected note from WoT filter",
-                            )
                             wot_reject_counter.add(1, attributes=otel_tags)
                             return event_obj.evt_response(
                                 results_status="false",
@@ -207,10 +217,6 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     else:
                         try:
                             await event_obj.add_event(conn, cur)
-
-                            event_add_counter = otel_metrics.create_metric(
-                                "counter", name="event_added", description="Event added"
-                            )
                             event_add_counter.add(1, attributes=otel_tags)
                         except psycopg.IntegrityError:
                             await conn.rollback()
@@ -261,29 +267,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
             global_search,
         ) = await subscription_obj.parse_filters(subscription_obj.filters, logger)
 
-        if subscription_obj.subscription_id == "nostpy_client":
-            sql_query = "SELECT client_pub, kind , allowed, note_id from allowlist;"
-            query_results = await execute_sql_with_tracing(
-                app, sql_query, "select Allow"
-            )
-            if query_results:
-                parsed_results = await subscription_obj.query_result_parser_hard(
-                    query_results
-                )
-                serialized_events = json.dumps(parsed_results)
-                redis_client.setex(str(raw_filters_copy), 240, serialized_events)
-                logger.debug(
-                    f"Caching results, keys: {str(raw_filters_copy)} value is: {serialized_events}"
-                )
-                return subscription_obj.sub_response_builder(
-                    "EVENT", subscription_obj.subscription_id, serialized_events, 200
-                )
         query_tags = {"env": "pre-cache"}
-        sub_query_counter = otel_metrics.create_metric(
-            "counter",
-            name="event_query",
-            description="event query",
-        )
         sub_query_counter.add(1, attributes=query_tags)
 
         cached_results = subscription_obj.fetch_data_from_cache(
