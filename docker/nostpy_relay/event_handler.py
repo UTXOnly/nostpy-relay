@@ -207,7 +207,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                             await event_obj.add_event(conn, cur)
                             
                             event_add_counter = otel_metrics.create_metric(
-                                "counter", name="wot_reject", description="Rejected note from WoT filter"
+                                "counter", name="event_added", description="Rejected note from WoT filter"
                             )
                             event_add_counter.add(1, attributes=otel_tags)
                         except psycopg.IntegrityError:
