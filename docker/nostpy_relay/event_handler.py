@@ -178,7 +178,9 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         if not wot_check:
                             logger.debug(f"allow check failed: {wot_check}")
                             wot_reject_counter = otel_metrics.create_metric(
-                                "counter", name="wot_reject", description="Rejected note from WoT filter"
+                                "counter",
+                                name="wot_event_reject",
+                                description="Rejected note from WoT filter",
                             )
                             wot_reject_counter.add(1, attributes=otel_tags)
                             return event_obj.evt_response(
@@ -186,7 +188,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                                 http_status_code=403,
                                 message="rejected: user is not in relay's web of trust",
                             )
-    
+
                     if event_obj.kind in [0, 3]:
                         await event_obj.delete_check(conn, cur)
                         logger.debug(f"Adding event id: {event_obj.event_id}")
@@ -205,9 +207,9 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     else:
                         try:
                             await event_obj.add_event(conn, cur)
-                            
+
                             event_add_counter = otel_metrics.create_metric(
-                                "counter", name="event_added", description="Rejected note from WoT filter"
+                                "counter", name="event_added", description="Event added"
                             )
                             event_add_counter.add(1, attributes=otel_tags)
                         except psycopg.IntegrityError:
@@ -276,6 +278,13 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 return subscription_obj.sub_response_builder(
                     "EVENT", subscription_obj.subscription_id, serialized_events, 200
                 )
+        query_tags = {"env": "pre-cache"}
+        sub_query_counter = otel_metrics.create_metric(
+            "counter",
+            name="event_query",
+            description="event query",
+        )
+        sub_query_counter.add(1, attributes=query_tags)
 
         cached_results = subscription_obj.fetch_data_from_cache(
             str(raw_filters_copy), redis_client
