@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from contextlib import asynccontextmanager
+from typing import Iterable, Callable, Dict, List
 
 import psycopg
 import redis
@@ -16,6 +17,7 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExport
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.psycopg import PsycopgInstrumentor
 from opentelemetry.instrumentation.redis import RedisInstrumentor
+from opentelemetry.metrics import Observation
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.resources import Resource
@@ -87,21 +89,50 @@ RedisInstrumentor().instrument(tracer_provider=redis_tracer_provider)
 redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"))
 
 otel_metrics = OtelMetricBase(otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
-wot_reject_counter = otel_metrics.create_metric(
-    "counter",
+
+#Global counters with associated tags
+wot_reject_counts: List[Dict] = []  # List of {count, attributes}
+event_add_counts: List[Dict] = []
+sub_query_counts: List[Dict] = []
+
+# Set up OtelMetrics and observable metrics
+otel_metrics = OtelMetricBase(otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
+
+# Observable metric callbacks
+def wot_reject_callback(options):
+    # Return all the recorded wot_reject counts with attributes
+    return [Observation(entry["count"], entry["attributes"]) for entry in wot_reject_counts]
+
+def event_add_callback(options):
+    # Return all the recorded event_add counts with attributes
+    return [Observation(entry["count"], entry["attributes"]) for entry in event_add_counts]
+
+def sub_query_callback(options):
+    # Return all the recorded sub_query counts with attributes
+    return [Observation(entry["count"], entry["attributes"]) for entry in sub_query_counts]
+
+# Register observable metrics with callbacks
+otel_metrics.create_metric(
+    metric_type="observable_counter",
     name="wot_event_reject",
     description="Rejected note from WoT filter",
+    callback=wot_reject_callback
 )
 
-event_add_counter = otel_metrics.create_metric(
-    "counter", name="event_added", description="Event added"
+otel_metrics.create_metric(
+    metric_type="observable_counter",
+    name="event_added",
+    description="Event added",
+    callback=event_add_callback
 )
 
-sub_query_counter = otel_metrics.create_metric(
-    "counter",
+otel_metrics.create_metric(
+    metric_type="observable_counter",
     name="event_query",
     description="event query",
+    callback=sub_query_callback
 )
+
 
 
 def get_conn_str(db_suffix: str) -> str:
@@ -192,7 +223,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         wot_check = await event_obj.check_wot(cur)
                         if not wot_check:
                             logger.debug(f"allow check failed: {wot_check}")
-                            wot_reject_counter.add(1, attributes=otel_tags)
+                            wot_reject_counts.append({"count": 1, "attributes": otel_tags}) 
                             return event_obj.evt_response(
                                 results_status="false",
                                 http_status_code=403,
@@ -217,7 +248,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     else:
                         try:
                             await event_obj.add_event(conn, cur)
-                            event_add_counter.add(1, attributes=otel_tags)
+                            event_add_counts.append({"count": 1, "attributes": otel_tags})
                         except psycopg.IntegrityError:
                             await conn.rollback()
                             logger.info(
@@ -268,7 +299,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         ) = await subscription_obj.parse_filters(subscription_obj.filters, logger)
 
         query_tags = {"env": "pre-cache"}
-        sub_query_counter.add(1, attributes=query_tags)
+        sub_query_counts.append({"count": 1, "attributes": query_tags})
 
         cached_results = subscription_obj.fetch_data_from_cache(
             str(raw_filters_copy), redis_client
