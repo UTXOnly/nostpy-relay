@@ -89,24 +89,26 @@ RedisInstrumentor().instrument(tracer_provider=redis_tracer_provider)
 redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"))
 
 
-metrics_counters: Dict[str, Dict] = {}
+wot_metric_counter: Dict[str, Dict] = {}
+added_metric_counter: Dict[str, Dict] = {}
+query_metric_counter: Dict[str, Dict] = {}
 
 
 # Function to increment counters with tags
-def increment_counter(tags: Dict[str, str]):
+def increment_counter(tags: Dict[str, str], counter_dict):
     tag_key = str(sorted(tags.items()))  # Convert dict to a unique key
-    if tag_key in metrics_counters:
-        metrics_counters[tag_key]["count"] += 1
+    if tag_key in counter_dict:
+        counter_dict[tag_key]["count"] += 1
     else:
-        metrics_counters[tag_key] = {"count": 1, "tags": tags}
+        counter_dict[tag_key] = {"count": 1, "tags": tags}
 
 
 # Create an observable callback to generate metrics based on current counter values
-def create_observable_callback() -> Callable:
+def create_observable_callback(counter_dict) -> Callable:
     def observable_callback(_):
         return [
             Observation(entry["count"], entry["tags"])
-            for entry in metrics_counters.values()
+            for entry in counter_dict.values()
         ]
 
     return observable_callback
@@ -119,19 +121,19 @@ otel_metrics = OtelMetricBase(otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOI
 otel_metrics.meter.create_observable_counter(
     name="wot_event_reject",
     description="Rejected note from WoT filter",
-    callbacks=[create_observable_callback()],
+    callbacks=[create_observable_callback(wot_metric_counter)],
 )
 
 otel_metrics.meter.create_observable_counter(
     name="event_added",
     description="Event added",
-    callbacks=[create_observable_callback()],
+    callbacks=[create_observable_callback(added_metric_counter)],
 )
 
 otel_metrics.meter.create_observable_counter(
     name="event_query",
     description="Event query",
-    callbacks=[create_observable_callback()],
+    callbacks=[create_observable_callback(query_metric_counter)],
 )
 
 
@@ -223,7 +225,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         wot_check = await event_obj.check_wot(cur)
                         if not wot_check:
                             logger.debug(f"allow check failed: {wot_check}")
-                            increment_counter(otel_tags)
+                            increment_counter(otel_tags, wot_metric_counter)
                             return event_obj.evt_response(
                                 results_status="false",
                                 http_status_code=403,
@@ -248,7 +250,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     else:
                         try:
                             await event_obj.add_event(conn, cur)
-                            increment_counter(otel_tags)
+                            increment_counter(otel_tags, added_metric_counter)
                         except psycopg.IntegrityError:
                             await conn.rollback()
                             logger.info(
@@ -299,7 +301,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         ) = await subscription_obj.parse_filters(subscription_obj.filters, logger)
 
         query_tags = {"env": "pre-cache"}
-        increment_counter(query_tags)
+        increment_counter(query_tags, query_metric_counter)
 
         cached_results = subscription_obj.fetch_data_from_cache(
             str(raw_filters_copy), redis_client
