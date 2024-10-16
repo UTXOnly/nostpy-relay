@@ -119,19 +119,19 @@ otel_metrics = OtelMetricBase(otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOI
 otel_metrics.meter.create_observable_counter(
     name="wot_event_reject",
     description="Rejected note from WoT filter",
-    callbacks=create_observable_callback(),
+    callbacks=[create_observable_callback()],
 )
 
 otel_metrics.meter.create_observable_counter(
     name="event_added",
     description="Event added",
-    callbacks=create_observable_callback(),
+    callbacks=[create_observable_callback()],
 )
 
 otel_metrics.meter.create_observable_counter(
     name="event_query",
     description="Event query",
-    callbacks=create_observable_callback(),
+    callbacks=[create_observable_callback()],
 )
 
 
