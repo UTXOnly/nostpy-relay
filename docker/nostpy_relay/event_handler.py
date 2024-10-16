@@ -116,22 +116,19 @@ def create_observable_callback() -> Callable:
 otel_metrics = OtelMetricBase(otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 
 # Register observable metrics with callbacks (all use the same callback)
-otel_metrics.create_metric(
-    metric_type="observable_counter",
+otel_metrics.meter.create_observable_counter(
     name="wot_event_reject",
     description="Rejected note from WoT filter",
     callback=create_observable_callback(),
 )
 
-otel_metrics.create_metric(
-    metric_type="observable_counter",
+otel_metrics.meter.create_observable_counter(
     name="event_added",
     description="Event added",
     callback=create_observable_callback(),
 )
 
-otel_metrics.create_metric(
-    metric_type="observable_counter",
+otel_metrics.meter.create_observable_counter(
     name="event_query",
     description="Event query",
     callback=create_observable_callback(),
