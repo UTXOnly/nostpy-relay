@@ -120,21 +120,21 @@ otel_metrics.create_metric(
     metric_type="observable_counter",
     name="wot_event_reject",
     description="Rejected note from WoT filter",
-    callback=[create_observable_callback()],
+    callback=create_observable_callback(),
 )
 
 otel_metrics.create_metric(
     metric_type="observable_counter",
     name="event_added",
     description="Event added",
-    callback=[create_observable_callback()],
+    callback=create_observable_callback(),
 )
 
 otel_metrics.create_metric(
     metric_type="observable_counter",
     name="event_query",
     description="Event query",
-    callback=[create_observable_callback()],
+    callback=create_observable_callback(),
 )
 
 
