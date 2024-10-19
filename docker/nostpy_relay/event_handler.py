@@ -89,7 +89,7 @@ RedisInstrumentor().instrument(tracer_provider=redis_tracer_provider)
 redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"))
 
 
-wot_metric_counter: Dict[str, Dict] = {}
+#wot_metric_counter: Dict[str, Dict] = {}
 added_metric_counter: Dict[str, Dict] = {}
 query_metric_counter: Dict[str, Dict] = {}
 
@@ -250,6 +250,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     else:
                         try:
                             await event_obj.add_event(conn, cur)
+                            wot_metric_counter: Dict[str, Dict] = {}
                             increment_counter(otel_tags, added_metric_counter)
                         except psycopg.IntegrityError:
                             await conn.rollback()
