@@ -206,7 +206,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         if not wot_check:
                             logger.debug(f"allow check failed: {wot_check}")
 
-                            increment_counter(otel_tags, wot_metric_counter)
+                            increment_counter(otel_tags, counter_dict=wot_metric_counter)
                             return event_obj.evt_response(
                                 results_status="false",
                                 http_status_code=403,
@@ -231,7 +231,6 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     else:
                         try:
                             await event_obj.add_event(conn, cur)
-                            wot_metric_counter: Dict[str, Dict] = {}
                             increment_counter(otel_tags, added_metric_counter)
                         except psycopg.IntegrityError:
                             await conn.rollback()
