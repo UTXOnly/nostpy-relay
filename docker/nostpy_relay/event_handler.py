@@ -54,7 +54,7 @@ log_exporter = OTLPLogExporter(
 logger_provider.add_log_record_processor(BatchLogRecordProcessor(log_exporter))
 
 handler = LoggingHandler(
-    level=logging.INFO,
+    level=logging.DEBUG,
     logger_provider=logger_provider,
 )
 
