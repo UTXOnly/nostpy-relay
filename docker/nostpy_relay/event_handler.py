@@ -89,7 +89,7 @@ RedisInstrumentor().instrument(tracer_provider=redis_tracer_provider)
 redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"))
 
 
-#wot_metric_counter: Dict[str, Dict] = {}
+wot_metric_counter: Dict[str, Dict] = {}
 added_metric_counter: Dict[str, Dict] = {}
 query_metric_counter: Dict[str, Dict] = {}
 
@@ -118,7 +118,11 @@ def create_observable_callback(counter_dict) -> Callable:
 otel_metrics = OtelMetricBase(otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 
 # Register observable metrics with callbacks (all use the same callback)
-
+otel_metrics.meter.create_observable_counter(
+    name="wot_event_reject",
+    description="Rejected note from WoT filter",
+    callbacks=[create_observable_callback(wot_metric_counter)],
+)
 
 otel_metrics.meter.create_observable_counter(
     name="event_added",
@@ -221,12 +225,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         wot_check = await event_obj.check_wot(cur)
                         if not wot_check:
                             logger.debug(f"allow check failed: {wot_check}")
-                            wot_metric_counter: Dict[str, Dict] = {}
-                            otel_metrics.meter.create_observable_counter(
-                            name="wot_event_reject",
-                            description="Rejected note from WoT filter",
-                            callbacks=[create_observable_callback(wot_metric_counter)],
-                        )
+
                             increment_counter(otel_tags, wot_metric_counter)
                             return event_obj.evt_response(
                                 results_status="false",
