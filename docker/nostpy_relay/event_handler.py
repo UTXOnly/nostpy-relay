@@ -30,6 +30,7 @@ from psycopg_pool import AsyncConnectionPool
 from event_classes import Event, Subscription
 from init_db import initialize_db
 
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
@@ -200,13 +201,18 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
             async with request.app.write_pool.connection() as conn:
                 async with conn.cursor() as cur:
-                    otel_tags = {"kind": event_obj.kind, "pubkey": event_obj.pubkey}
+                    otel_tags = {
+                        "kind": event_obj.kind,
+                        "pubkey": event_obj.pubkey,
+                        "event_id": event_obj.event_id,
+                    }
                     if WOT_ENABLED in ["True", "true"]:
                         wot_check = await event_obj.check_wot(cur)
                         if not wot_check:
                             logger.debug(f"allow check failed: {wot_check}")
-
-                            increment_counter(otel_tags, counter_dict=wot_metric_counter)
+                            increment_counter(
+                                otel_tags, counter_dict=wot_metric_counter
+                            )
                             return event_obj.evt_response(
                                 results_status="false",
                                 http_status_code=403,
