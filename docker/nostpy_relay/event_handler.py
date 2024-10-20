@@ -11,15 +11,11 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from opentelemetry import trace
-from opentelemetry._logs import set_logger_provider
-from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.psycopg import PsycopgInstrumentor
 from opentelemetry.instrumentation.redis import RedisInstrumentor
 from opentelemetry.metrics import Observation
-from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
-from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -69,23 +65,22 @@ redis_tracer_provider.add_span_processor(redis_span_processor)
 RedisInstrumentor().instrument(tracer_provider=redis_tracer_provider)
 redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"))
 
-
-wot_metric_counter: Dict[str, Dict] = {}
-added_metric_counter: Dict[str, Dict] = {}
-query_metric_counter: Dict[str, Dict] = {}
+otel_metrics = OtelMetricBase(otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 
 
-# Function to increment counters with tags
-def increment_counter(tags: Dict[str, str], counter_dict):
+metric_counters = {
+    "wot_event_reject": {},
+    "event_added": {},
+    "event_query": {},
+}
+
+
+def increment_counter(tags: Dict[str, str], counter_dict: Dict[str, Dict[str, any]]):
     tag_key = str(sorted(tags.items()))  # Convert dict to a unique key
-    if tag_key in counter_dict:
-        counter_dict[tag_key]["count"] += 1
-    else:
-        counter_dict[tag_key] = {"count": 1, "tags": tags}
+    counter_dict.setdefault(tag_key, {"count": 0, "tags": tags})["count"] += 1
 
 
-# Create an observable callback to generate metrics based on current counter values
-def create_observable_callback(counter_dict) -> Callable:
+def create_observable_callback(counter_dict: Dict[str, Dict[str, any]]) -> Callable:
     def observable_callback(_):
         return [
             Observation(entry["count"], entry["tags"])
@@ -95,27 +90,17 @@ def create_observable_callback(counter_dict) -> Callable:
     return observable_callback
 
 
-# Initialize OtelMetrics
-otel_metrics = OtelMetricBase(otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
+def register_metric(name: str, description: str):
+    otel_metrics.meter.create_observable_counter(
+        name=name,
+        description=description,
+        callbacks=[create_observable_callback(metric_counters[name])],
+    )
 
-# Register observable metrics with callbacks (all use the same callback)
-otel_metrics.meter.create_observable_counter(
-    name="wot_event_reject",
-    description="Rejected note from WoT filter",
-    callbacks=[create_observable_callback(wot_metric_counter)],
-)
 
-otel_metrics.meter.create_observable_counter(
-    name="event_added",
-    description="Event added",
-    callbacks=[create_observable_callback(added_metric_counter)],
-)
-
-otel_metrics.meter.create_observable_counter(
-    name="event_query",
-    description="Event query",
-    callbacks=[create_observable_callback(query_metric_counter)],
-)
+register_metric("wot_event_reject", "Rejected note from WoT filter")
+register_metric("event_added", "Event added")
+register_metric("event_query", "Event query")
 
 
 def get_conn_str(db_suffix: str) -> str:
@@ -183,7 +168,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
         sig=event_dict["sig"],
     )
     logger.debug(
-        f"New event loop iter, ev object is {event_obj.event_id} and {event_obj.kind}"
+        f"New event loop iter, event id is {event_obj.event_id} and kind is {event_obj.kind}"
     )
 
     try:
