@@ -196,7 +196,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         if not wot_check:
                             logger.debug(f"allow check failed: {wot_check}")
                             increment_counter(
-                                otel_tags, counter_dict=wot_metric_counter
+                                otel_tags, metric_counters["wot_event_reject"]
                             )
                             return event_obj.evt_response(
                                 results_status="false",
@@ -222,7 +222,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     else:
                         try:
                             await event_obj.add_event(conn, cur)
-                            increment_counter(otel_tags, added_metric_counter)
+                            increment_counter(otel_tags, metric_counters["event_added"])
                         except psycopg.IntegrityError:
                             await conn.rollback()
                             logger.info(
@@ -273,7 +273,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         ) = await subscription_obj.parse_filters(subscription_obj.filters, logger)
 
         query_tags = {"env": "pre-cache"}
-        increment_counter(query_tags, query_metric_counter)
+        increment_counter(query_tags, metric_counters["event_query"])
 
         cached_results = subscription_obj.fetch_data_from_cache(
             str(raw_filters_copy), redis_client
