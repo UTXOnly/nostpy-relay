@@ -52,8 +52,8 @@ receivers:
       processes:
 
 processors:
-  probabilistic_sampler:
-    sampling_percentage: 15
+  #probabilistic_sampler:
+  #  sampling_percentage: 15
   batch:
     send_batch_max_size: 1000
     send_batch_size: 100
@@ -88,9 +88,7 @@ processors:
       - key: deployment.environment
         value: nostpy-otel
         action: upsert
-      - key: dd.env
-        value: nostpy-otel
-        action: upsert
+
 
 connectors:
   datadog/connector:

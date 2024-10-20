@@ -9,6 +9,7 @@ opentelemetry-instrumentation-psycopg
 opentelemetry-instrumentation-redis
 opentelemetry-sdk
 opentelemetry-semantic-conventions
+otel-metric-base
 psycopg[binary,pool]
 redis==5.0.0
 secp256k1==0.14.0

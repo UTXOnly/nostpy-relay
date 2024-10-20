@@ -40,6 +40,7 @@ services:
       - PGPORT_READ=${PGPORT_READ}
       - PGHOST_READ=${PGHOST_READ}
       - WOT_ENABLED=${WOT_ENABLED}
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=delta
     networks:
       nostpy_network:
         ipv4_address: 172.28.0.3
