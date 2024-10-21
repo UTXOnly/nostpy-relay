@@ -1,0 +1,79 @@
+/* General page styling */
+body {
+    background-color: #121212;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+}
+
+/* Container for centering content */
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+/* Input and select styling */
+input, select {
+    padding: 10px;
+    margin: 5px;
+    width: 300px;
+    border: none;
+    background-color: #333333;
+    color: #ffffff;
+}
+
+/* Button styling */
+button {
+    padding: 10px 20px;
+    margin: 10px;
+    background-color: #1e88e5;
+    border: none;
+    color: white;
+    cursor: pointer;
+}
+button:hover {
+    background-color: #1565c0;
+}
+
+/* Specific styling for NostrPy text */
+#nostpy-text {
+    font-family: 'Courier New', Courier, monospace; /* Strict monospace font */
+    font-size: 16px; /* Adjust size if needed */
+    line-height: 1; /* Ensure no extra space between lines */
+    color: #2e85d1; /* Blue color for NostrPy text */
+    white-space: pre; /* Preserve whitespace and line breaks */
+    margin: 0; /* Remove extra margin */
+    padding: 0; /* Remove extra padding */
+    text-align: center; /* Center alignment */
+    width: 600px; /* Set a fixed width to avoid shifts */
+}
+
+/* Styling for output text (in red) */
+#output {
+    background-color: #222;
+    color: #ff0000; /* Red color for output text */
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    padding: 10px;
+    width: 90%;
+    max-width: 600px;
+    margin-top: 20px;
+    border-radius: 8px;
+    overflow-y: auto;
+    max-height: 300px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border: 1px solid #1e88e5; /* Blue border for accent */
+    transition: all 0.3s ease; /* Smooth transition for hover effects */
+}
+#output:hover {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+    border-color: #1565c0; /* Darker blue on hover */
+}
+
+/* Hidden class for conditional display */
+.hidden {
+    display: none;
+}
+
