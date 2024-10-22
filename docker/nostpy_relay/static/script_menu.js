@@ -1,14 +1,23 @@
 // Wait for DOM to be fully loaded
 document.addEventListener("DOMContentLoaded", function() {
-
+    
     // Function to show/hide sections
     function showSection(sectionId) {
         const sections = document.querySelectorAll('.content-section');
         sections.forEach(section => {
-            section.classList.add('hidden');
+            section.classList.add('hidden');  // Hide all sections
         });
-        document.getElementById(sectionId).classList.remove('hidden');
+        document.getElementById(sectionId).classList.remove('hidden');  // Show the selected section
     }
+
+    // Add event listeners for the sidebar links
+    document.querySelectorAll('.sidebar a').forEach(link => {
+        link.addEventListener('click', function (event) {
+            event.preventDefault(); // Prevent default anchor behavior
+            const sectionId = this.getAttribute('onclick').match(/'(.*)'/)[1]; // Extract section ID from onclick attribute
+            showSection(sectionId); // Show the corresponding section
+        });
+    });
 
     // Add event listeners to section buttons
     const manageKindButton = document.getElementById('manageKindButton');
@@ -98,4 +107,63 @@ document.addEventListener("DOMContentLoaded", function() {
             outputDiv.innerHTML = '<p>No results found.</p>';
         }
     }
+
+    // Function to handle method change and display appropriate fields
+    function handleMethodChange() {
+        const method = document.getElementById('method').value;
+        const pubkeyField = document.getElementById('pubkey');
+        const kindField = document.getElementById('kind');
+        const reasonField = document.getElementById('reason');
+        const ipField = document.getElementById('ip');
+        const idField = document.getElementById('id');
+
+        // Reset fields visibility
+        pubkeyField.classList.add('hidden');
+        kindField.classList.add('hidden');
+        reasonField.classList.add('hidden');
+        ipField.classList.add('hidden');
+        idField.classList.add('hidden');
+
+        // Show the appropriate fields based on the selected method
+        switch (method) {
+            case 'banpubkey':
+            case 'allowpubkey':
+                pubkeyField.classList.remove('hidden');
+                reasonField.classList.remove('hidden');  // Optional reason
+                break;
+            case 'banevent':
+                idField.classList.remove('hidden');
+                reasonField.classList.remove('hidden');
+                break;
+            case 'allowevent':
+                idField.classList.remove('hidden');
+                reasonField.classList.remove('hidden');  // Optional reason
+                break;
+            case 'changerelayname':
+            case 'changerelaydescription':
+            case 'changerelayicon':
+                reasonField.classList.remove('hidden');  // Use for new name/icon/description
+                break;
+            case 'allowkind':
+            case 'disallowkind':
+                kindField.classList.remove('hidden');
+                break;
+            case 'blockip':
+                ipField.classList.remove('hidden');
+                reasonField.classList.remove('hidden');  // Optional reason
+                break;
+            case 'unblockip':
+                ipField.classList.remove('hidden');
+                break;
+            default:
+                // Other methods don't need additional input
+                break;
+        }
+    }
+
+    // Initialize the form to show the appropriate fields when the page loads
+    document.getElementById('method').addEventListener('change', handleMethodChange);
+
+    // Call the function to set up initial form state
+    handleMethodChange();
 });
