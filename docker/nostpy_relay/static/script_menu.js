@@ -80,6 +80,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 body: requestBodyString
             });
 
+            // Check if the response is OK and handle accordingly
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status} ${response.statusText}`);
+            }
+
             // Parse and display the response from the server
             const responseData = await response.json();
             console.debug("Server Response:", responseData.result);
