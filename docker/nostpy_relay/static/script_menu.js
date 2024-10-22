@@ -1,13 +1,16 @@
-// Wait for DOM to be fully loaded
 document.addEventListener("DOMContentLoaded", function() {
-    
     // Function to show/hide sections
     function showSection(sectionId) {
         const sections = document.querySelectorAll('.content-section');
         sections.forEach(section => {
             section.classList.add('hidden');  // Hide all sections
         });
-        document.getElementById(sectionId).classList.remove('hidden');  // Show the selected section
+        const selectedSection = document.getElementById(sectionId);
+        if (selectedSection) {
+            selectedSection.classList.remove('hidden');  // Show the selected section
+        } else {
+            console.error(`Section ${sectionId} not found.`);
+        }
     }
 
     // Add event listeners for the sidebar links
@@ -118,11 +121,11 @@ document.addEventListener("DOMContentLoaded", function() {
         const idField = document.getElementById('id');
 
         // Reset fields visibility
-        pubkeyField.classList.add('hidden');
-        kindField.classList.add('hidden');
-        reasonField.classList.add('hidden');
-        ipField.classList.add('hidden');
-        idField.classList.add('hidden');
+        pubkeyField && pubkeyField.classList.add('hidden');
+        kindField && kindField.classList.add('hidden');
+        reasonField && reasonField.classList.add('hidden');
+        ipField && ipField.classList.add('hidden');
+        idField && idField.classList.add('hidden');
 
         // Show the appropriate fields based on the selected method
         switch (method) {
