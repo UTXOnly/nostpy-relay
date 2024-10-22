@@ -162,7 +162,7 @@ async def nip86_handler(
 ) -> JSONResponse:
     # Validate the Nostr event in the Authorization header
     url = str(request.url)
-    logger.info( f"py URL is {url})
+    logger.info( f"py URL is {url}")
     method = request.method
     body_hash = None
 
