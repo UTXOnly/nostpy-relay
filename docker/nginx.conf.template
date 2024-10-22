@@ -1,3 +1,4 @@
+
 server {
     listen 443 ssl;
     server_name ${DOMAIN};
@@ -19,21 +20,39 @@ server {
     add_header Strict-Transport-Security 'max-age=31536000; includeSubDomains; preload' always;
     keepalive_timeout 70;
 
-
     location / {
+
+
+        # Handle requests for the Nostr relay information (application/nostr+json)
         if ($http_accept ~* "application/nostr\\+json") {
-            return 200 '{"name": "${DOMAIN}", "description": "NostPy relay ${VERSION}", "pubkey": "${ADMIN_PUBKEY}", "contact": "${CONTACT}", "supported_nips": [1, 2, 4, 9, 15, 16, 25, 50, 99], "software": "git+https://github.com/UTXOnly/nost-py.git", "version": "${VERSION}", "site": "${ICON}", "icon" : "${ICON}"}';
             add_header 'Content-Type' 'application/json';
+            return 200 '{"name": "${DOMAIN}", "description": "NostPy relay ${VERSION}", "pubkey": "${ADMIN_PUBKEY}", "contact": "${CONTACT}", "supported_nips": [1, 2, 4, 9, 15, 16, 25, 50, 99], "software": "git+https://github.com/UTXOnly/nost-py.git", "version": "${VERSION}", "site": "${ICON}", "icon" : "${ICON}"}';
         }
 
-        proxy_pass http://${DOCKER_SVC}:${SVC_PORT};
+        # Check if the request is a WebSocket connection by looking for the Upgrade header
+        if ($http_upgrade = "websocket") {
+            # Proxy WebSocket connections to the WebSocket handler
+            proxy_pass http://${DOCKER_SVC}:${SVC_PORT};
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "Upgrade";
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_http_version 1.1;
+            proxy_read_timeout 1d;
+            proxy_send_timeout 1d;
+        }
+
+        # Forward all non-WebSocket traffic to FastAPI
+        proxy_pass http://${API_HOST}:${API_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
         proxy_http_version 1.1;
         proxy_read_timeout 1d;
         proxy_send_timeout 1d;
-
-        # WebSocket upgrade headers (applied here, not for /updater)
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "Upgrade";
-        proxy_set_header Host $host;
     }
 }
+

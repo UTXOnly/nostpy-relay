@@ -21,6 +21,7 @@ RUN pip install --no-cache-dir -r api_requirements.txt
 
 # Copy the rest of the application code to the container
 COPY ./nostpy_relay/api.py .
+COPY ./nostpy_relay/api_queries.py .
 COPY ./nostpy_relay/static ./static
 
 # Expose the port that the FastAPI app runs on

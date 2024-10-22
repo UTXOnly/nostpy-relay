@@ -104,6 +104,8 @@ services:
       - CONTACT=${CONTACT}
       - ADMIN_PUBKEY=${ADMIN_PUBKEY}
       - ICON=${ICON}
+      - API_HOST=${API_HOST}
+      - API_PORT=${API_PORT}
     ports:
       - "80:80"
       - "443:443"
@@ -159,6 +161,36 @@ services:
       - "9050:9050" # Expose Tor control port if needed
     depends_on:
       - websocket_handler
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      - API_PORT=${API_PORT}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - PGDATABASE_WRITE=${PGDATABASE_WRITE}
+      - PGUSER_WRITE=${PGUSER_WRITE}
+      - PGPASSWORD_WRITE=${PGPASSWORD_WRITE}
+      - PGPORT_WRITE=${PGPORT_WRITE}
+      - PGHOST_WRITE=${PGHOST_WRITE}
+      - PGDATABASE_READ=${PGDATABASE_READ}
+      - PGUSER_READ=${PGUSER_READ}
+      - PGPASSWORD_READ=${PGPASSWORD_READ}
+      - PGPORT_READ=${PGPORT_READ}
+      - PGHOST_READ=${PGHOST_READ}
+    networks:
+      nostpy_network:
+        ipv4_address: 172.28.0.9
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   postgres_data:

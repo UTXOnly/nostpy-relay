@@ -3,9 +3,8 @@ import psycopg
 
 def initialize_db(logger, write_str) -> None:
     """
-    Initialize the database by creating the necessary tables if they don't exist,
-    and creating indexes on the pubkey and kind columns.
-
+    Initialize the database by creating the necessary tables if they don't exist.
+    This includes allowed IPs, allowed kinds, and allowed pubkeys with a true/false status and optional reason.
     """
     try:
         logger.info(f"conn string is {write_str}")
@@ -26,6 +25,7 @@ def initialize_db(logger, write_str) -> None:
                 """
             )
 
+            # Index on pubkey and kind columns for events table
             index_columns = ["pubkey", "kind"]
             for column in index_columns:
                 cur.execute(
@@ -35,29 +35,35 @@ def initialize_db(logger, write_str) -> None:
                     """
                 )
 
+            # Create allowed IPs table
             cur.execute(
                 """
-                CREATE TABLE IF NOT EXISTS event_mgmt (
-                    id VARCHAR(255) PRIMARY KEY,
-                    pubkey VARCHAR(255),
-                    kind INTEGER,
-                    created_at INTEGER,
-                    tags JSONB,
-                    content TEXT,
-                    sig VARCHAR(255)
+                CREATE TABLE IF NOT EXISTS allowed_ips (
+                    ip_address VARCHAR(255) PRIMARY KEY,
+                    allowed BOOLEAN NOT NULL,
+                    reason TEXT
                 );
                 """
             )
+
+            # Create allowed kinds table
             cur.execute(
                 """
-                CREATE TABLE IF NOT EXISTS allowlist (
-                    client_pub VARCHAR(255) UNIQUE,
-                    note_id VARCHAR(255),
-                    tags JSONB,
-                    kind INTEGER UNIQUE,
-                    allowed BOOLEAN,
-                    sig VARCHAR(255),
-                    FOREIGN KEY (note_id) REFERENCES event_mgmt(id)
+                CREATE TABLE IF NOT EXISTS allowed_kinds (
+                    kind INTEGER PRIMARY KEY,
+                    allowed BOOLEAN NOT NULL,
+                    reason TEXT
+                );
+                """
+            )
+
+            # Create allowed pubkeys table
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS allowed_pubkeys (
+                    pubkey VARCHAR(255) PRIMARY KEY,
+                    allowed BOOLEAN NOT NULL,
+                    reason TEXT
                 );
                 """
             )

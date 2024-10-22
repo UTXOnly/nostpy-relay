@@ -147,6 +147,16 @@ function displayResults(responseData) {
         message.textContent = 'Relay icon has been changed successfully.';
         outputDiv.appendChild(message);
 
+    } else if (method === 'blockip' && responseData.result == true) {
+        const message = document.createElement('p');
+        message.textContent = 'IP has been blocked successfully.';
+        outputDiv.appendChild(message);
+
+    } else if (method === 'unblockip' && responseData.result == true) {
+        const message = document.createElement('p');
+        message.textContent = 'IP has been allowed successfully.';
+        outputDiv.appendChild(message);
+
     // Handle cases where there are no results
     } else if (responseData.result && responseData.result.length === 0) {
         outputDiv.innerHTML = '<p>No results found.</p>';

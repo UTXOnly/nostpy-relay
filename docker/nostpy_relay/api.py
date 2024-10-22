@@ -9,8 +9,11 @@ from fastapi import FastAPI, Request, Header, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from psycopg_pool import AsyncConnectionPool
+from contextlib import asynccontextmanager
 from typing import List, Dict, Any, Optional
 import uvicorn
+from api_queries import ApiQuery
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -20,8 +23,43 @@ formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-app = FastAPI()
+def get_conn_str(db_suffix: str) -> str:
+    return (
+        f"dbname={os.getenv(f'PGDATABASE_{db_suffix}')} "
+        f"user={os.getenv(f'PGUSER_{db_suffix}')} "
+        f"password={os.getenv(f'PGPASSWORD_{db_suffix}')} "
+        f"host={os.getenv(f'PGHOST_{db_suffix}')} "
+        f"port={os.getenv(f'PGPORT_{db_suffix}')} "
+    )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    conn_str_write = get_conn_str("WRITE")
+    conn_str_read = get_conn_str("READ")
+    logger.info(f"Write conn string is: {conn_str_write}")
+    logger.info(f"Read conn string is: {conn_str_read}")
+
+    app.write_pool = AsyncConnectionPool(conninfo=conn_str_write)
+    app.read_pool = AsyncConnectionPool(conninfo=conn_str_read)
+
+    yield
+
+    await app.write_pool.close()
+    await app.read_pool.close()
+
+app = FastAPI(lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+async def execute_query(app, query_func, *args, **kwargs):
+    async with app.read_pool.connection() as conn:
+        async with conn.cursor() as cur:
+            # Pass the connection, cursor, and any other arguments to the query function
+            result = await query_func(conn, cur, *args, **kwargs)
+            return result
+
+
+query_obj = ApiQuery()
 
 app.add_middleware(
     CORSMiddleware,
@@ -137,33 +175,37 @@ async def nip86_handler(
             content={"error": "pubkey verification failed"}, status_code=400
         )
 
+
     try:
         # Parse the incoming JSON-RPC-like request
         data = await request.json()
         method = data.get("method")
         params = data.get("params", [])
-
-        # Dispatch the request to the correct NIP-86 method
+    
+        # Supported Methods List
         if method == "supportedmethods":
             return JSONResponse(
                 content={
-                "result" : [
-                    "banpubkey",
-                    "allowpubkey",
-                    "listbannedpubkeys",
-                    "listallowedpubkeys",
-                    "banevent",
-                    "allowevent",
-                    "listbannedevents",
-                    "allowkind",
-                    "bankind",
-                    "listallowedkinds",
-                    "changerelayname",
-                    "listblockedips"
-                ]
+                    "result": [
+                        "banpubkey",
+                        "allowpubkey",
+                        "listbannedpubkeys",
+                        "listallowedpubkeys",
+                        "banevent",
+                        "allowevent",
+                        "listbannedevents",
+                        "allowkind",
+                        "bankind",
+                        "listallowedkinds",
+                        "changerelayname",
+                        "listblockedips",
+                        "blockip",
+                        "allowip"
+                    ]
                 }
             )
-
+    
+        # Pubkey Management
         elif method == "banpubkey":
             logger.info(f"Params are {params}")
             pubkey_to_ban = params[0] if len(params) > 0 else None
@@ -175,15 +217,7 @@ async def nip86_handler(
                 return JSONResponse(
                     content={"error": "Missing pubkey parameter"}, status_code=400
                 )
-
-        elif method == "listbannedpubkeys":
-            banned_pubkeys = await list_banned_pubkeys()
-            return JSONResponse(content={"result": banned_pubkeys})
-        
-        elif method == "listallowedkinds":
-            allowed = await list_allowed_kinds()
-            return JSONResponse(content={"result": allowed})
-
+    
         elif method == "allowpubkey":
             pubkey_to_allow = params[0] if len(params) > 0 else None
             reason = params[1] if len(params) > 1 else None
@@ -194,11 +228,16 @@ async def nip86_handler(
                 return JSONResponse(
                     content={"error": "Missing pubkey parameter"}, status_code=400
                 )
-
+    
+        elif method == "listbannedpubkeys":
+            banned_pubkeys = await list_banned_pubkeys()
+            return JSONResponse(content={"result": banned_pubkeys})
+    
         elif method == "listallowedpubkeys":
             allowed_pubkeys = await list_allowed_pubkeys()
             return JSONResponse(content={"result": allowed_pubkeys})
-
+    
+        # Event Management
         elif method == "banevent":
             event_id = params[0] if len(params) > 0 else None
             reason = params[1] if len(params) > 1 else None
@@ -209,7 +248,7 @@ async def nip86_handler(
                 return JSONResponse(
                     content={"error": "Missing event ID parameter"}, status_code=400
                 )
-
+    
         elif method == "allowevent":
             event_id = params[0] if len(params) > 0 else None
             reason = params[1] if len(params) > 1 else None
@@ -220,21 +259,12 @@ async def nip86_handler(
                 return JSONResponse(
                     content={"error": "Missing event ID parameter"}, status_code=400
                 )
-
+    
         elif method == "listbannedevents":
             banned_events = await list_banned_events()
             return JSONResponse(content={"result": banned_events})
-
-        elif method == "changerelayname":
-            new_name = params[0] if len(params) > 0 else None
-            if new_name:
-                await change_relay_name(new_name)
-                return JSONResponse(content={"result": True})
-            else:
-                return JSONResponse(
-                    content={"error": "Missing relay name parameter"}, status_code=400
-                )
-            
+    
+        # Kind Management
         elif method == "allowkind":
             kind = int(params[0]) if len(params) > 0 else None
             allowed_kind = await allow_kind(kind)
@@ -244,7 +274,7 @@ async def nip86_handler(
                 return JSONResponse(
                     content={"error": "Failed to allow kind"}, status_code=400
                 )
-            
+    
         elif method == "bankind":
             kind = int(params[0]) if len(params) > 0 else None
             banned_kind = await ban_kind(kind)
@@ -254,6 +284,12 @@ async def nip86_handler(
                 return JSONResponse(
                     content={"error": "Failed to ban kind"}, status_code=400
                 )
+    
+        elif method == "listallowedkinds":
+            allowed = await list_allowed_kinds()
+            return JSONResponse(content={"result": allowed})
+    
+        # IP Management
         elif method == "blockip":
             ip = str(params[0]) if len(params) > 0 else None
             blocked_ip = await block_ip(ip)
@@ -261,30 +297,42 @@ async def nip86_handler(
                 return JSONResponse(content={"result": True})
             else:
                 return JSONResponse(
-                    content={"error": "Failed to ban kind"}, status_code=400
+                    content={"error": "Failed to block IP"}, status_code=400
                 )
+    
         elif method == "allowip":
             ip = str(params[0]) if len(params) > 0 else None
-            ip = await allow_ip(ip)
-            if ip:
+            allowed_ip = await allow_ip(ip)
+            if allowed_ip:
                 return JSONResponse(content={"result": True})
             else:
                 return JSONResponse(
-                    content={"error": "Failed to ban kind"}, status_code=400
+                    content={"error": "Failed to allow IP"}, status_code=400
                 )
+    
         elif method == "listblockedips":
-            ip = await list_blocked_ips()
-
-            return JSONResponse(content={"result": ip})
-
-
-        # Add other methods like changerelaydescription, changerelayicon, etc. as needed
-
+            blocked_ips = await list_blocked_ips()
+            return JSONResponse(content={"result": blocked_ips})
+    
+        # Relay Management
+        elif method == "changerelayname":
+            new_name = params[0] if len(params) > 0 else None
+            if new_name:
+                await change_relay_name(new_name)
+                return JSONResponse(content={"result": True})
+            else:
+                return JSONResponse(
+                    content={"error": "Missing relay name parameter"}, status_code=400
+                )
+    
+        # Add other methods like changerelaydescription, changerelayicon, etc.
+    
+        # Fallback for unsupported methods
         else:
             return JSONResponse(
                 content={"error": f"Method {method} not supported"}, status_code=400
             )
-
+    
     except Exception as exc:
         logger.error(
             f"Exception occurred while handling NIP-86 request: {exc}", exc_info=True
@@ -293,26 +341,21 @@ async def nip86_handler(
             content={"error": "An internal error occurred"}, status_code=500
         )
 
+async def execute_query(self, app, query_func, *args, **kwargs):
+    async with app.write_pool.connection() as conn:
+        async with conn.cursor() as cur:
+            # Pass the connection, cursor, and any other arguments to the query function
+            result = await query_func(conn, cur, *args, **kwargs)
+            return result
 
 # Method implementations for NIP-86 management tasks
+#class QueryMethods:
 
-
+    # Pubkey Management
 async def ban_pubkey(pubkey: str, reason: str) -> None:
     logger.info(f"Banning pubkey {pubkey} for reason: {reason}")
     banned_pubkeys.append({"pubkey": pubkey, "reason": reason})
-
-
-async def list_banned_pubkeys() -> List[Dict[str, Any]]:
-    logger.info(f"Listing all banned pubkeys")
-    return banned_pubkeys
-
-async def list_blocked_ips() -> List[Dict[str, Any]]:
-    logger.info(f"Listing blocked ips")
-    return blocked_ips
-
-async def list_allowed_kinds() -> List[Dict[str, Any]]:
-    logger.info(f"Listing all allowed kinds")
-    return allowed_kinds
+    banned_pubkey = await execute_query(app, query_obj.insert_pubkey_list, pubkey, False, reason, logger)
 
 
 async def allow_pubkey(pubkey: str, reason: str) -> None:
@@ -320,11 +363,17 @@ async def allow_pubkey(pubkey: str, reason: str) -> None:
     allowed_pubkeys.append({"pubkey": pubkey, "reason": reason})
 
 
+async def list_banned_pubkeys() -> List[Dict[str, Any]]:
+    logger.info(f"Listing all banned pubkeys")
+    return banned_pubkeys
+
+
 async def list_allowed_pubkeys() -> List[Dict[str, Any]]:
     logger.info(f"Listing all allowed pubkeys")
     return allowed_pubkeys
 
 
+# Event Management
 async def ban_event(event_id: str, reason: str) -> None:
     logger.info(f"Banning event {event_id} for reason: {reason}")
     banned_events.append({"event_id": event_id, "reason": reason})
@@ -339,9 +388,7 @@ async def list_banned_events() -> List[Dict[str, Any]]:
     return banned_events
 
 
-async def change_relay_name(new_name: str) -> None:
-    logger.info(f"Changing relay name to: {new_name}")
-
+# Kind Management
 async def allow_kind(kind: int) -> bool:
     logger.info(f"Allowed kind: {kind} and type: {type(kind)}")
     if isinstance(kind, int):
@@ -349,6 +396,7 @@ async def allow_kind(kind: int) -> bool:
         return True
     else:
         return False
+
 
 async def ban_kind(kind: int) -> bool:
     logger.info(f"Banned kind: {kind}")
@@ -358,6 +406,13 @@ async def ban_kind(kind: int) -> bool:
     else:
         return False
 
+
+async def list_allowed_kinds() -> List[Dict[str, Any]]:
+    logger.info(f"Listing all allowed kinds")
+    return allowed_kinds
+
+
+# IP Management
 async def block_ip(ip: str) -> bool:
     logger.info(f"Banning IP: {ip}")
     if isinstance(ip, str):
@@ -365,9 +420,10 @@ async def block_ip(ip: str) -> bool:
         return True
     else:
         return False
-    
+
+
 async def allow_ip(ip: str) -> bool:
-    logger.info(f"Banning IP: {ip}")
+    logger.info(f"Allowing IP: {ip}")
     if isinstance(ip, str):
         blocked_ips.append(ip)
         return True
@@ -375,5 +431,16 @@ async def allow_ip(ip: str) -> bool:
         return False
 
 
+async def list_blocked_ips() -> List[Dict[str, Any]]:
+    logger.info(f"Listing blocked ips")
+    return blocked_ips
+
+
+# Relay Management
+async def change_relay_name(new_name: str) -> None:
+    logger.info(f"Changing relay name to: {new_name}")
+    
+
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("NIP86_PORT", 8000)))
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("API_PORT", 8000)))
