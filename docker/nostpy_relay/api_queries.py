@@ -47,7 +47,7 @@ class ApiQuery:
             logger.error(f"Error querying allowed kind: {e}")
             return None
         
-    async def insert_pubkey_list(conn, cur, pubkey, allowed, reason, logger):
+    async def insert_pubkey_list(self, conn, cur, pubkey, allowed, reason, logger):
         try:
             await cur.execute(
                 """
