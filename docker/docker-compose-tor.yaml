@@ -183,6 +183,8 @@ services:
     networks:
       nostpy_network:
         ipv4_address: 172.28.0.9
+    ports:
+      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
