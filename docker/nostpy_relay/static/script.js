@@ -294,7 +294,7 @@ document.getElementById('createEventButton').addEventListener('click', async () 
             kind: 27235,        // Event kind (for NIP-86 management events)
             created_at: Math.floor(Date.now() / 1000),  // Current timestamp in seconds
             tags: [
-                ["u", "https://dev.nostpy.lol/nip86"],  // Example tag for URL
+                ["u", "http://172.17.0.1:8000/nip86"],  // Example tag for URL
                 ["method", "POST"],                    // Example tag for method
                 ["payload", requestBodyHash]           // Payload hash for the request body
             ],
