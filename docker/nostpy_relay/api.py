@@ -51,12 +51,12 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-async def execute_query(app, query_func, *args, **kwargs):
-    async with app.read_pool.connection() as conn:
-        async with conn.cursor() as cur:
-            # Pass the connection, cursor, and any other arguments to the query function
-            result = await query_func(conn, cur, *args, **kwargs)
-            return result
+#async def execute_query(app, query_func, *args, **kwargs):
+#    async with app.read_pool.connection() as conn:
+#        async with conn.cursor() as cur:
+#            # Pass the connection, cursor, and any other arguments to the query function
+#            result = await query_func(conn, cur, *args, **kwargs)
+#            return result
 
 
 query_obj = ApiQuery()
@@ -342,7 +342,7 @@ async def nip86_handler(
             content={"error": "An internal error occurred"}, status_code=500
         )
 
-async def execute_query(self, app, query_func, *args, **kwargs):
+async def execute_query(app, query_func, *args, **kwargs):
     async with app.write_pool.connection() as conn:
         async with conn.cursor() as cur:
             # Pass the connection, cursor, and any other arguments to the query function
