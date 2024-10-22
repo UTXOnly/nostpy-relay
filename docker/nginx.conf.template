@@ -40,7 +40,7 @@ server {
         # Handle WebSocket traffic by checking the `Upgrade` header
         if ($http_upgrade != "websocket") {
             # Non-WebSocket requests (standard HTTP requests) should go to FastAPI
-            proxy_pass http://${API_HOST}:${API_PORT};  # FastAPI backend
+            proxy_pass http://${DOCKER_SVC}:8000;  # FastAPI backend
         }
     }
 }
