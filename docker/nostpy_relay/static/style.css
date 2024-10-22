@@ -14,6 +14,25 @@ body {
     height: 100vh;
 }
 
+/* ASCII Art specific styling */
+#ascii-art {
+    margin-bottom: 20px; /* Adds space between the ASCII art and the form */
+    text-align: center; /* Centers the text within its container */
+}
+
+/* Specific styling for NostrPy text */
+#nostpy-text {
+    font-family: 'Courier New', Courier, monospace; /* Strict monospace font */
+    font-size: 16px; /* Adjust size if needed */
+    line-height: 1; /* Ensure no extra space between lines */
+    color: #2e85d1; /* Blue color for NostrPy text */
+    white-space: pre; /* Preserve whitespace and line breaks */
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    width: 100%; /* Set the width of the ASCII art */
+}
+
 /* Input and select styling */
 input, select {
     padding: 10px;
@@ -37,23 +56,10 @@ button:hover {
     background-color: #1565c0;
 }
 
-/* Specific styling for NostrPy text */
-#nostpy-text {
-    font-family: 'Courier New', Courier, monospace; /* Strict monospace font */
-    font-size: 16px; /* Adjust size if needed */
-    line-height: 1; /* Ensure no extra space between lines */
-    color: #2e85d1; /* Blue color for NostrPy text */
-    white-space: pre; /* Preserve whitespace and line breaks */
-    margin: 0; /* Remove extra margin */
-    padding: 0; /* Remove extra padding */
-    text-align: center; /* Center alignment */
-    width: 600px; /* Set a fixed width to avoid shifts */
-}
-
-/* Styling for output text (in red) */
+/* Styling for output text */
 #output {
     background-color: #222;
-    color: #ff0000; /* Red color for output text */
+    color: #ff0000;
     white-space: pre-wrap;
     word-wrap: break-word;
     padding: 10px;
@@ -64,16 +70,15 @@ button:hover {
     overflow-y: auto;
     max-height: 300px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    border: 1px solid #1e88e5; /* Blue border for accent */
-    transition: all 0.3s ease; /* Smooth transition for hover effects */
+    border: 1px solid #1e88e5;
+    transition: all 0.3s ease;
 }
 #output:hover {
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-    border-color: #1565c0; /* Darker blue on hover */
+    border-color: #1565c0;
 }
 
 /* Hidden class for conditional display */
 .hidden {
     display: none;
 }
-

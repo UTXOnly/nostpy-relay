@@ -9,46 +9,46 @@
 <body>
 
 <div class="container">
-    <!-- <pre id="nostpy-text">
-        ███╗   ██╗ ██████╗ ███████╗████████╗██████╗ ██╗   ██╗
-        ████╗  ██║██╔═══██╗██╔════╝╚══██╔══╝██╔══██╗╚██╗ ██╔╝
-        ██╔██╗ ██║██║   ██║███████╗   ██║   ██████╔╝ ╚████╔╝ 
-        ██║╚██╗██║██║   ██║╚════██║   ██║   ██╔═══╝   ╚██╔╝  
-        ██║ ╚████║╚██████╔╝███████║   ██║   ██║        ██║   
-     ╚═╝  ╚═══╝ ╚═════╝ ╚══════╝   ╚═╝   ╚═╝        ╚═╝
-    </pre> -->
+    <div id="ascii-art">
     <pre id="nostpy-text">
-    
-██████╗ ███████╗██╗      █████╗ ██╗   ██╗     █████╗ ██████╗ ███╗   ███╗██╗███╗   ██╗
-██╔══██╗██╔════╝██║     ██╔══██╗╚██╗ ██╔╝    ██╔══██╗██╔══██╗████╗ ████║██║████╗  ██║
-██████╔╝█████╗  ██║     ███████║ ╚████╔╝     ███████║██║  ██║██╔████╔██║██║██╔██╗ ██║
-██╔══██╗██╔══╝  ██║     ██╔══██║  ╚██╔╝      ██╔══██║██║  ██║██║╚██╔╝██║██║██║╚██╗██║
-██║  ██║███████╗███████╗██║  ██║   ██║       ██║  ██║██████╔╝██║ ╚═╝ ██║██║██║ ╚████║
-╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝   ╚═╝       ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝
-                                                                                     
-                                                       
-        
+███╗   ██╗ ██████╗ ███████╗████████╗██████╗ ██╗   ██╗    ██████╗ ███████╗██╗      █████╗ ██╗   ██╗     █████╗ ██████╗ ███╗   ███╗██╗███╗   ██╗
+████╗  ██║██╔═══██╗██╔════╝╚══██╔══╝██╔══██╗╚██╗ ██╔╝    ██╔══██╗██╔════╝██║     ██╔══██╗╚██╗ ██╔╝    ██╔══██╗██╔══██╗████╗ ████║██║████╗  ██║
+██╔██╗ ██║██║   ██║███████╗   ██║   ██████╔╝ ╚████╔╝     ██████╔╝█████╗  ██║     ███████║ ╚████╔╝     ███████║██║  ██║██╔████╔██║██║██╔██╗ ██║
+██║╚██╗██║██║   ██║╚════██║   ██║   ██╔═══╝   ╚██╔╝      ██╔══██╗██╔══╝  ██║     ██╔══██║  ╚██╔╝      ██╔══██║██║  ██║██║╚██╔╝██║██║██║╚██╗██║
+██║ ╚████║╚██████╔╝███████║   ██║   ██║        ██║       ██║  ██║███████╗███████╗██║  ██║   ██║       ██║  ██║██████╔╝██║ ╚═╝ ██║██║██║ ╚████║
+ ╚═╝  ╚═══╝ ╚═════╝ ╚══════╝   ╚═╝   ╚═╝        ╚═╝       ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝   ╚═╝       ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝ 
     </pre>
+   </div>
     <label for="method">Select Method:</label>
     <select id="method" onchange="handleMethodChange()">
-        <option value="listbannedevents">List Banned Events</option>
+        <!-- Banning / Allowing Pubkeys and Events -->
         <option value="banpubkey">Ban Pubkey</option>
         <option value="allowpubkey">Allow Pubkey</option>
         <option value="banevent">Ban Event</option>
         <option value="allowevent">Allow Event</option>
-        <option value="listbannedpubkeys">List Banned Pubkeys</option>
-        <option value="listallowedpubkeys">List Allowed Pubkeys</option>
-        <option value="listeventsneedingmoderation">List Events Needing Moderation</option>
+        
+        <!-- Managing Relay Properties -->
         <option value="changerelayname">Change Relay Name</option>
         <option value="changerelaydescription">Change Relay Description</option>
         <option value="changerelayicon">Change Relay Icon</option>
+        
+        <!-- Allowing / Disallowing Kinds -->
         <option value="allowkind">Allow Kind</option>
         <option value="disallowkind">Disallow Kind</option>
         <option value="listallowedkinds">List Allowed Kinds</option>
+        
+        <!-- IP Management -->
         <option value="blockip">Block IP</option>
         <option value="unblockip">Unblock IP</option>
+        
+        <!-- Listing Banned / Allowed Entities -->
+        <option value="listbannedevents">List Banned Events</option>
+        <option value="listbannedpubkeys">List Banned Pubkeys</option>
+        <option value="listallowedpubkeys">List Allowed Pubkeys</option>
+        <option value="listeventsneedingmoderation">List Events Needing Moderation</option>
         <option value="listblockedips">List Blocked IPs</option>
     </select>
+    
 
     <div id="pubkeyField" class="hidden">
         <label for="pubkey">Pubkey:</label>
@@ -68,6 +68,11 @@
     <div id="ipField" class="hidden">
         <label for="ip">IP Address:</label>
         <input type="text" id="ip" placeholder="Enter IP Address">
+    </div>
+
+    <div id="idField" class="hidden">
+        <label for="id">Event ID:</label>
+        <input type="text" id="id" placeholder="Enter Event ID">
     </div>
 
     <button id="createEventButton">Create and Sign Event</button>

@@ -38,10 +38,11 @@ async def read_root():
     return file_path.read_text()
 
 # In-memory data store for banned and allowed pubkeys and events
-banned_pubkeys = ["1234"]
-allowed_pubkeys = ["5678"]
-banned_events = ["a7561f5aebb4b10c20daa9ce8388ee413b2e7583674a5be25040d5dd9af6a889", "eae7588843b75901433db94db465a5367923bd256af0186f76ae8618db8c7122"]
-banned_kinds = ["3","16","17","40","41"]
+banned_pubkeys = [{"pubkey": "npub1v02emwxjn2lznkmnszltjy4c7cqzxuejkmye0zeqs62wf0shpahswdmwuj", "reason": "test"}]
+allowed_pubkeys = [{"pubkey": "npub1g5pm4gf8hh7skp2rsnw9h2pvkr32sdnuhkcx9yte7qxmrg6v4txqqudjqv", "reason": "admin"}]
+banned_events = [{"id": "a7561f5aebb4b10c20daa9ce8388ee413b2e7583674a5be25040d5dd9af6a889", "reason": "spam"}, {"id": "eae7588843b75901433db94db465a5367923bd256af0186f76ae8618db8c7122", "reason": "NSFW"}]
+allowed_kinds = ["1","5","2","11"]
+blocked_ips = [{"ip": "123.456.789.123", "reason": "spam"}]
 
 
 # Function to decode and validate the Nostr event from the Authorization header
@@ -146,20 +147,25 @@ async def nip86_handler(
         if method == "supportedmethods":
             return JSONResponse(
                 content={
-                    "result": [
-                        "banpubkey",
-                        "listbannedpubkeys",
-                        "allowpubkey",
-                        "listallowedpubkeys",
-                        "banevent",
-                        "allowevent",
-                        "changerelayname",
-                        "listbannedevents",
-                    ]
+                "result" : [
+                    "banpubkey",
+                    "allowpubkey",
+                    "listbannedpubkeys",
+                    "listallowedpubkeys",
+                    "banevent",
+                    "allowevent",
+                    "listbannedevents",
+                    "allowkind",
+                    "bankind",
+                    "listallowedkinds",
+                    "changerelayname",
+                    "listblockedips"
+                ]
                 }
             )
 
         elif method == "banpubkey":
+            logger.info(f"Params are {params}")
             pubkey_to_ban = params[0] if len(params) > 0 else None
             reason = params[1] if len(params) > 1 else None
             if pubkey_to_ban:
@@ -173,6 +179,10 @@ async def nip86_handler(
         elif method == "listbannedpubkeys":
             banned_pubkeys = await list_banned_pubkeys()
             return JSONResponse(content={"result": banned_pubkeys})
+        
+        elif method == "listallowedkinds":
+            allowed = await list_allowed_kinds()
+            return JSONResponse(content={"result": allowed})
 
         elif method == "allowpubkey":
             pubkey_to_allow = params[0] if len(params) > 0 else None
@@ -224,6 +234,49 @@ async def nip86_handler(
                 return JSONResponse(
                     content={"error": "Missing relay name parameter"}, status_code=400
                 )
+            
+        elif method == "allowkind":
+            kind = int(params[0]) if len(params) > 0 else None
+            allowed_kind = await allow_kind(kind)
+            if allowed_kind:
+                return JSONResponse(content={"result": True})
+            else:
+                return JSONResponse(
+                    content={"error": "Failed to allow kind"}, status_code=400
+                )
+            
+        elif method == "bankind":
+            kind = int(params[0]) if len(params) > 0 else None
+            banned_kind = await ban_kind(kind)
+            if banned_kind:
+                return JSONResponse(content={"result": True})
+            else:
+                return JSONResponse(
+                    content={"error": "Failed to ban kind"}, status_code=400
+                )
+        elif method == "blockip":
+            ip = str(params[0]) if len(params) > 0 else None
+            blocked_ip = await block_ip(ip)
+            if blocked_ip:
+                return JSONResponse(content={"result": True})
+            else:
+                return JSONResponse(
+                    content={"error": "Failed to ban kind"}, status_code=400
+                )
+        elif method == "allowip":
+            ip = str(params[0]) if len(params) > 0 else None
+            ip = await allow_ip(ip)
+            if ip:
+                return JSONResponse(content={"result": True})
+            else:
+                return JSONResponse(
+                    content={"error": "Failed to ban kind"}, status_code=400
+                )
+        elif method == "listblockedips":
+            ip = await list_blocked_ips()
+
+            return JSONResponse(content={"result": ip})
+
 
         # Add other methods like changerelaydescription, changerelayicon, etc. as needed
 
@@ -253,6 +306,14 @@ async def list_banned_pubkeys() -> List[Dict[str, Any]]:
     logger.info(f"Listing all banned pubkeys")
     return banned_pubkeys
 
+async def list_blocked_ips() -> List[Dict[str, Any]]:
+    logger.info(f"Listing blocked ips")
+    return blocked_ips
+
+async def list_allowed_kinds() -> List[Dict[str, Any]]:
+    logger.info(f"Listing all allowed kinds")
+    return allowed_kinds
+
 
 async def allow_pubkey(pubkey: str, reason: str) -> None:
     logger.info(f"Allowing pubkey {pubkey} for reason: {reason}")
@@ -280,6 +341,38 @@ async def list_banned_events() -> List[Dict[str, Any]]:
 
 async def change_relay_name(new_name: str) -> None:
     logger.info(f"Changing relay name to: {new_name}")
+
+async def allow_kind(kind: int) -> bool:
+    logger.info(f"Allowed kind: {kind} and type: {type(kind)}")
+    if isinstance(kind, int):
+        allowed_kinds.append(kind)
+        return True
+    else:
+        return False
+
+async def ban_kind(kind: int) -> bool:
+    logger.info(f"Banned kind: {kind}")
+    if isinstance(kind, int) and kind in allowed_kinds:
+        allowed_kinds.pop(kind)
+        return True
+    else:
+        return False
+
+async def block_ip(ip: str) -> bool:
+    logger.info(f"Banning IP: {ip}")
+    if isinstance(ip, str):
+        blocked_ips.append(ip)
+        return True
+    else:
+        return False
+    
+async def allow_ip(ip: str) -> bool:
+    logger.info(f"Banning IP: {ip}")
+    if isinstance(ip, str):
+        blocked_ips.append(ip)
+        return True
+    else:
+        return False
 
 
 if __name__ == "__main__":

@@ -17,7 +17,9 @@ function displayResults(responseData) {
 
         responseData.result.forEach(event => {
             const listItem = document.createElement('li');
-            listItem.textContent = `Event ID: ${event}`;
+            const id = event.id;
+            const reason = event.reason || "No reason provided"; // Default text for missing reason
+            listItem.textContent = `Event: ${id}, Reason: ${reason}`;
             resultList.appendChild(listItem);
         });
 
@@ -28,17 +30,21 @@ function displayResults(responseData) {
         const listTitle = document.createElement('h2');
         listTitle.textContent = 'Banned Public Keys:';
         outputDiv.appendChild(listTitle);
-
+    
         const resultList = document.createElement('ul');
         resultList.className = 'result-list';
-
-        responseData.result.forEach(pubkey => {
+    
+        // Loop through the array of dictionaries (objects)
+        responseData.result.forEach(item => {
             const listItem = document.createElement('li');
-            listItem.textContent = `Pubkey: ${pubkey}`;
+            const pubkey = item.pubkey;
+            const reason = item.reason || "No reason provided"; // Default text for missing reason
+            listItem.textContent = `Pubkey: ${pubkey}, Reason: ${reason}`;
             resultList.appendChild(listItem);
         });
-
+    
         outputDiv.appendChild(resultList);
+
 
     // Handle 'listallowedpubkeys' method
     } else if (method === 'listallowedpubkeys' && responseData.result && responseData.result.length > 0) {
@@ -49,9 +55,11 @@ function displayResults(responseData) {
         const resultList = document.createElement('ul');
         resultList.className = 'result-list';
 
-        responseData.result.forEach(pubkey => {
+        responseData.result.forEach(item => {
             const listItem = document.createElement('li');
-            listItem.textContent = `Allowed Pubkey: ${pubkey}`;
+            const pubkey = item.pubkey
+            const reason = item.reason || "No reason provided"; // Default text for missing reason
+            listItem.textContent = `Pubkey: ${pubkey}, Reason: ${reason}`;
             resultList.appendChild(listItem);
         });
 
@@ -66,13 +74,78 @@ function displayResults(responseData) {
         const resultList = document.createElement('ul');
         resultList.className = 'result-list';
 
-        responseData.result.forEach(ip => {
+        responseData.result.forEach(unit => {
             const listItem = document.createElement('li');
-            listItem.textContent = `Blocked IP: ${ip}`;
+            const ip = unit.ip
+            const reason = unit.reason || "No reason provided"; // Default text for missing reason
+            listItem.textContent = `Blocked IP: ${ip}, Reason: ${reason}`;
             resultList.appendChild(listItem);
         });
 
         outputDiv.appendChild(resultList);
+
+    } else if (method === 'listallowedkinds' && responseData.result && responseData.result.length > 0) {
+        const listTitle = document.createElement('h2');
+        listTitle.textContent = 'Allowed kinds:';
+        outputDiv.appendChild(listTitle);
+
+        const resultList = document.createElement('ul');
+        resultList.className = 'result-list';
+
+        responseData.result.forEach(kind => {
+            const listItem = document.createElement('li');
+            listItem.textContent = `${kind}`;
+            resultList.appendChild(listItem);
+        });
+
+        outputDiv.appendChild(resultList);
+
+    // Handle 'banpubkey' method
+    } else if (method === 'banpubkey' && responseData.result == true) {
+        const message = document.createElement('p');
+        message.textContent = 'Pubkey has been banned successfully.';
+        outputDiv.appendChild(message);
+
+    // Handle 'allowpubkey' method
+    } else if (method === 'allowpubkey' && responseData.result == true) {
+        const message = document.createElement('p');
+        message.textContent = 'Pubkey has been allowed successfully.';
+        outputDiv.appendChild(message);
+
+    // Handle 'banevent' method
+    } else if (method === 'banevent' && responseData.result == true) {
+        const message = document.createElement('p');
+        message.textContent = 'Event has been banned successfully.';
+        outputDiv.appendChild(message);
+
+    // Handle 'allowevent' method
+    } else if (method === 'allowevent' && responseData.result == true) {
+        const message = document.createElement('p');
+        message.textContent = 'Event has been allowed successfully.';
+        outputDiv.appendChild(message);
+
+    } else if (method === 'allowkind' && responseData.result == true) {
+        const message = document.createElement('p');
+        message.textContent = 'Kind has been allowed successfully.';
+        outputDiv.appendChild(message);
+
+    // Handle 'changerelayname' method
+    } else if (method === 'changerelayname' && responseData.result == true) {
+        const message = document.createElement('p');
+        message.textContent = 'Relay name has been changed successfully.';
+        outputDiv.appendChild(message);
+
+    // Handle 'changerelaydescription' method
+    } else if (method === 'changerelaydescription' && responseData.result == true) {
+        const message = document.createElement('p');
+        message.textContent = 'Relay description has been changed successfully.';
+        outputDiv.appendChild(message);
+
+    // Handle 'changerelayicon' method
+    } else if (method === 'changerelayicon' && responseData.result == true) {
+        const message = document.createElement('p');
+        message.textContent = 'Relay icon has been changed successfully.';
+        outputDiv.appendChild(message);
 
     // Handle cases where there are no results
     } else if (responseData.result && responseData.result.length === 0) {
@@ -85,6 +158,7 @@ function displayResults(responseData) {
 }
 
 
+
 // Function to show/hide fields based on method selection
 function handleMethodChange() {
     const method = document.getElementById('method').value;
@@ -92,12 +166,14 @@ function handleMethodChange() {
     const kindField = document.getElementById('kindField');
     const reasonField = document.getElementById('reasonField');
     const ipField = document.getElementById('ipField');
+    const idField = document.getElementById('idField');
 
     // Reset fields visibility
     pubkeyField.classList.add('hidden');
     kindField.classList.add('hidden');
     reasonField.classList.add('hidden');
     ipField.classList.add('hidden');
+    idField.classList.add('hidden');
 
     // Show the appropriate fields based on the selected method
     switch (method) {
@@ -107,8 +183,10 @@ function handleMethodChange() {
             reasonField.classList.remove('hidden');  // Optional reason
             break;
         case 'banevent':
+            idField.classList.remove('hidden')
+            reasonField.classList.remove('hidden');
         case 'allowevent':
-            kindField.classList.remove('hidden');
+            idField.classList.remove('hidden');
             reasonField.classList.remove('hidden');  // Optional reason
             break;
         case 'changerelayname':
@@ -142,6 +220,7 @@ document.getElementById('createEventButton').addEventListener('click', async () 
         const kind = document.getElementById('kind').value;
         const reason = document.getElementById('reason').value;
         const ip = document.getElementById('ip').value;
+        const id = document.getElementById('id').value;
 
         // Fetch the public key using the extension
         const publicKey = await window.nostr.getPublicKey();
@@ -150,11 +229,18 @@ document.getElementById('createEventButton').addEventListener('click', async () 
         let params = [];
         switch (method) {
             case 'banpubkey':
+                params.push(pubkey);
+                if (reason) params.push(reason);
+                break;
+            case 'listallowedkinds':
             case 'allowpubkey':
                 params.push(pubkey);
                 if (reason) params.push(reason);
                 break;
             case 'banevent':
+                params.push(id)
+                if (reason) params.push(reason);
+                break;
             case 'allowevent':
                 params.push(pubkey, kind);
                 if (reason) params.push(reason);
@@ -223,6 +309,7 @@ document.getElementById('createEventButton').addEventListener('click', async () 
 
         // Parse and display the response from the server
         const responseData = await response.json();
+        console.debug("Server Response:", responseData.result);
         displayResults(responseData);  // Call the function directly without assigning it to innerHTML
 
     } catch (err) {
