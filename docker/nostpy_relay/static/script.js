@@ -308,7 +308,7 @@ document.getElementById('createEventButton').addEventListener('click', async () 
         const eventBase64 = btoa(JSON.stringify(signedEvent)); // Convert event to base64
 
         // Send the POST request to the endpoint
-        const response = await fetch('http://dev.nostpy.lol:/nip86', {
+        const response = await fetch('https://dev.nostpy.lol:/nip86', {
             method: 'POST',
             headers: {
                 'Authorization': `Nostr ${eventBase64}`,
