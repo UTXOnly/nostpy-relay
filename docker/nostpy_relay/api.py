@@ -212,8 +212,8 @@ async def nip86_handler(
             pubkey_to_ban = params[0] if len(params) > 0 else None
             reason = params[1] if len(params) > 1 else None
             if pubkey_to_ban:
-                await ban_pubkey(pubkey_to_ban, reason)
-                return JSONResponse(content={"result": True})
+                pk_ban_check = await ban_pubkey(pubkey_to_ban, reason)
+                return JSONResponse(content={"result": pk_ban_check})
             else:
                 return JSONResponse(
                     content={"error": "Missing pubkey parameter"}, status_code=400
@@ -223,8 +223,8 @@ async def nip86_handler(
             pubkey_to_allow = params[0] if len(params) > 0 else None
             reason = params[1] if len(params) > 1 else None
             if pubkey_to_allow:
-                await allow_pubkey(pubkey_to_allow, reason)
-                return JSONResponse(content={"result": True})
+                pk_allow_check = await allow_pubkey(pubkey_to_allow, reason)
+                return JSONResponse(content={"result": pk_allow_check})
             else:
                 return JSONResponse(
                     content={"error": "Missing pubkey parameter"}, status_code=400
@@ -355,13 +355,14 @@ async def execute_query(app, query_func, *args, **kwargs):
     # Pubkey Management
 async def ban_pubkey(pubkey: str, reason: str) -> None:
     logger.info(f"Banning pubkey {pubkey} for reason: {reason}")
-    banned_pubkeys.append({"pubkey": pubkey, "reason": reason})
     banned_pubkey = await execute_query(app, query_obj.insert_pubkey_list, pubkey, False, reason, logger)
+    return banned_pubkey
 
 
 async def allow_pubkey(pubkey: str, reason: str) -> None:
     logger.info(f"Allowing pubkey {pubkey} for reason: {reason}")
-    allowed_pubkeys.append({"pubkey": pubkey, "reason": reason})
+    allowed_pubkey = await execute_query(app, query_obj.insert_pubkey_list, pubkey, True, reason, logger)
+    return allowed_pubkey
 
 
 async def list_banned_pubkeys() -> List[Dict[str, Any]]:
