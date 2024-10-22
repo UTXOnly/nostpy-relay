@@ -18,7 +18,7 @@ function displayResults(responseData) {
         responseData.result.forEach(event => {
             const listItem = document.createElement('li');
             const id = event.id;
-            const reason = event.reason || "No reason provided"; // Default text for missing reason
+            const reason = event.reason || "No reason provided";
             listItem.textContent = `Event: ${id}, Reason: ${reason}`;
             resultList.appendChild(listItem);
         });
@@ -37,19 +37,71 @@ function displayResults(responseData) {
         responseData.result.forEach(item => {
             const listItem = document.createElement('li');
             const pubkey = item.pubkey;
-            const reason = item.reason || "No reason provided"; // Default text for missing reason
+            const reason = item.reason || "No reason provided";
             listItem.textContent = `Pubkey: ${pubkey}, Reason: ${reason}`;
             resultList.appendChild(listItem);
         });
     
         outputDiv.appendChild(resultList);
 
-    // Handle other methods similarly...
-    // Handle cases where there are no results
+    } else if (method === 'listallowedpubkeys' && responseData.result && responseData.result.length > 0) {
+        const listTitle = document.createElement('h2');
+        listTitle.textContent = 'Allowed Public Keys:';
+        outputDiv.appendChild(listTitle);
+
+        const resultList = document.createElement('ul');
+        resultList.className = 'result-list';
+
+        responseData.result.forEach(item => {
+            const listItem = document.createElement('li');
+            const pubkey = item.pubkey;
+            const reason = item.reason || "No reason provided";
+            listItem.textContent = `Pubkey: ${pubkey}, Reason: ${reason}`;
+            resultList.appendChild(listItem);
+        });
+
+        outputDiv.appendChild(resultList);
+
+    } else if (method === 'listblockedips' && responseData.result && responseData.result.length > 0) {
+        const listTitle = document.createElement('h2');
+        listTitle.textContent = 'Blocked IPs:';
+        outputDiv.appendChild(listTitle);
+
+        const resultList = document.createElement('ul');
+        resultList.className = 'result-list';
+
+        responseData.result.forEach(unit => {
+            const listItem = document.createElement('li');
+            const ip = unit.ip;
+            const reason = unit.reason || "No reason provided";
+            listItem.textContent = `Blocked IP: ${ip}, Reason: ${reason}`;
+            resultList.appendChild(listItem);
+        });
+
+        outputDiv.appendChild(resultList);
+
+    } else if (method === 'listallowedkinds' && responseData.result && responseData.result.length > 0) {
+        const listTitle = document.createElement('h2');
+        listTitle.textContent = 'Allowed Kinds:';
+        outputDiv.appendChild(listTitle);
+
+        const resultList = document.createElement('ul');
+        resultList.className = 'result-list';
+
+        responseData.result.forEach(kind => {
+            const listItem = document.createElement('li');
+            listItem.textContent = `${kind}`;
+            resultList.appendChild(listItem);
+        });
+
+        outputDiv.appendChild(resultList);
+
+    } else if (responseData.result === true) {
+        const message = document.createElement('p');
+        message.textContent = `${method.replace(/([A-Z])/g, ' $1')} has been processed successfully.`;
+        outputDiv.appendChild(message);
     } else if (responseData.result && responseData.result.length === 0) {
         outputDiv.innerHTML = '<p>No results found.</p>';
-
-    // Handle invalid responses or methods
     } else {
         outputDiv.innerHTML = '<p>Invalid response or method.</p>';
     }
@@ -76,20 +128,17 @@ function handleMethodChange() {
         case 'banpubkey':
         case 'allowpubkey':
             pubkeyField.classList.remove('hidden');
-            reasonField.classList.remove('hidden');  // Optional reason
+            reasonField.classList.remove('hidden');
             break;
         case 'banevent':
-            idField.classList.remove('hidden');
-            reasonField.classList.remove('hidden');  // Optional reason
-            break;
         case 'allowevent':
             idField.classList.remove('hidden');
-            reasonField.classList.remove('hidden');  // Optional reason
+            reasonField.classList.remove('hidden');
             break;
         case 'changerelayname':
         case 'changerelaydescription':
         case 'changerelayicon':
-            reasonField.classList.remove('hidden');  // Use for new name/icon/description
+            reasonField.classList.remove('hidden');
             break;
         case 'allowkind':
         case 'disallowkind':
@@ -97,18 +146,17 @@ function handleMethodChange() {
             break;
         case 'blockip':
             ipField.classList.remove('hidden');
-            reasonField.classList.remove('hidden');  // Optional reason
+            reasonField.classList.remove('hidden');
             break;
         case 'unblockip':
             ipField.classList.remove('hidden');
             break;
         default:
-            // Other methods don't need additional input
             break;
     }
 }
 
-// Function to switch between sections (e.g., kinds, pubkeys, IPs)
+// Function to handle sidebar navigation and show relevant section
 function showSection(sectionId) {
     // Hide all sections
     document.querySelectorAll('.content-section').forEach(section => {
@@ -137,22 +185,29 @@ document.getElementById('createEventButton').addEventListener('click', async () 
         let params = [];
         switch (method) {
             case 'banpubkey':
-                params.push(pubkey);
-                if (reason) params.push(reason);
-                break;
             case 'allowpubkey':
                 params.push(pubkey);
                 if (reason) params.push(reason);
                 break;
             case 'banevent':
-                params.push(id);
-                if (reason) params.push(reason);
-                break;
             case 'allowevent':
                 params.push(id);
                 if (reason) params.push(reason);
                 break;
-            // Other cases for other methods...
+            case 'changerelayname':
+            case 'changerelaydescription':
+            case 'changerelayicon':
+                params.push(reason);
+                break;
+            case 'allowkind':
+            case 'disallowkind':
+                params.push(kind);
+                break;
+            case 'blockip':
+            case 'unblockip':
+                params.push(ip);
+                if (reason) params.push(reason);
+                break;
         }
 
         const requestBody = {
@@ -169,22 +224,22 @@ document.getElementById('createEventButton').addEventListener('click', async () 
 
         // Define the event object you want to sign
         const event = {
-            pubkey: publicKey,  // Your public key from the extension
-            kind: 27235,        // Event kind (for NIP-86 management events)
-            created_at: Math.floor(Date.now() / 1000),  // Current timestamp in seconds
+            pubkey: publicKey,
+            kind: 27235,
+            created_at: Math.floor(Date.now() / 1000),
             tags: [
-                ["u", "http://172.17.0.1:8000/nip86"],  // Example tag for URL
-                ["method", "POST"],                    // Example tag for method
-                ["payload", requestBodyHash]           // Payload hash for the request body
+                ["u", "http://172.17.0.1:8000/nip86"],
+                ["method", "POST"],
+                ["payload", requestBodyHash]
             ],
-            content: ""  // The content is always empty
+            content: ""
         };
 
         // Sign the event using the browser extension
         const signedEvent = await window.nostr.signEvent(event);
 
         // Convert the signed event to base64
-        const eventBase64 = btoa(JSON.stringify(signedEvent)); // Convert event to base64
+        const eventBase64 = btoa(JSON.stringify(signedEvent));
 
         // Send the POST request to the endpoint
         const response = await fetch('/nip86', {
