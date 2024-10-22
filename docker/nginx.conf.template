@@ -28,9 +28,6 @@ server {
             proxy_pass http://${DOCKER_SVC}:8000;  # FastAPI backend
         }
 
-        if ($http_accept ~* "application/nostr\\+json\\+rpc") {
-            proxy_pass http://${DOCKER_SVC}:8000/nip86;
-        }
 
         proxy_pass http://${DOCKER_SVC}:${SVC_PORT};  # WebSocket backend
 
