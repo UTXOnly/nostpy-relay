@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nostpy Relay Admin</title>
+    <link rel="stylesheet" href="/static/css_menu.css">
+</head>
+<body>
+
+<div class="layout">
+    <!-- Sidebar with navigation options -->
+    <div class="sidebar">
+        <h2>Manage</h2>
+        <a href="#" onclick="showSection('manageKinds')">Kinds</a>
+        <a href="#" onclick="showSection('manageEvents')">Events</a>
+        <a href="#" onclick="showSection('managePubkeys')">Pubkeys</a>
+        <a href="#" onclick="showSection('manageIPs')">IPs</a>
+    </div>
+
+    <!-- Main content area -->
+    <div class="main-content">
+        <!-- ASCII Art -->
+        <div id="ascii-art">
+            <pre id="nostpy-text">
+███╗   ██╗ ██████╗ ███████╗████████╗██████╗ ██╗   ██╗    ██████╗ ███████╗██╗      █████╗ ██╗   ██╗     █████╗ ██████╗ ███╗   ███╗██╗███╗   ██╗
+████╗  ██║██╔═══██╗██╔════╝╚══██╔══╝██╔══██╗╚██╗ ██╔╝    ██╔══██╗██╔════╝██║     ██╔══██╗╚██╗ ██╔╝    ██╔══██╗██╔══██╗████╗ ████║██║████╗  ██║
+██╔██╗ ██║██║   ██║███████╗   ██║   ██████╔╝ ╚████╔╝     ██████╔╝█████╗  ██║     ███████║ ╚████╔╝     ███████║██║  ██║██╔████╔██║██║██╔██╗ ██║
+██║╚██╗██║██║   ██║╚════██║   ██║   ██╔═══╝   ╚██╔╝      ██╔══██╗██╔══╝  ██║     ██╔══██║  ╚██╔╝      ██╔══██║██║  ██║██║╚██╔╝██║██║██║╚██╗██║
+██║ ╚████║╚██████╔╝███████║   ██║   ██║        ██║       ██║  ██║███████╗███████╗██║  ██║   ██║       ██║  ██║██████╔╝██║ ╚═╝ ██║██║██║ ╚████║
+ ╚═╝  ╚═══╝ ╚═════╝ ╚══════╝   ╚═╝   ╚═╝        ╚═╝       ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝   ╚═╝       ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝ 
+            </pre>
+        </div>
+
+        <!-- Section for managing Kinds -->
+        <div id="manageKinds" class="content-section">
+            <h2>Manage Kinds</h2>
+            <label for="method">Select Method:</label>
+            <select id="method">
+                <option value="allowkind">Allow Kind</option>
+                <option value="disallowkind">Disallow Kind</option>
+                <option value="listallowedkinds">List Allowed Kinds</option>
+            </select>
+            <input type="text" id="kind" placeholder="Enter Kind">
+            <button id="manageKindButton">Submit</button>
+        </div>
+
+        <!-- Section for managing Events -->
+        <div id="manageEvents" class="content-section hidden">
+            <h2>Manage Events</h2>
+            <label for="method">Select Method:</label>
+            <select id="method">
+                <option value="banevent">Ban Event</option>
+                <option value="allowevent">Allow Event</option>
+                <option value="listbannedevents">List Banned Events</option>
+            </select>
+            <input type="text" id="id" placeholder="Enter Event ID">
+            <button id="manageEventButton">Submit</button>
+        </div>
+
+        <!-- Section for managing Pubkeys -->
+        <div id="managePubkeys" class="content-section hidden">
+            <h2>Manage Pubkeys</h2>
+            <label for="method">Select Method:</label>
+            <select id="method">
+                <option value="banpubkey">Ban Pubkey</option>
+                <option value="allowpubkey">Allow Pubkey</option>
+                <option value="listbannedpubkeys">List Banned Pubkeys</option>
+                <option value="listallowedpubkeys">List Allowed Pubkeys</option>
+            </select>
+            <input type="text" id="pubkey" placeholder="Enter Pubkey">
+            <button id="managePubkeyButton">Submit</button>
+        </div>
+
+        <!-- Section for managing IPs -->
+        <div id="manageIPs" class="content-section hidden">
+            <h2>Manage IPs</h2>
+            <label for="method">Select Method:</label>
+            <select id="method">
+                <option value="blockip">Block IP</option>
+                <option value="unblockip">Unblock IP</option>
+                <option value="listblockedips">List Blocked IPs</option>
+            </select>
+            <input type="text" id="ip" placeholder="Enter IP Address">
+            <button id="manageIPButton">Submit</button>
+        </div>
+    </div>
+</div>
+
+<script src="/static/script_menu.js"></script>
+</body>
+</html>
