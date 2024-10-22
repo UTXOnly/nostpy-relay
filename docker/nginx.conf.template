@@ -27,7 +27,11 @@ server {
             # Non-WebSocket requests (standard HTTP requests) should go to FastAPI
             proxy_pass http://${DOCKER_SVC}:8000;  # FastAPI backend
         }
-        
+
+        if ($http_accept ~* "application/nostr\\+json\\+rpc") {
+            proxy_pass http://${DOCKER_SVC}:8000/nip86;
+        }
+
         proxy_pass http://${DOCKER_SVC}:${SVC_PORT};  # WebSocket backend
 
         # These headers are for WebSocket connections
@@ -44,10 +48,5 @@ server {
         proxy_read_timeout 1d;
         proxy_send_timeout 1d;
 
-        # Handle WebSocket traffic by checking the `Upgrade` header
-        if ($http_upgrade != "websocket") {
-            # Non-WebSocket requests (standard HTTP requests) should go to FastAPI
-            proxy_pass http://${DOCKER_SVC}:8000;  # FastAPI backend
-        }
     }
 }
