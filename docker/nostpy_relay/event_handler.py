@@ -3,7 +3,7 @@ import json
 import logging
 import os
 from contextlib import asynccontextmanager
-from typing import Iterable, Callable, Dict, List
+from typing import Iterable, Callable, Dict, List, Any
 
 import psycopg
 import redis
@@ -278,11 +278,18 @@ async def handle_subscription(request: Request) -> JSONResponse:
         )
         logger.debug(f"Cached results are {cached_results}")
 
-        sql_query = subscription_obj.base_query_builder(
-            tag_values, query_parts, limit, global_search, logger
-        )
+        if cached_results:
+            return subscription_obj.sub_response_builder(
+                "EVENT",
+                subscription_obj.subscription_id,
+                cached_results.decode("utf-8"),
+                200,
+            )
 
-        if cached_results is None:
+        elif cached_results is None:
+            sql_query = subscription_obj.base_query_builder(
+                tag_values, query_parts, limit, global_search, logger
+            )
             query_results = await execute_sql_with_tracing(
                 app, sql_query, "SELECT * FROM EVENTS"
             )
