@@ -279,8 +279,9 @@ async def handle_subscription(request: Request) -> JSONResponse:
         logger.debug(f"Cached results are {cached_results}")
 
         if cached_results:
+            utf8_cache = json.loads(cached_results.decode('utf-8'))
             return subscription_obj.sub_response_builder(
-                "EVENT", subscription_obj.subscription_id, cached_results, 200
+                "EVENT", subscription_obj.subscription_id, utf8_cache, 200
             )
 
         elif cached_results is None:
