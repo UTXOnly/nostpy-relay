@@ -281,6 +281,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         if cached_results:
             #utf8_cache = json.loads(cached_results.decode('utf-8'))
             #dumped_res = json.dumps(utf8_cache)
+            logger.debug(f"Cache utf = {cached_results.decode('utf-8')}")
             return subscription_obj.sub_response_builder(
                 "EVENT", subscription_obj.subscription_id, cached_results.decode('utf-8'), 200
             )
