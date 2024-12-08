@@ -198,11 +198,11 @@ class ExtractedResponse:
         """
         tasks = []
         for event_item in response_list:
-            formatted_event = (
+            formatted_event = [
                 self.event_type,
                 self.subscription_id,
                 json.dumps(event_item),
-            )
+            ]
             task = asyncio.create_task(websocket.send(formatted_event))
             tasks.append(task)
         await asyncio.gather(*tasks)
@@ -262,7 +262,7 @@ class WebsocketMessages:
         self.uuid: str = websocket.id
 
 
-class FilterMatcher:
+class SubscriptionMatcher:
     """
     Matches a raw Redis event against filters defined in a REQ query.
 
@@ -329,10 +329,11 @@ class FilterMatcher:
             bool: True if the event matches the filter, False otherwise.
         """
         self.logger.debug(
-            f"Matching single filter: {filter_}, filter is type {type(filter_)} with event: {event}"
+            f"Matching single filter: {filter_}, filter type: {type(filter_)} with event: {event}"
         )
         for key, value in filter_.items():
             self.logger.debug(f"Checking key: {key}, value: {value}")
+
             if key == "kinds":
                 self.logger.debug(
                     f"Event 'kind': {event.get('kind')}, Filter 'kinds': {value}"
@@ -352,13 +353,8 @@ class FilterMatcher:
                     )
                     return False
             elif key.startswith("#"):
-                # Tags matching
-                tag_key = key[1:]  # Remove the '#' prefix
+                tag_key = key[1:]
                 self.logger.debug(f"Matching tag key: {tag_key}, Filter value: {value}")
-                for tag in event.get("tags", []):
-                    self.logger.debug(f"tag 0 = {tag[0]} and tag 1 = {tag[1]} ")
-                    self.logger.debug(f" tag key = {tag_key} filter value = {value}")
-
                 if not any(
                     tag_key == tag[0] and any(v in tag[1] for v in value)
                     for tag in event.get("tags", [])
@@ -370,6 +366,32 @@ class FilterMatcher:
             elif key == "limit":
                 self.logger.debug(f"Limit key = {value}")
                 continue
+            elif key == "since":
+                if event.get("created_at", 0) < value:
+                    return False
+            elif key == "until":
+                if event.get("created_at", 0) > value:
+                    return False
+            elif key == "search":
+                self.logger.debug(
+                    f"Performing search for value '{value}' in content and tags"
+                )
+                content = event.get("content", "")
+                tags = event.get("tags", [])
+                self.logger.debug(f"Event content: {content}")
+                self.logger.debug(f"Event tags: {tags}")
+
+                # Check if `value` exists in content or tags
+                if value.lower() not in content.lower() and not any(
+                    value.lower() in tag_value.lower() for _, tag_value in tags
+                ):
+                    self.logger.debug(
+                        f"Search mismatch: '{value}' not found in content or tags"
+                    )
+                    return False
+            elif key == "id":
+                if event.get("id", "") != value:
+                    return False
             else:
                 self.logger.debug(
                     f"Event key: {key}, Event value: {event.get(key)}, Filter value: {value}"
@@ -379,5 +401,6 @@ class FilterMatcher:
                         f"Filter mismatch for key '{key}': {event.get(key)} != {value}"
                     )
                     return False
+
         self.logger.debug("Filter matched successfully.")
         return True

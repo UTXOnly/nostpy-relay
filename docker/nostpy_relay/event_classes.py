@@ -253,7 +253,7 @@ class Subscription:
                 "ids": "id",
             }
 
-            if filters:
+            if filters or global_search:
                 for key in filters:
                     new_key = key_mappings.get(key, key)
                     if new_key != key:
@@ -261,6 +261,10 @@ class Subscription:
                         updated_keys[new_key] = stored_val
                     else:
                         updated_keys[key] = filters[key]
+
+            logger.debug(
+                f"updated keys are {updated_keys}, global search is {global_search}"
+            )
 
             return updated_keys, limit, global_search
         except Exception as e:
@@ -368,7 +372,7 @@ class Subscription:
             filters, logger
         )
         logger.debug(f"Updated keys is: {updated_keys}")
-        if updated_keys:
+        if updated_keys or global_search:
             tag_values, query_parts = await self._parse_sanitized_keys(
                 updated_keys, logger
             )
@@ -387,7 +391,10 @@ class Subscription:
 
             if global_search:
                 search_clause = self._search_clause(global_search)
-                self.where_clause += f" AND {search_clause}"
+                if self.where_clause:
+                    self.where_clause += f" AND {search_clause}"
+                else:
+                    self.where_clause += f"{search_clause}"
 
             if not limit or limit > 100:
                 limit = 100
@@ -398,9 +405,6 @@ class Subscription:
         except Exception as exc:
             logger.error(f"Error building query: {exc}", exc_info=True)
             return None
-
-    # async def query_allowlist(self):
-    # return f"SELECT client_pub, kind , allowed, note_id from allowlist;"
 
     def sub_response_builder(
         self, event_type, subscription_id, results_json, http_status_code

@@ -11,7 +11,7 @@ from aiohttp.client_exceptions import ClientConnectionError
 
 import websockets.exceptions
 
-from websocket_classes import ExtractedResponse, WebsocketMessages, FilterMatcher
+from websocket_classes import ExtractedResponse, WebsocketMessages, SubscriptionMatcher
 
 from opentelemetry import trace
 
@@ -238,7 +238,7 @@ async def broadcast_event_to_clients(event_data: Dict[str, Any]) -> None:
     for subscription_id, data in active_subscriptions.copy().items():
         websocket = data["websocket"]
         try:
-            matcher = FilterMatcher(subscription_id, data["event"], logger)
+            matcher = SubscriptionMatcher(subscription_id, data["event"], logger)
             if matcher.match_event(event_data):
                 await websocket.send(
                     json.dumps((f"EVENT", subscription_id, event_data))
