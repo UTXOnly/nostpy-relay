@@ -134,6 +134,11 @@ crontab -e
 Nostpy relay supports serving clients over clearnet and tor simultaneously. Simply select option 3 `Start Nostpy relay (Clearnet + Tor)` to spin up the comose stack with a tor proxy. Your tor hidden service name will be shared in the `menu.py` landing page or you can run `sudo cat ~/nostpy-relay/docker/tor/data/hidden_service/hostname` to find it.
 
 ## Relay Architecture 
+* Supports clearnet + tor traffic
+* Redis pub/sub channel to brocast events
+* Redis cache for frequently queried events
+
+![Nostpy pub_sub](https://github.com/user-attachments/assets/824e79af-15f7-4f12-930b-4df83d3d4c08)
 
 
 
