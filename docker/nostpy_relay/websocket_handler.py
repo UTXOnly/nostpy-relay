@@ -26,6 +26,12 @@ from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.sdk.resources import Resource
+from opentelemetry.metrics import (
+    CallbackOptions,
+    Observation,
+    get_meter_provider,
+    set_meter_provider,
+)
 
 
 AioHttpClientInstrumentor().instrument()
@@ -76,7 +82,7 @@ redis_client = redis.from_url(f"redis://{REDIS_HOST}")
 
 active_subscriptions = {}
 
-def active_websockets_subscriptions_callback():
+def active_websockets_subscriptions_callback(options: CallbackOptions):
     """
     Callback to return the current number of active WebSocket subscriptions.
     """
