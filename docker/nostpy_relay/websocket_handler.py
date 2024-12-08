@@ -268,7 +268,8 @@ async def redis_listener():
                         try:
                             event_data = json.loads(message["data"].decode("utf-8"))
                             logger.debug(f"Decoded event data: {event_data}")
-                            await broadcast_event_to_clients(event_data)
+                            # Offload broadcast to a background task
+                            asyncio.create_task(broadcast_event_to_clients(event_data))
                         except json.JSONDecodeError as e:
                             logger.error(f"Invalid JSON in Redis message: {e}")
                 await asyncio.sleep(0.1)  # Prevent tight looping
@@ -278,10 +279,9 @@ async def redis_listener():
 
 async def broadcast_event_to_clients(event_data: Dict[str, Any]) -> None:
     """Broadcasts an event to all active WebSocket clients."""
-    #logger.debug(f"Active subs are {active_subscriptions}")
-    #len_act_sub = len(active_subscriptions)
-    #active_websockets_subs_gauge.record(int(len_act_sub))
-    for subscription_id, data in active_subscriptions.copy().items():
+    logger.debug(f"Active subscriptions: {active_subscriptions}")
+
+    async def process_subscription(subscription_id, data):
         websocket = data["websocket"]
         try:
             matcher = SubscriptionMatcher(subscription_id, data["event"], logger)
@@ -292,6 +292,12 @@ async def broadcast_event_to_clients(event_data: Dict[str, Any]) -> None:
         except Exception as e:
             logger.error(f"Error broadcasting to subscription {subscription_id}: {e}")
             del active_subscriptions[subscription_id]
+
+    # Process all subscriptions concurrently
+    await asyncio.gather(
+        *(process_subscription(subscription_id, data) for subscription_id, data in active_subscriptions.copy().items())
+    )
+
 
 async def remove_inactive_websockets():
     """Periodically checks and removes inactive WebSocket connections."""

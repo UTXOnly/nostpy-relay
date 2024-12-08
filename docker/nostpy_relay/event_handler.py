@@ -1,3 +1,4 @@
+import asyncio
 import copy
 import json
 import logging
@@ -284,7 +285,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
             )
         raw_filters_copy = copy.deepcopy(subscription_obj.filters)
         mutli_filter = []
-        logger.debug(f"sub filters vre {subscription_obj.filters}")
+        logger.debug(f"sub filters are {subscription_obj.filters}")
         for filter in subscription_obj.filters:
             (
                 tag_values,
@@ -320,11 +321,9 @@ async def handle_subscription(request: Request) -> JSONResponse:
         elif cached_results is None:
             result_list = []
             logger.debug(f"multi-filter is {mutli_filter}")
-            for filter_set in mutli_filter:
-                tag_values = filter_set[0]
-                query_parts = filter_set[1]
-                limit = filter_set[2]
-                global_search = filter_set[3]
+
+            async def process_filter(filter_set):
+                tag_values, query_parts, limit, global_search = filter_set
                 sql_query = subscription_obj.base_query_builder(
                     tag_values, query_parts, limit, global_search, logger
                 )
@@ -332,16 +331,18 @@ async def handle_subscription(request: Request) -> JSONResponse:
                     app, sql_query, "SELECT * FROM EVENTS"
                 )
                 if query_results:
-                    parsed_results = await subscription_obj.query_result_parser(
-                        query_results
-                    )
-                    logger.debug(
-                        f"parsed results : {parsed_results} of type: {type(parsed_results)}"
-                    )
-                    for item in parsed_results:
-                        result_list.append(item)
-                else:
-                    pass
+                    return await subscription_obj.query_result_parser(query_results)
+                return []
+
+            # Run all filters concurrently
+            parsed_results_lists = await asyncio.gather(
+                *(process_filter(filter_set) for filter_set in mutli_filter)
+            )
+
+            # Flatten the list of results
+            for parsed_results in parsed_results_lists:
+                result_list.extend(parsed_results)
+
         dumped_list = json.dumps(result_list)
         logger.debug(f" dumped list {dumped_list} of type: {type(dumped_list)}")
         redis_client.setex(str(raw_filters_copy), 240, dumped_list)
