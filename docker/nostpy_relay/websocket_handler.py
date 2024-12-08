@@ -24,7 +24,7 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.instrumentation.aiohttp_client import AioHttpClientInstrumentor
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-from opentelemetry.exporter.otlp.proto.grpc.metrics_exporter import OTLPMetricExporter
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.sdk.resources import Resource
 
 
@@ -54,14 +54,8 @@ metrics.set_meter_provider(meter_provider)
 # Get a meter
 meter = metrics.get_meter("example-meter", version="1.0")
 
-# Create a Gauge
-active_websockets_subs_gauge = meter.create_gauge(
-    name="active_websockets_subs",
-    description="Active WebSocket subscriptions",
-    unit="count",
-)
 
-# Record a gauge value
+
 
 
 
@@ -82,6 +76,21 @@ redis_client = redis.from_url(f"redis://{REDIS_HOST}")
 
 active_subscriptions = {}
 
+def active_websockets_subscriptions_callback():
+    """
+    Callback to return the current number of active WebSocket subscriptions.
+    """
+    len_act_sub = len(active_subscriptions)
+    logger.debug(f"Gauge callback - Active WebSocket subscriptions: {len_act_sub}")
+    return len_act_sub
+
+# Create an ObservableGauge
+active_websockets_subs_gauge = meter.create_observable_gauge(
+    name="active_websockets_subs",
+    description="Active WebSocket subscriptions",
+    unit="count",
+    callbacks=[active_websockets_subscriptions_callback],
+)
 
 async def handle_websocket_connection(
     websocket: websockets.WebSocketServerProtocol,
@@ -263,9 +272,9 @@ async def redis_listener():
 
 async def broadcast_event_to_clients(event_data: Dict[str, Any]) -> None:
     """Broadcasts an event to all active WebSocket clients."""
-    logger.debug(f"Active subs are {active_subscriptions}")
-    len_act_sub = len(active_subscriptions)
-    active_websockets_subs_gauge.record(int(len_act_sub))
+    #logger.debug(f"Active subs are {active_subscriptions}")
+    #len_act_sub = len(active_subscriptions)
+    #active_websockets_subs_gauge.record(int(len_act_sub))
     for subscription_id, data in active_subscriptions.copy().items():
         websocket = data["websocket"]
         try:
