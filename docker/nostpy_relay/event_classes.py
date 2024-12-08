@@ -234,6 +234,7 @@ class Subscription:
         limit = ""
         global_search = {}
         try:
+            logger.debug(f"filters in san is {filters}")
             try:
                 limit = filters.get("limit", 100)
                 filters.pop("limit")
@@ -316,7 +317,7 @@ class Subscription:
         for item in record:
             row_result[self.column_names[i]] = item
             i += 1
-        column_added.append([row_result])
+        column_added.append(row_result)
 
     async def _parser_worker_hard(self, record, column_added) -> None:
         self.hard_col = ["client_pub", "kind", "allowed", "note_id"]
@@ -330,7 +331,7 @@ class Subscription:
             else:
                 row_result[self.hard_col[i]] = item
             i += 1
-        column_added.append([row_result])
+        column_added.append(row_result)
 
     async def query_result_parser(self, query_result) -> List:
         column_added = []

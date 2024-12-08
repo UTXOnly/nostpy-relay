@@ -5,15 +5,13 @@ import os
 from typing import Any, Dict, Tuple
 
 import aiohttp
+import redis.asyncio as redis
 import websockets
 from aiohttp.client_exceptions import ClientConnectionError
 
 import websockets.exceptions
 
-from websocket_classes import (
-    ExtractedResponse,
-    WebsocketMessages,
-)
+from websocket_classes import ExtractedResponse, WebsocketMessages, FilterMatcher
 
 from opentelemetry import trace
 
@@ -38,11 +36,22 @@ otlp_tracer = trace.get_tracer_provider().add_span_processor(span_processor)
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 EVENT_HANDLER_SVC = os.getenv("EVENT_HANDLER_SVC")
 EVENT_HANDLER_PORT = os.getenv("EVENT_HANDLER_PORT")
+REDIS_HOST = os.getenv("REDIS_HOST")
+REDIS_CHANNEL = "events_channel"
+
+# Redis Client
+
+redis_client = redis.from_url(f"redis://{REDIS_HOST}")
+
+active_subscriptions = {}
 
 
 async def handle_websocket_connection(
@@ -97,6 +106,14 @@ async def handle_websocket_connection(
                             subscription_id=ws_message.subscription_id,
                             websocket=websocket,
                         )
+                        # Store the subscription in active_subscriptions
+                    active_subscriptions[ws_message.subscription_id] = {
+                        "event": ws_message.event_payload,
+                        "websocket": websocket,
+                    }
+                    logger.info(
+                        f"Stored subscription: {ws_message.subscription_id} with event {ws_message.event_payload}"
+                    )
                 elif ws_message.event_type == "CLOSE":
                     response: Tuple[str, str] = (
                         "CLOSED",
@@ -104,6 +121,7 @@ async def handle_websocket_connection(
                         "error: shutting down idle subscription",
                     )
                     await websocket.send(json.dumps(response))
+                    del active_subscriptions[ws_message.subscription_id]
 
         except websockets.exceptions.ConnectionClosedError as close_error:
             logger.error(
@@ -154,10 +172,12 @@ async def send_subscription_to_handler(
     websocket: websockets.WebSocketServerProtocol,
 ) -> None:
     url: str = f"http://{EVENT_HANDLER_SVC}:{EVENT_HANDLER_PORT}/subscription"
+
     payload: Dict[str, Any] = {
         "event_dict": event_dict,
         "subscription_id": subscription_id,
     }
+    logger.debug(f"send payload is {payload}")
 
     async with session.post(url, data=json.dumps(payload)) as response:
         current_span = trace.get_current_span()
@@ -174,28 +194,78 @@ async def send_subscription_to_handler(
         EOSE = "EOSE", response_object.subscription_id
 
         if response.status == 200 and response_object.event_type == "EVENT":
-            with tracer.start_as_current_span("format_response") as span:
-                current_span = trace.get_current_span()
-                current_span.set_attribute("operation.name", "format.response")
-                response_list = await response_object.format_response()
             with tracer.start_as_current_span("send event loop") as span:
                 current_span = trace.get_current_span()
                 current_span.set_attribute("operation.name", "send.event.loop")
 
-                await response_object.send_event_loop(response_list, websocket)
+                await response_object.send_event_loop(
+                    response_object.results, websocket
+                )
                 await websocket.send(json.dumps(EOSE))
         else:
             await websocket.send(json.dumps(EOSE))
             logger.debug(f"Response data is {response_data} but it failed")
 
 
+async def redis_listener():
+    """Listens for Redis pub/sub messages and rebroadcasts to active WebSocket clients."""
+    try:
+        async with redis_client.pubsub() as pubsub:
+            await pubsub.subscribe(REDIS_CHANNEL)
+            logger.info(f"Subscribed to Redis channel: {REDIS_CHANNEL}")
+
+            while True:
+                message = await pubsub.get_message(
+                    ignore_subscribe_messages=True, timeout=1.0
+                )
+                if message:
+                    logger.debug(f"Received message from Redis: {message}")
+                    if message["type"] == "message":
+                        try:
+                            event_data = json.loads(message["data"].decode("utf-8"))
+                            logger.debug(f"Decoded event data: {event_data}")
+                            await broadcast_event_to_clients(event_data)
+                        except json.JSONDecodeError as e:
+                            logger.error(f"Invalid JSON in Redis message: {e}")
+                await asyncio.sleep(0.1)  # Prevent tight looping
+    except Exception as e:
+        logger.error(f"Error in Redis listener: {e}", exc_info=True)
+
+
+async def broadcast_event_to_clients(event_data: Dict[str, Any]) -> None:
+    """Broadcasts an event to all active WebSocket clients."""
+    logger.debug(f"Active subs are {active_subscriptions}")
+    for subscription_id, data in active_subscriptions.copy().items():
+        websocket = data["websocket"]
+        try:
+            matcher = FilterMatcher(subscription_id, data["event"], logger)
+            if matcher.match_event(event_data):
+                await websocket.send(
+                    json.dumps((f"EVENT", subscription_id, event_data))
+                )
+        except Exception as e:
+            logger.error(f"Error broadcasting to subscription {subscription_id}: {e}")
+            del active_subscriptions[subscription_id]
+
+
+async def main():
+    """Starts the WebSocket server and Redis listener."""
+    websocket_port = int(os.getenv("WS_PORT", 8000))
+    websocket_server = websockets.serve(
+        handle_websocket_connection, "0.0.0.0", websocket_port
+    )
+    logger.info(f"WebSocket server starting on port {websocket_port}")
+
+    # Create tasks for both the WebSocket server and Redis listener
+    asyncio.create_task(redis_listener())
+    await websocket_server
+
+    # Prevent the program from exiting
+    await asyncio.Future()
+
+
 if __name__ == "__main__":
     try:
-        start_server = websockets.serve(
-            handle_websocket_connection, "0.0.0.0", os.getenv("WS_PORT")
-        )
-        asyncio.get_event_loop().run_until_complete(start_server)
-        asyncio.get_event_loop().run_forever()
-
+        asyncio.run(main())
     except Exception as e:
         logger.error(f"Error occurred while starting the server main loop: {e}")
