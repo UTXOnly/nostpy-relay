@@ -387,7 +387,10 @@ class Subscription:
 
             if tag_values:
                 tag_clause = self._generate_tag_clause(tag_values)
-                self.where_clause += f" AND {tag_clause}"
+                if self.where_clause:
+                    self.where_clause += f" AND {tag_clause}"
+                else:
+                    self.where_clause += f"{tag_clause}"
 
             if global_search:
                 search_clause = self._search_clause(global_search)
