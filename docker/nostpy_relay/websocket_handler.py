@@ -293,6 +293,22 @@ async def broadcast_event_to_clients(event_data: Dict[str, Any]) -> None:
             logger.error(f"Error broadcasting to subscription {subscription_id}: {e}")
             del active_subscriptions[subscription_id]
 
+async def remove_inactive_websockets():
+    """Periodically checks and removes inactive WebSocket connections."""
+    while True:
+        for subscription_id, data in list(active_subscriptions.items()):
+            websocket = data["websocket"]
+            try:
+                # Check if the websocket is still open
+                if websocket.closed:
+                    logger.info(f"Removing inactive WebSocket: {subscription_id}")
+                    del active_subscriptions[subscription_id]
+            except Exception as e:
+                logger.error(f"Error checking WebSocket {subscription_id}: {e}")
+                del active_subscriptions[subscription_id]
+        await asyncio.sleep(10)  # Run this check every 10 seconds
+
+
 
 async def main():
     """Starts the WebSocket server and Redis listener."""
@@ -304,6 +320,7 @@ async def main():
 
     # Create tasks for both the WebSocket server and Redis listener
     asyncio.create_task(redis_listener())
+    asyncio.create_task(remove_inactive_websockets())
     await websocket_server
 
     # Prevent the program from exiting
