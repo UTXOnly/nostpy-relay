@@ -1,3 +1,4 @@
+import asyncio
 import copy
 import json
 import logging
@@ -28,7 +29,7 @@ from init_db import initialize_db
 
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
@@ -153,6 +154,9 @@ async def execute_sql_with_tracing(app, sql_query: str, span_name: str):
                 return await cur.fetchall()
 
 
+REDIS_CHANNEL = "events_channel"  # Define the Redis Pub/Sub channel
+
+
 @app.post("/new_event")
 async def handle_new_event(request: Request) -> JSONResponse:
     event_dict = await request.json()
@@ -206,6 +210,9 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         await event_obj.delete_check(conn, cur)
                         logger.debug(f"Adding event id: {event_obj.event_id}")
                         await event_obj.add_event(conn, cur)
+                        # Publish to Redis
+                        redis_client.publish(REDIS_CHANNEL, json.dumps(event_dict))
+                        logger.info(f"Published event {event_obj.event_id} to Redis")
                         return event_obj.evt_response(
                             results_status="true", http_status_code=200
                         )
@@ -213,6 +220,11 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     if event_obj.kind == 5:
                         events_to_delete = event_obj.parse_kind5()
                         await event_obj.delete_event(conn, cur, events_to_delete)
+                        # Publish to Redis
+                        redis_client.publish(REDIS_CHANNEL, json.dumps(event_dict))
+                        logger.info(
+                            f"Published deletion event {event_obj.event_id} to Redis"
+                        )
                         return event_obj.evt_response(
                             results_status="true", http_status_code=200
                         )
@@ -221,6 +233,14 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         try:
                             await event_obj.add_event(conn, cur)
                             increment_counter(otel_tags, metric_counters["event_added"])
+                            # Publish to Redis
+                            logger.info(
+                                f"Before redis, event dump is {event_dict} of type: {type(event_dict)}"
+                            )
+                            redis_client.publish(REDIS_CHANNEL, json.dumps(event_dict))
+                            logger.info(
+                                f"Published event {event_obj.event_id} to Redis"
+                            )
                         except psycopg.IntegrityError:
                             await conn.rollback()
                             logger.info(
@@ -256,6 +276,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
 async def handle_subscription(request: Request) -> JSONResponse:
     try:
         request_payload = await request.json()
+        logger.debug(f"Request payload is {request_payload}")
         subscription_obj = Subscription(request_payload)
 
         if not subscription_obj.filters:
@@ -263,12 +284,23 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 "EOSE", subscription_obj.subscription_id, "", 204
             )
         raw_filters_copy = copy.deepcopy(subscription_obj.filters)
-        (
-            tag_values,
-            query_parts,
-            limit,
-            global_search,
-        ) = await subscription_obj.parse_filters(subscription_obj.filters, logger)
+        mutli_filter = []
+        logger.debug(f"sub filters are {subscription_obj.filters}")
+        for filter in subscription_obj.filters:
+            (
+                tag_values,
+                query_parts,
+                limit,
+                global_search,
+            ) = await subscription_obj.parse_filters(filter, logger)
+            mutli_filter.append(
+                (
+                    tag_values,
+                    query_parts,
+                    limit,
+                    global_search,
+                )
+            )
 
         query_tags = {"env": "pre-cache"}
         increment_counter(query_tags, metric_counters["event_query"])
@@ -277,7 +309,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
             str(raw_filters_copy), redis_client
         )
         logger.debug(f"Cached results are {cached_results}")
-
+        cached_results = None
         if cached_results:
             return subscription_obj.sub_response_builder(
                 "EVENT",
@@ -287,29 +319,39 @@ async def handle_subscription(request: Request) -> JSONResponse:
             )
 
         elif cached_results is None:
-            sql_query = subscription_obj.base_query_builder(
-                tag_values, query_parts, limit, global_search, logger
+            result_list = []
+            logger.debug(f"multi-filter is {mutli_filter}")
+
+            async def process_filter(filter_set):
+                tag_values, query_parts, limit, global_search = filter_set
+                sql_query = subscription_obj.base_query_builder(
+                    tag_values, query_parts, limit, global_search, logger
+                )
+                query_results = await execute_sql_with_tracing(
+                    app, sql_query, "SELECT * FROM EVENTS"
+                )
+                if query_results:
+                    return await subscription_obj.query_result_parser(query_results)
+                return []
+
+            # Run all filters concurrently
+            parsed_results_lists = await asyncio.gather(
+                *(process_filter(filter_set) for filter_set in mutli_filter)
             )
-            query_results = await execute_sql_with_tracing(
-                app, sql_query, "SELECT * FROM EVENTS"
-            )
-            if query_results:
-                parsed_results = await subscription_obj.query_result_parser(
-                    query_results
-                )
-                serialized_events = json.dumps(parsed_results)
-                redis_client.setex(str(raw_filters_copy), 240, serialized_events)
-                logger.debug(
-                    f"Caching results, keys: {str(raw_filters_copy)} value is: {serialized_events}"
-                )
-                return subscription_obj.sub_response_builder(
-                    "EVENT", subscription_obj.subscription_id, serialized_events, 200
-                )
-            else:
-                redis_client.setex(str(raw_filters_copy), 240, "")
-                return subscription_obj.sub_response_builder(
-                    "EOSE", subscription_obj.subscription_id, "", 200
-                )
+
+            # Flatten the list of results
+            for parsed_results in parsed_results_lists:
+                result_list.extend(parsed_results)
+
+        dumped_list = json.dumps(result_list)
+        logger.debug(f" dumped list {dumped_list} of type: {type(dumped_list)}")
+        redis_client.setex(str(raw_filters_copy), 240, dumped_list)
+        logger.debug(
+            f"Caching results, keys: {str(raw_filters_copy)} value is: {dumped_list}"
+        )
+        return subscription_obj.sub_response_builder(
+            "EVENT", subscription_obj.subscription_id, dumped_list, 200
+        )
     except psycopg.Error as exc:
         logger.error(f"Error occurred: {str(exc)}", exc_info=True)
         return subscription_obj.sub_response_builder(
