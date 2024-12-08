@@ -201,9 +201,9 @@ class ExtractedResponse:
             formatted_event = [
                 self.event_type,
                 self.subscription_id,
-                json.dumps(event_item),
+                event_item
             ]
-            task = asyncio.create_task(websocket.send(formatted_event))
+            task = asyncio.create_task(websocket.send(json.dumps(formatted_event)))
             tasks.append(task)
         await asyncio.gather(*tasks)
 
