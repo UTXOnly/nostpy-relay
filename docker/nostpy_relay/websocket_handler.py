@@ -13,17 +13,24 @@ import websockets.exceptions
 
 from websocket_classes import ExtractedResponse, WebsocketMessages, SubscriptionMatcher
 
-from opentelemetry import trace
+from opentelemetry import metrics, trace
 
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.instrumentation.aiohttp_client import AioHttpClientInstrumentor
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.exporter.otlp.proto.grpc.metrics_exporter import OTLPMetricExporter
+from opentelemetry.sdk.resources import Resource
 
 
 AioHttpClientInstrumentor().instrument()
+
+otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 
 trace.set_tracer_provider(
     TracerProvider(resource=Resource.create({"service.name": "websocket_handler_otel"}))
@@ -33,6 +40,29 @@ tracer = trace.get_tracer(__name__)
 otlp_exporter = OTLPSpanExporter(endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 span_processor = BatchSpanProcessor(otlp_exporter)
 otlp_tracer = trace.get_tracer_provider().add_span_processor(span_processor)
+
+
+
+# Configure the MeterProvider and OTLP Metric Exporter
+resource = Resource.create({"service.name": "websocket-handler"})
+metric_exporter = OTLPMetricExporter(endpoint=otlp_endpoint)
+metric_reader = PeriodicExportingMetricReader(metric_exporter)
+
+meter_provider = MeterProvider(resource=resource, metric_readers=[metric_reader])
+metrics.set_meter_provider(meter_provider)
+
+# Get a meter
+meter = metrics.get_meter("example-meter", version="1.0")
+
+# Create a Gauge
+active_websockets_subs_gauge = meter.create_gauge(
+    name="active_websockets_subs",
+    description="Active WebSocket subscriptions",
+    unit="count",
+)
+
+# Record a gauge value
+
 
 
 logger = logging.getLogger(__name__)
@@ -47,7 +77,6 @@ EVENT_HANDLER_PORT = os.getenv("EVENT_HANDLER_PORT")
 REDIS_HOST = os.getenv("REDIS_HOST")
 REDIS_CHANNEL = "events_channel"
 
-# Redis Client
 
 redis_client = redis.from_url(f"redis://{REDIS_HOST}")
 
@@ -235,6 +264,8 @@ async def redis_listener():
 async def broadcast_event_to_clients(event_data: Dict[str, Any]) -> None:
     """Broadcasts an event to all active WebSocket clients."""
     logger.debug(f"Active subs are {active_subscriptions}")
+    len_act_sub = len(active_subscriptions)
+    active_websockets_subs_gauge.record(int(len_act_sub))
     for subscription_id, data in active_subscriptions.copy().items():
         websocket = data["websocket"]
         try:
