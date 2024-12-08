@@ -82,7 +82,7 @@ def active_websockets_subscriptions_callback():
     """
     len_act_sub = len(active_subscriptions)
     logger.debug(f"Gauge callback - Active WebSocket subscriptions: {len_act_sub}")
-    return len_act_sub
+    return [len_act_sub]
 
 # Create an ObservableGauge
 active_websockets_subs_gauge = meter.create_observable_gauge(
