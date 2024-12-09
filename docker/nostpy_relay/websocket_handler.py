@@ -151,24 +151,12 @@ async def handle_websocket_connection(
                     await websocket.send(json.dumps(response))
                     del active_subscriptions[ws_message.subscription_id]
 
-        except websockets.exceptions.ConnectionClosedError as close_error:
-            logger.error(
-                f"WebSocket connection closed unexpectedly: {close_error}",
-                exc_info=True,
-            )
+        except (websockets.exceptions.ConnectionClosedError, 
+                ClientConnectionError, 
+                aiohttp.ClientError, 
+                Exception) as error:
+            logger.error(f"An error occurred while processing the WebSocket message: {error}", exc_info=True)
 
-        except ClientConnectionError as connection_error:
-            logger.error(
-                f"Connection error occurred: {connection_error}", exc_info=True
-            )
-
-        except aiohttp.ClientError as client_error:
-            logger.error(f"HTTP client error occurred: {client_error}", exc_info=True)
-
-        except Exception as e:
-            logger.error(
-                f"Error occurred while processing WebSocket message: {e}", exc_info=True
-            )
 
 
 async def send_event_to_handler(

@@ -326,16 +326,12 @@ async def handle_subscription(request: Request) -> JSONResponse:
         return subscription_obj.sub_response_builder(
             "EVENT", subscription_obj.subscription_id, dumped_list, 200
         )
-    except psycopg.Error as exc:
-        logger.error(f"Error occurred: {str(exc)}", exc_info=True)
+    except (psycopg.Error, Exception) as exc:
+        logger.error(f"An error occurred: {exc}", exc_info=True)
         return subscription_obj.sub_response_builder(
             "EOSE", subscription_obj.subscription_id, "", 500
         )
-    except Exception as exc:
-        logger.error(f"General exception occurred: {exc}", exc_info=True)
-        return subscription_obj.sub_response_builder(
-            "EOSE", subscription_obj.subscription_id, "", 500
-        )
+
 
 
 if __name__ == "__main__":
