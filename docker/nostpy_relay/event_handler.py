@@ -105,7 +105,6 @@ def get_conn_str(db_suffix: str) -> str:
     )
 
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     conn_str_write = get_conn_str("WRITE")
@@ -146,7 +145,6 @@ async def execute_sql_with_tracing(app, sql_query: str, span_name: str):
             async with conn.cursor() as cur:
                 await cur.execute(query=sql_query)
                 return await cur.fetchall()
-
 
 
 @app.post("/new_event")
@@ -299,6 +297,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
         elif cached_results is None:
             result_list = []
+
             async def process_filter(filter_set):
                 tag_values, query_parts, limit, global_search = filter_set
                 sql_query = subscription_obj.base_query_builder(
@@ -327,16 +326,12 @@ async def handle_subscription(request: Request) -> JSONResponse:
         return subscription_obj.sub_response_builder(
             "EVENT", subscription_obj.subscription_id, dumped_list, 200
         )
-    except psycopg.Error as exc:
-        logger.error(f"Error occurred: {str(exc)}", exc_info=True)
+    except (psycopg.Error, Exception) as exc:
+        logger.error(f"An error occurred: {exc}", exc_info=True)
         return subscription_obj.sub_response_builder(
             "EOSE", subscription_obj.subscription_id, "", 500
         )
-    except Exception as exc:
-        logger.error(f"General exception occurred: {exc}", exc_info=True)
-        return subscription_obj.sub_response_builder(
-            "EOSE", subscription_obj.subscription_id, "", 500
-        )
+
 
 
 if __name__ == "__main__":

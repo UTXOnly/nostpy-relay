@@ -74,6 +74,7 @@ def active_websockets_subscriptions_callback(options: CallbackOptions):
     logger.debug(f"Gauge callback - Active WebSocket subscriptions: {len_act_sub}")
     return [Observation(value=len_act_sub, attributes={})]
 
+
 # Create an ObservableGauge
 active_websockets_subs_gauge = meter.create_observable_gauge(
     name="active_websockets_subs",
@@ -81,6 +82,7 @@ active_websockets_subs_gauge = meter.create_observable_gauge(
     unit="count",
     callbacks=[active_websockets_subscriptions_callback],
 )
+
 
 async def handle_websocket_connection(
     websocket: websockets.WebSocketServerProtocol,
@@ -149,24 +151,12 @@ async def handle_websocket_connection(
                     await websocket.send(json.dumps(response))
                     del active_subscriptions[ws_message.subscription_id]
 
-        except websockets.exceptions.ConnectionClosedError as close_error:
-            logger.error(
-                f"WebSocket connection closed unexpectedly: {close_error}",
-                exc_info=True,
-            )
+        except (websockets.exceptions.ConnectionClosedError, 
+                ClientConnectionError, 
+                aiohttp.ClientError, 
+                Exception) as error:
+            logger.error(f"An error occurred while processing the WebSocket message: {error}", exc_info=True)
 
-        except ClientConnectionError as connection_error:
-            logger.error(
-                f"Connection error occurred: {connection_error}", exc_info=True
-            )
-
-        except aiohttp.ClientError as client_error:
-            logger.error(f"HTTP client error occurred: {client_error}", exc_info=True)
-
-        except Exception as e:
-            logger.error(
-                f"Error occurred while processing WebSocket message: {e}", exc_info=True
-            )
 
 
 async def send_event_to_handler(
@@ -276,7 +266,10 @@ async def broadcast_event_to_clients(event_data: Dict[str, Any]) -> None:
 
     # Process all subscriptions concurrently
     await asyncio.gather(
-        *(process_subscription(subscription_id, data) for subscription_id, data in active_subscriptions.copy().items())
+        *(
+            process_subscription(subscription_id, data)
+            for subscription_id, data in active_subscriptions.copy().items()
+        )
     )
 
 
@@ -293,7 +286,6 @@ async def remove_inactive_websockets():
                 logger.error(f"Error checking WebSocket {subscription_id}: {e}")
                 del active_subscriptions[subscription_id]
         await asyncio.sleep(10)
-
 
 
 async def main():
