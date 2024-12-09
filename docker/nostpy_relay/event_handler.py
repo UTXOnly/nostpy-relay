@@ -4,7 +4,7 @@ import json
 import logging
 import os
 from contextlib import asynccontextmanager
-from typing import Iterable, Callable, Dict, List, Any
+from typing import Callable, Dict, List, Any
 
 import psycopg
 import redis
@@ -21,25 +21,24 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.semconv.trace import SpanAttributes
-from otel_metric_base.otel_metrics import OtelMetricBase
+
 from psycopg_pool import AsyncConnectionPool
 
 from event_classes import Event, Subscription
 from init_db import initialize_db
-
+from otel_metric_base.otel_metrics import OtelMetricBase
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-
 WOT_ENABLED = os.getenv("WOT_ENABLED")
+REDIS_CHANNEL = "new_events_channel"
 
 app = FastAPI()
-
 
 trace.set_tracer_provider(
     TracerProvider(resource=Resource.create({"service.name": "event_handler_otel"}))
@@ -48,22 +47,16 @@ tracer = trace.get_tracer(__name__)
 
 otlp_exporter = OTLPSpanExporter(endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 span_processor = BatchSpanProcessor(otlp_exporter)
-otlp_tracer = trace.get_tracer_provider().add_span_processor(span_processor)
+trace.get_tracer_provider().add_span_processor(span_processor)
 
-
-# Set up a separate tracer provider for Redis
 redis_tracer_provider = TracerProvider(
     resource=Resource.create({"service.name": "redis"})
 )
-redis_tracer = redis_tracer_provider.get_tracer(__name__)
-
-# Set up the OTLP exporter and span processor for Redis
 redis_otlp_exporter = OTLPSpanExporter()
 redis_span_processor = BatchSpanProcessor(redis_otlp_exporter)
 redis_tracer_provider.add_span_processor(redis_span_processor)
-
-# Instrument Redis with the separate tracer provider
 RedisInstrumentor().instrument(tracer_provider=redis_tracer_provider)
+
 redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"))
 
 otel_metrics = OtelMetricBase(otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
@@ -74,12 +67,12 @@ metric_counters = {
 }
 
 
-def increment_counter(tags: Dict[str, str], counter_dict: Dict[str, Dict[str, any]]):
-    tag_key = str(sorted(tags.items()))  # Convert dict to a unique key
+def increment_counter(tags: Dict[str, str], counter_dict: Dict[str, Dict[str, Any]]):
+    tag_key = str(sorted(tags.items()))
     counter_dict.setdefault(tag_key, {"count": 0, "tags": tags})["count"] += 1
 
 
-def create_observable_callback(counter_dict: Dict[str, Dict[str, any]]) -> Callable:
+def create_observable_callback(counter_dict: Dict[str, Dict[str, Any]]) -> Callable:
     def observable_callback(_):
         return [
             Observation(entry["count"], entry["tags"])
@@ -110,6 +103,7 @@ def get_conn_str(db_suffix: str) -> str:
         f"host={os.getenv(f'PGHOST_{db_suffix}')} "
         f"port={os.getenv(f'PGPORT_{db_suffix}')} "
     )
+
 
 
 @asynccontextmanager
@@ -153,8 +147,6 @@ async def execute_sql_with_tracing(app, sql_query: str, span_name: str):
                 await cur.execute(query=sql_query)
                 return await cur.fetchall()
 
-
-REDIS_CHANNEL = "events_channel"  # Define the Redis Pub/Sub channel
 
 
 @app.post("/new_event")
@@ -208,11 +200,8 @@ async def handle_new_event(request: Request) -> JSONResponse:
 
                     if event_obj.kind in [0, 3]:
                         await event_obj.delete_check(conn, cur)
-                        logger.debug(f"Adding event id: {event_obj.event_id}")
                         await event_obj.add_event(conn, cur)
-                        # Publish to Redis
                         redis_client.publish(REDIS_CHANNEL, json.dumps(event_dict))
-                        logger.info(f"Published event {event_obj.event_id} to Redis")
                         return event_obj.evt_response(
                             results_status="true", http_status_code=200
                         )
@@ -220,11 +209,6 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     if event_obj.kind == 5:
                         events_to_delete = event_obj.parse_kind5()
                         await event_obj.delete_event(conn, cur, events_to_delete)
-                        # Publish to Redis
-                        redis_client.publish(REDIS_CHANNEL, json.dumps(event_dict))
-                        logger.info(
-                            f"Published deletion event {event_obj.event_id} to Redis"
-                        )
                         return event_obj.evt_response(
                             results_status="true", http_status_code=200
                         )
@@ -233,10 +217,6 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         try:
                             await event_obj.add_event(conn, cur)
                             increment_counter(otel_tags, metric_counters["event_added"])
-                            # Publish to Redis
-                            logger.info(
-                                f"Before redis, event dump is {event_dict} of type: {type(event_dict)}"
-                            )
                             redis_client.publish(REDIS_CHANNEL, json.dumps(event_dict))
                             logger.info(
                                 f"Published event {event_obj.event_id} to Redis"
@@ -285,7 +265,6 @@ async def handle_subscription(request: Request) -> JSONResponse:
             )
         raw_filters_copy = copy.deepcopy(subscription_obj.filters)
         mutli_filter = []
-        logger.debug(f"sub filters are {subscription_obj.filters}")
         for filter in subscription_obj.filters:
             (
                 tag_values,
@@ -320,8 +299,6 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
         elif cached_results is None:
             result_list = []
-            logger.debug(f"multi-filter is {mutli_filter}")
-
             async def process_filter(filter_set):
                 tag_values, query_parts, limit, global_search = filter_set
                 sql_query = subscription_obj.base_query_builder(
@@ -334,12 +311,10 @@ async def handle_subscription(request: Request) -> JSONResponse:
                     return await subscription_obj.query_result_parser(query_results)
                 return []
 
-            # Run all filters concurrently
             parsed_results_lists = await asyncio.gather(
                 *(process_filter(filter_set) for filter_set in mutli_filter)
             )
 
-            # Flatten the list of results
             for parsed_results in parsed_results_lists:
                 result_list.extend(parsed_results)
 

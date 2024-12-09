@@ -8,62 +8,33 @@ import aiohttp
 import redis.asyncio as redis
 import websockets
 from aiohttp.client_exceptions import ClientConnectionError
-
 import websockets.exceptions
 
 from websocket_classes import ExtractedResponse, WebsocketMessages, SubscriptionMatcher
 
 from opentelemetry import metrics, trace
-
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.instrumentation.aiohttp_client import AioHttpClientInstrumentor
-from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
-from opentelemetry.sdk.resources import Resource
+from opentelemetry.instrumentation.aiohttp_client import AioHttpClientInstrumentor
 from opentelemetry.metrics import (
     CallbackOptions,
     Observation,
     get_meter_provider,
     set_meter_provider,
 )
-
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 AioHttpClientInstrumentor().instrument()
 
-otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-
-trace.set_tracer_provider(
-    TracerProvider(resource=Resource.create({"service.name": "websocket_handler_otel"}))
-)
-tracer = trace.get_tracer(__name__)
-
-otlp_exporter = OTLPSpanExporter(endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
-span_processor = BatchSpanProcessor(otlp_exporter)
-otlp_tracer = trace.get_tracer_provider().add_span_processor(span_processor)
-
-
-
-# Configure the MeterProvider and OTLP Metric Exporter
-resource = Resource.create({"service.name": "websocket-handler"})
-metric_exporter = OTLPMetricExporter(endpoint=otlp_endpoint)
-metric_reader = PeriodicExportingMetricReader(metric_exporter)
-
-meter_provider = MeterProvider(resource=resource, metric_readers=[metric_reader])
-metrics.set_meter_provider(meter_provider)
-
-# Get a meter
-meter = metrics.get_meter("example-meter", version="1.0")
-
-
-
-
-
+OTLP_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+EVENT_HANDLER_SVC = os.getenv("EVENT_HANDLER_SVC")
+EVENT_HANDLER_PORT = os.getenv("EVENT_HANDLER_PORT")
+REDIS_HOST = os.getenv("REDIS_HOST")
+REDIS_CHANNEL = "events_channel"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -72,15 +43,28 @@ handler = logging.StreamHandler()
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-EVENT_HANDLER_SVC = os.getenv("EVENT_HANDLER_SVC")
-EVENT_HANDLER_PORT = os.getenv("EVENT_HANDLER_PORT")
-REDIS_HOST = os.getenv("REDIS_HOST")
-REDIS_CHANNEL = "events_channel"
+trace.set_tracer_provider(
+    TracerProvider(resource=Resource.create({"service.name": "websocket_handler_otel"}))
+)
+tracer = trace.get_tracer(__name__)
 
+otlp_exporter = OTLPSpanExporter(endpoint=OTLP_ENDPOINT)
+span_processor = BatchSpanProcessor(otlp_exporter)
+otlp_tracer = trace.get_tracer_provider().add_span_processor(span_processor)
+
+resource = Resource.create({"service.name": "websocket-handler"})
+metric_exporter = OTLPMetricExporter(endpoint=OTLP_ENDPOINT)
+metric_reader = PeriodicExportingMetricReader(metric_exporter)
+
+meter_provider = MeterProvider(resource=resource, metric_readers=[metric_reader])
+metrics.set_meter_provider(meter_provider)
+
+meter = metrics.get_meter("example-meter", version="1.0")
 
 redis_client = redis.from_url(f"redis://{REDIS_HOST}")
 
 active_subscriptions = {}
+
 
 def active_websockets_subscriptions_callback(options: CallbackOptions):
     """
@@ -133,7 +117,6 @@ async def handle_websocket_connection(
                             websocket=websocket,
                         )
                 elif ws_message.event_type == "REQ":
-                    logger.debug("Entering REQ branch")
                     logger.debug(
                         f"Payload is {ws_message.event_payload} and of type: {type(ws_message.event_payload)}"
                     )
@@ -150,7 +133,6 @@ async def handle_websocket_connection(
                             subscription_id=ws_message.subscription_id,
                             websocket=websocket,
                         )
-                        # Store the subscription in active_subscriptions
                     active_subscriptions[ws_message.subscription_id] = {
                         "event": ws_message.event_payload,
                         "websocket": websocket,
@@ -268,11 +250,10 @@ async def redis_listener():
                         try:
                             event_data = json.loads(message["data"].decode("utf-8"))
                             logger.debug(f"Decoded event data: {event_data}")
-                            # Offload broadcast to a background task
                             asyncio.create_task(broadcast_event_to_clients(event_data))
                         except json.JSONDecodeError as e:
                             logger.error(f"Invalid JSON in Redis message: {e}")
-                await asyncio.sleep(0.1)  # Prevent tight looping
+                await asyncio.sleep(0.1)
     except Exception as e:
         logger.error(f"Error in Redis listener: {e}", exc_info=True)
 
@@ -305,14 +286,13 @@ async def remove_inactive_websockets():
         for subscription_id, data in list(active_subscriptions.items()):
             websocket = data["websocket"]
             try:
-                # Check if the websocket is still open
                 if websocket.closed:
                     logger.info(f"Removing inactive WebSocket: {subscription_id}")
                     del active_subscriptions[subscription_id]
             except Exception as e:
                 logger.error(f"Error checking WebSocket {subscription_id}: {e}")
                 del active_subscriptions[subscription_id]
-        await asyncio.sleep(10)  # Run this check every 10 seconds
+        await asyncio.sleep(10)
 
 
 
