@@ -105,7 +105,6 @@ def get_conn_str(db_suffix: str) -> str:
     )
 
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     conn_str_write = get_conn_str("WRITE")
@@ -146,7 +145,6 @@ async def execute_sql_with_tracing(app, sql_query: str, span_name: str):
             async with conn.cursor() as cur:
                 await cur.execute(query=sql_query)
                 return await cur.fetchall()
-
 
 
 @app.post("/new_event")
@@ -299,6 +297,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
         elif cached_results is None:
             result_list = []
+
             async def process_filter(filter_set):
                 tag_values, query_parts, limit, global_search = filter_set
                 sql_query = subscription_obj.base_query_builder(

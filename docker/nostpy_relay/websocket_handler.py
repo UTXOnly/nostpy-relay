@@ -74,6 +74,7 @@ def active_websockets_subscriptions_callback(options: CallbackOptions):
     logger.debug(f"Gauge callback - Active WebSocket subscriptions: {len_act_sub}")
     return [Observation(value=len_act_sub, attributes={})]
 
+
 # Create an ObservableGauge
 active_websockets_subs_gauge = meter.create_observable_gauge(
     name="active_websockets_subs",
@@ -81,6 +82,7 @@ active_websockets_subs_gauge = meter.create_observable_gauge(
     unit="count",
     callbacks=[active_websockets_subscriptions_callback],
 )
+
 
 async def handle_websocket_connection(
     websocket: websockets.WebSocketServerProtocol,
@@ -276,7 +278,10 @@ async def broadcast_event_to_clients(event_data: Dict[str, Any]) -> None:
 
     # Process all subscriptions concurrently
     await asyncio.gather(
-        *(process_subscription(subscription_id, data) for subscription_id, data in active_subscriptions.copy().items())
+        *(
+            process_subscription(subscription_id, data)
+            for subscription_id, data in active_subscriptions.copy().items()
+        )
     )
 
 
@@ -293,7 +298,6 @@ async def remove_inactive_websockets():
                 logger.error(f"Error checking WebSocket {subscription_id}: {e}")
                 del active_subscriptions[subscription_id]
         await asyncio.sleep(10)
-
 
 
 async def main():

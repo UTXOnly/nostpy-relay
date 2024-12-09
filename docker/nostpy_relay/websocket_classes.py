@@ -145,7 +145,6 @@ class ExtractedResponse:
             )
             self.results = ""
 
-
     async def format_response(self):
         """
         Formats the response based on the event type.
@@ -181,11 +180,7 @@ class ExtractedResponse:
         """
         tasks = []
         for event_item in response_list:
-            formatted_event = [
-                self.event_type,
-                self.subscription_id,
-                event_item
-            ]
+            formatted_event = [self.event_type, self.subscription_id, event_item]
             task = asyncio.create_task(websocket.send(json.dumps(formatted_event)))
             tasks.append(task)
         await asyncio.gather(*tasks)
