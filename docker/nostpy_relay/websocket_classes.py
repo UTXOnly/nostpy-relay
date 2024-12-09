@@ -145,15 +145,6 @@ class ExtractedResponse:
             )
             self.results = ""
 
-    async def _process_event(self, event_result):
-        try:
-            self.logger.debug(f"event_result var is {event_result}")
-            stripped = str(event_result)[1:-1]
-            return ast.literal_eval(stripped)
-        except Exception as exc:
-            self.logger.error(f"Process events exc is {exc}", exc_info=True)
-            return ""
-
     async def format_response(self):
         """
         Formats the response based on the event type.
@@ -162,15 +153,7 @@ class ExtractedResponse:
             Union[Tuple[str, Optional[str], str, Optional[str]], List[Tuple[str, Optional[str], Dict[str, Any]]], Tuple[str, Optional[str]]]: The formatted response.
 
         """
-        if self.event_type == "EVENT":
-            tasks = [self._process_event(event_result) for event_result in self.results]
-            parsed_results = await asyncio.gather(*tasks)
-            events_to_send = [
-                (self.event_type, self.subscription_id, result)
-                for result in parsed_results
-            ]
-            return events_to_send
-        elif self.event_type == "OK":
+        if self.event_type == "OK":
             client_response: Tuple[str, Optional[str], str, Optional[str]] = (
                 self.event_type,
                 self.subscription_id,
@@ -197,7 +180,8 @@ class ExtractedResponse:
         """
         tasks = []
         for event_item in response_list:
-            task = asyncio.create_task(websocket.send(json.dumps(event_item)))
+            formatted_event = [self.event_type, self.subscription_id, event_item]
+            task = asyncio.create_task(websocket.send(json.dumps(formatted_event)))
             tasks.append(task)
         await asyncio.gather(*tasks)
 
@@ -232,14 +216,9 @@ class WebsocketMessages:
         self.event_type = message[0]
         if self.event_type in ("REQ", "CLOSE"):
             self.subscription_id: str = message[1]
-            logger.debug(f"Message is {message} and of type {type(message)}")
             raw_payload = message[2:]
             logger.debug(f"Raw payload is {raw_payload} and len {len(raw_payload)}")
-            merged = {}
-            for item in raw_payload:
-                merged.update(item)
-            logger.debug(f"merged is {merged} and type {type(merged)}")
-            self.event_payload = merged
+            self.event_payload = raw_payload
         else:
             self.event_payload: Dict[str, Any] = message[1]
         headers = websocket.request_headers
@@ -250,3 +229,124 @@ class WebsocketMessages:
         )
         logger.debug(f"Client obfuscated IP is {self.obfuscated_client_ip}")
         self.uuid: str = websocket.id
+
+
+class SubscriptionMatcher:
+    """
+    Matches a raw Redis event against filters defined in a REQ query.
+
+    Attributes:
+        filters (List[Dict[str, Any]]): A list of filter dictionaries.
+    """
+
+    def __init__(self, subscription_id: str, req_query: List, logger):
+        """
+        Initializes the FilterMatcher with the REQ query.
+
+        Args:
+            subscription_id (str): The subscription ID.
+            req_query (List): The REQ query, typically containing filters.
+            logger: Logger instance for debugging.
+        """
+        self.subscription_id = subscription_id
+        self.filters = req_query
+        self.logger = logger
+
+    def match_event(self, event: Dict[str, Any]) -> bool:
+        """
+        Determines if a given event matches the filters.
+
+        Args:
+            event (Dict[str, Any]): The raw Redis event to match.
+
+        Returns:
+            bool: True if the event matches any of the filters, False otherwise.
+        """
+        for list_item in self.filters:
+            for filter_, value in list_item.items():
+                self.logger.debug(f"Checking filter: {filter_}, value : {value}")
+                combined = {filter_: value}
+                if self._match_single_filter(combined, event):
+                    self.logger.debug(f"Event matches filter: {filter_}")
+                else:
+                    self.logger.debug("filter did not match the event.")
+                    return False
+            self.logger.debug("Returning true")
+            return True
+
+    def _match_single_filter(
+        self, filter_: Dict[str, Any], event: Dict[str, Any]
+    ) -> bool:
+        """
+        Matches an event against a single filter.
+
+        Args:
+            filter_ (Dict[str, Any]): The filter to apply.
+            event (Dict[str, Any]): The raw Redis event to match.
+
+        Returns:
+            bool: True if the event matches the filter, False otherwise.
+        """
+        for key, value in filter_.items():
+            self.logger.debug(f"Checking key: {key}, value: {value}")
+
+            if key == "kinds":
+                if event.get("kind") not in value:
+                    self.logger.debug(
+                        f"Filter mismatch for 'kinds': {event.get('kind')} not in {value}"
+                    )
+                    return False
+            elif key == "authors":
+                if event.get("pubkey") not in value:
+                    self.logger.debug(
+                        f"Filter mismatch for 'authors': {event.get('pubkey')} not in {value}"
+                    )
+                    return False
+            elif key.startswith("#"):
+                tag_key = key[1:]
+                if not any(
+                    tag_key == tag[0] and any(v in tag[1] for v in value)
+                    for tag in event.get("tags", [])
+                ):
+                    self.logger.debug(
+                        f"Filter mismatch for tag '{key}': {event.get('tags', [])}"
+                    )
+                    return False
+            elif key == "limit":
+                self.logger.debug(f"Limit key = {value}")
+                continue
+            elif key == "since":
+                if event.get("created_at", 0) < value:
+                    return False
+            elif key == "until":
+                if event.get("created_at", 0) > value:
+                    return False
+            elif key == "search":
+                self.logger.debug(
+                    f"Performing search for value '{value}' in content and tags"
+                )
+                content = event.get("content", "")
+                tags = event.get("tags", [])
+                self.logger.debug(f"Event content: {content}")
+                self.logger.debug(f"Event tags: {tags}")
+
+                # Check if `value` exists in content or tags
+                if value.lower() not in content.lower() and not any(
+                    value.lower() in tag_value.lower() for _, tag_value in tags
+                ):
+                    self.logger.debug(
+                        f"Search mismatch: '{value}' not found in content or tags"
+                    )
+                    return False
+            elif key == "id":
+                if event.get("id", "") != value:
+                    return False
+            else:
+                if key in event and event[key] != value:
+                    self.logger.debug(
+                        f"Filter mismatch for key '{key}': {event.get(key)} != {value}"
+                    )
+                    return False
+
+        self.logger.debug("Filter matched successfully.")
+        return True
