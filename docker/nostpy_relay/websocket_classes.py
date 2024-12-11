@@ -187,7 +187,7 @@ class ExtractedResponse:
     
         # Process events in parallel, using threads for blocking operations
         await asyncio.gather(
-            *(asyncio.to_thread(send_in_thread, event_item) for event_item in response_list)
+            *(asyncio.to_thread(await send_in_thread, event_item) for event_item in response_list)
         )
 
 
