@@ -6,6 +6,7 @@ import os
 from contextlib import asynccontextmanager
 from typing import Callable, Dict, List, Any
 
+#from aioredis import Redis, from_url
 import psycopg
 import redis
 import uvicorn
@@ -21,6 +22,7 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.semconv.trace import SpanAttributes
+import redis.asyncio as redis
 
 from psycopg_pool import AsyncConnectionPool
 
@@ -145,6 +147,16 @@ async def execute_sql_with_tracing(app, sql_query: str, span_name: str):
             async with conn.cursor() as cur:
                 await cur.execute(query=sql_query)
                 return await cur.fetchall()
+            
+
+
+async def get_redis_client() -> redis.Redis:
+    """Lazily initialize and return an async Redis client."""
+    return await redis.from_url(
+        f"redis://{os.getenv('REDIS_HOST')}:{os.getenv('REDIS_PORT')}",
+        decode_responses=True,
+    )
+
 
 
 @app.post("/new_event")
@@ -261,8 +273,10 @@ async def handle_subscription(request: Request) -> JSONResponse:
             return subscription_obj.sub_response_builder(
                 "EOSE", subscription_obj.subscription_id, "", 204
             )
+
+        # Parse filters into a list of query components
         raw_filters_copy = copy.deepcopy(subscription_obj.filters)
-        mutli_filter = []
+        multi_filter = []
         for filter in subscription_obj.filters:
             (
                 tag_values,
@@ -270,7 +284,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 limit,
                 global_search,
             ) = await subscription_obj.parse_filters(filter, logger)
-            mutli_filter.append(
+            multi_filter.append(
                 (
                     tag_values,
                     query_parts,
@@ -279,52 +293,54 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 )
             )
 
-        query_tags = {"env": "pre-cache"}
-        increment_counter(query_tags, metric_counters["event_query"])
+        # Initialize Redis client lazily
+        redis_client = await get_redis_client()
 
-        cached_results = subscription_obj.fetch_data_from_cache(
-            str(raw_filters_copy), redis_client
-        )
-        logger.debug(f"Cached results are {cached_results}")
-        cached_results = None
-        if cached_results:
-            return subscription_obj.sub_response_builder(
-                "EVENT",
-                subscription_obj.subscription_id,
-                cached_results.decode("utf-8"),
-                200,
+        # Define a function to check the cache for a given filter
+        async def check_cache(filter_set):
+            tag_values, query_parts, limit, global_search = filter_set
+            cache_key = f"{str((tag_values, query_parts, limit, global_search))}"
+            cached_result = await redis_client.get(cache_key)
+            return cache_key, cached_result
+
+        # Check all filters in parallel
+        cache_results = await asyncio.gather(*(check_cache(filter_set) for filter_set in multi_filter))
+
+        # Separate cache hits and misses
+        cache_hits = []
+        cache_misses = []
+        for idx, (cache_key, cached_result) in enumerate(cache_results):
+            if cached_result:
+                cache_hits.append(json.loads(cached_result))
+            else:
+                cache_misses.append((cache_key, multi_filter[idx]))
+
+        # Process cache misses by querying the database
+        async def query_database(cache_key, filter_set):
+            tag_values, query_parts, limit, global_search = filter_set
+            sql_query = subscription_obj.base_query_builder(
+                tag_values, query_parts, limit, global_search, logger
+            )
+            query_results = await execute_sql_with_tracing(
+                app, sql_query, "SELECT * FROM EVENTS"
+            )
+            parsed_results = await subscription_obj.query_result_parser(query_results)
+            await redis_client.setex(cache_key, 240, json.dumps(parsed_results))  # Cache the results
+            return parsed_results
+
+        db_results = []
+        if cache_misses:
+            db_results = await asyncio.gather(
+                *(query_database(cache_key, filter_set) for cache_key, filter_set in cache_misses)
             )
 
-        elif cached_results is None:
-            result_list = []
+        # Combine cached and database results
+        combined_results = [result for result_list in cache_hits + db_results for result in result_list]
 
-            async def process_filter(filter_set):
-                tag_values, query_parts, limit, global_search = filter_set
-                sql_query = subscription_obj.base_query_builder(
-                    tag_values, query_parts, limit, global_search, logger
-                )
-                query_results = await execute_sql_with_tracing(
-                    app, sql_query, "SELECT * FROM EVENTS"
-                )
-                if query_results:
-                    return await subscription_obj.query_result_parser(query_results)
-                return []
+        await redis_client.close()  # Ensure Redis client is properly closed
 
-            parsed_results_lists = await asyncio.gather(
-                *(process_filter(filter_set) for filter_set in mutli_filter)
-            )
-
-            for parsed_results in parsed_results_lists:
-                result_list.extend(parsed_results)
-
-        dumped_list = json.dumps(result_list)
-        logger.debug(f" dumped list {dumped_list} of type: {type(dumped_list)}")
-        redis_client.setex(str(raw_filters_copy), 240, dumped_list)
-        logger.debug(
-            f"Caching results, keys: {str(raw_filters_copy)} value is: {dumped_list}"
-        )
         return subscription_obj.sub_response_builder(
-            "EVENT", subscription_obj.subscription_id, dumped_list, 200
+            "EVENT", subscription_obj.subscription_id, json.dumps(combined_results), 200
         )
     except (psycopg.Error, Exception) as exc:
         logger.error(f"An error occurred: {exc}", exc_info=True)
