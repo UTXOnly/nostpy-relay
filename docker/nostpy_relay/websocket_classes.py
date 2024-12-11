@@ -170,8 +170,6 @@ class ExtractedResponse:
 
         return client_response
 
-import asyncio
-import json
 
     async def send_event_loop(self, response_list, websocket) -> None:
         """
