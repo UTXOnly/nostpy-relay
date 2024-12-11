@@ -183,7 +183,8 @@ class ExtractedResponse:
             Handles sending an event in a separate thread.
             """
             formatted_event = [self.event_type, self.subscription_id, event_item]
-            asyncio.run(websocket.send(json.dumps(formatted_event)))
+            loop = asyncio.get_running_loop()  # Get the current running loop
+            loop.run_until_complete(websocket.send(json.dumps(formatted_event)))
     
         # Use asyncio.to_thread to run the blocking send_in_thread function in threads
         await asyncio.gather(
