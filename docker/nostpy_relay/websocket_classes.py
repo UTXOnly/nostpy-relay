@@ -170,9 +170,12 @@ class ExtractedResponse:
 
         return client_response
 
+import asyncio
+import json
+
     async def send_event_loop(self, response_list, websocket) -> None:
         """
-        Asynchronously sends a list of event items to a WebSocket using threads for offloading.
+        Asynchronously sends a list of event items to a WebSocket using threads.
     
         Parameters:
             response_list (List[Dict]): A list of dictionaries representing event items.
@@ -180,16 +183,24 @@ class ExtractedResponse:
         """
         def send_in_thread(event_item):
             """
-            Handles sending an event in a separate thread.
+            Formats and sends an event in a separate thread.
             """
             formatted_event = [self.event_type, self.subscription_id, event_item]
-            loop = asyncio.get_running_loop()  # Get the current running loop
-            loop.run_until_complete(websocket.send(json.dumps(formatted_event)))
+            try:
+                asyncio.run_coroutine_threadsafe(
+                    websocket.send(json.dumps(formatted_event)),
+                    asyncio.get_event_loop(),
+                ).result()
+            except Exception as e:
+                pass
     
-        # Use asyncio.to_thread to run the blocking send_in_thread function in threads
-        await asyncio.gather(
-            *(asyncio.to_thread(send_in_thread, event_item) for event_item in response_list)
-        )
+        # Run sending tasks in parallel using threads
+        try:
+            await asyncio.gather(
+                *(asyncio.to_thread(send_in_thread, event_item) for event_item in response_list)
+            )
+        except Exception as e:
+            pass
 
 
 class WebsocketMessages:
