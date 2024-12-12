@@ -1,7 +1,7 @@
 import asyncio
-import ast
 import hashlib
 import json
+import orjson
 import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -171,20 +171,26 @@ class ExtractedResponse:
         return client_response
 
 
-    async def send_event_loop(self, response_list, websocket) -> None:
+    async def send_event_loop(self, response_list, websocket, logger) -> None:
         """
-        Asynchronously sends a list of event items to a WebSocket.
-
+        Sends a list of event items to a WebSocket using a faster JSON library (orjson).
+    
         Parameters:
             response_list (List[Dict]): A list of dictionaries representing event items.
             websocket (websockets.WebSocketClientProtocol): The WebSocket connection to send the events to.
         """
-        tasks = []
-        for event_item in response_list:
-            formatted_event = [self.event_type, self.subscription_id, event_item]
-            task = asyncio.create_task(websocket.send(json.dumps(formatted_event)))
-            tasks.append(task)
-        await asyncio.gather(*tasks)
+        try:
+            tasks = [
+                asyncio.create_task(
+                    websocket.send(
+                        orjson.dumps([self.event_type, self.subscription_id, event_item]).decode("utf-8")
+                    )
+                )
+                for event_item in response_list
+            ]
+            await asyncio.gather(*tasks)
+        except Exception as e:
+            logger.error(f"Error while sending events: {e}")
 
 
 class WebsocketMessages:

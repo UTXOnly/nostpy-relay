@@ -215,7 +215,7 @@ async def send_subscription_to_handler(
                 current_span.set_attribute("operation.name", "send.event.loop")
 
                 await response_object.send_event_loop(
-                    response_object.results, websocket
+                    response_object.results, websocket, logger
                 )
                 await websocket.send(json.dumps(EOSE))
         else:
