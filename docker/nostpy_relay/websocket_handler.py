@@ -34,7 +34,7 @@ OTLP_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 EVENT_HANDLER_SVC = os.getenv("EVENT_HANDLER_SVC")
 EVENT_HANDLER_PORT = os.getenv("EVENT_HANDLER_PORT")
 REDIS_HOST = os.getenv("REDIS_HOST")
-REDIS_CHANNEL = "events_channel"
+REDIS_CHANNEL = "new_events_channel"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
