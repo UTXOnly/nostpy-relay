@@ -59,7 +59,7 @@ redis_span_processor = BatchSpanProcessor(redis_otlp_exporter)
 redis_tracer_provider.add_span_processor(redis_span_processor)
 RedisInstrumentor().instrument(tracer_provider=redis_tracer_provider)
 
-redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"))
+#redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"))
 
 otel_metrics = OtelMetricBase(otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 metric_counters = {
@@ -207,6 +207,8 @@ async def handle_new_event(request: Request) -> JSONResponse:
                                 http_status_code=403,
                                 message="rejected: user is not in relay's web of trust",
                             )
+                        
+                    redis_client = await get_redis_client()
 
                     if event_obj.kind in [0, 3]:
                         await event_obj.delete_check(conn, cur)
