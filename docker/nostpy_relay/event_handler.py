@@ -213,7 +213,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                     if event_obj.kind in [0, 3]:
                         await event_obj.delete_check(conn, cur)
                         await event_obj.add_event(conn, cur)
-                        redis_client.publish(REDIS_CHANNEL, json.dumps(event_dict))
+                        await redis_client.publish(REDIS_CHANNEL, json.dumps(event_dict))
                         return event_obj.evt_response(
                             results_status="true", http_status_code=200
                         )
@@ -229,7 +229,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         try:
                             await event_obj.add_event(conn, cur)
                             increment_counter(otel_tags, metric_counters["event_added"])
-                            redis_client.publish(REDIS_CHANNEL, json.dumps(event_dict))
+                            await redis_client.publish(REDIS_CHANNEL, json.dumps(event_dict))
                             logger.info(
                                 f"Published event {event_obj.event_id} to Redis"
                             )
