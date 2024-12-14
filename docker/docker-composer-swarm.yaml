@@ -1,0 +1,187 @@
+services:
+  websocket-handler:
+    build:
+      context: .
+      dockerfile: Dockerfile.websocket_handler
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4317
+      - EVENT_HANDLER_SVC=${EVENT_HANDLER_SVC}
+      - EVENT_HANDLER_PORT=${EVENT_HANDLER_PORT}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - WS_PORT=${WS_PORT}
+    ports:
+      - target: 8008
+        published: 8008
+        protocol: tcp
+        mode: ingress
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+    networks:
+      - nostpy_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  event-handler:
+    build:
+      context: .
+      dockerfile: Dockerfile.event_handler
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4317
+      - EVENT_HANDLER_PORT=${EVENT_HANDLER_PORT}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - PGDATABASE_WRITE=${PGDATABASE_WRITE}
+      - PGUSER_WRITE=${PGUSER_WRITE}
+      - PGPASSWORD_WRITE=${PGPASSWORD_WRITE}
+      - PGPORT_WRITE=${PGPORT_WRITE}
+      - PGHOST_WRITE=${PGHOST_WRITE}
+      - PGDATABASE_READ=${PGDATABASE_READ}
+      - PGUSER_READ=${PGUSER_READ}
+      - PGPASSWORD_READ=${PGPASSWORD_READ}
+      - PGPORT_READ=${PGPORT_READ}
+      - PGHOST_READ=${PGHOST_READ}
+      - WOT_ENABLED=${WOT_ENABLED}
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=delta
+    ports:
+      - target: ${EVENT_HANDLER_PORT}
+        published: ${EVENT_HANDLER_PORT}
+        protocol: tcp
+        mode: ingress
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+    networks:
+      - nostpy_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  postgres:
+    image: postgres:14
+    environment:
+      - POSTGRES_DB=${PGDATABASE_WRITE}
+      - POSTGRES_USER=${PGUSER_WRITE}
+      - POSTGRES_PASSWORD=${PGPASSWORD_WRITE}
+    deploy:
+      replicas: 1
+    networks:
+      - nostpy_network
+    volumes:
+      - ./postgresql.conf:/postgresql.conf
+      - ./postgresql/data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER_WRITE}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    image: redis:latest
+    deploy:
+      replicas: 1
+    networks:
+      - nostpy_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  nginx-certbot:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    environment:
+      - DOMAIN=${DOMAIN}
+      - DOCKER_SVC=172.17.0.1
+      - WS_HANDLER_SVC=${WS_HANDLER_SVC}
+      - SVC_PORT=${WS_PORT}
+      - VERSION=${VERSION}
+      - CONTACT=${CONTACT}
+      - ADMIN_PUBKEY=${ADMIN_PUBKEY}
+      - ICON=${ICON}
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+    networks:
+      - nostpy_network
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/lib/letsencrypt:/var/lib/letsencrypt
+    depends_on:
+      - websocket-handler
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  opentelemetry-collector:
+    image: otel/opentelemetry-collector-contrib:0.103.1
+    environment:
+      - DD_API_KEY=${DD_API_KEY}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
+      - /sys/kernel/debug:/sys/kernel/debug
+      - ./config-opentelemetry.yaml:/etc/otel/config.yaml
+    deploy:
+      replicas: 1
+    networks:
+      - nostpy_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  tor:
+    build:
+      context: .
+      dockerfile: Dockerfile.tor
+    ports:
+      - target: 9050
+        published: 9050
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+    networks:
+      - nostpy_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  nostpy_network:
+    driver: overlay
