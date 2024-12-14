@@ -181,17 +181,6 @@ class ExtractedResponse:
             logger: Logger instance for error logging.
         """
 
-        if len(response_list) > 10:
-            try:
-                await asyncio.gather(*(send_event_in_thread(event_item) for event_item in response_list))
-            except Exception as e:
-                logger.error(f"Error while sending events in thread: {e}")
-        else:
-            try:
-                await send_events()
-            except Exception as e:
-                logger.error(f"Error while sending events: {e}")
-
         async def send_events():
             try:
                 tasks = [
@@ -222,7 +211,17 @@ class ExtractedResponse:
             except Exception as e:
                 logger.error(f"Error while sending event in thread: {e}")
 
-        # Use asyncio.gather to send all events concurrently
+        if len(response_list) > 10:
+            try:
+                await asyncio.gather(*(send_event_in_thread(event_item) for event_item in response_list))
+            except Exception as e:
+                logger.error(f"Error while sending events in thread: {e}")
+        else:
+            try:
+                await send_events()
+            except Exception as e:
+                logger.error(f"Error while sending events: {e}")
+
 
 
 
