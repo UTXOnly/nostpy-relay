@@ -178,20 +178,20 @@ class ExtractedResponse:
         Parameters:
             response_list (List[Dict]): A list of dictionaries representing event items.
             websocket (websockets.WebSocketClientProtocol): The WebSocket connection to send the events to.
+            logger: Logger instance for error logging.
         """
 
         if len(response_list) > 10:
             try:
                 await asyncio.gather(*(send_event_in_thread(event_item) for event_item in response_list))
             except Exception as e:
-                pass
+                logger.error(f"Error while sending events in thread: {e}")
         else:
             try:
                 await send_events()
             except Exception as e:
-                pass
+                logger.error(f"Error while sending events: {e}")
 
-        
         async def send_events():
             try:
                 tasks = [
@@ -204,7 +204,7 @@ class ExtractedResponse:
                 ]
                 await asyncio.gather(*tasks)
             except Exception as e:
-                logger.error(f"Error while sending events: {e}")
+                logger.error(f"Error while sending events in send_events: {e}")
 
         def prepare_event(event_item):
             """
@@ -220,7 +220,8 @@ class ExtractedResponse:
                 formatted_event = await asyncio.to_thread(prepare_event, event_item)
                 await websocket.send(json.dumps(formatted_event))
             except Exception as e:
-                pass    
+                logger.error(f"Error while sending event in thread: {e}")
+
         # Use asyncio.gather to send all events concurrently
 
 
