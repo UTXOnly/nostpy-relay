@@ -45,6 +45,8 @@ if ! grep -q "include /etc/nginx/sites-enabled/*.conf;" /etc/nginx/nginx.conf; t
     sed -i '/http {/a \    include /etc/nginx/sites-enabled/*.conf;' /etc/nginx/nginx.conf
 fi
 
+nslookup websocket-handler
+
 # Test the Nginx configuration
 nginx -t
 NGINX_TEST_EXIT_CODE=$?
