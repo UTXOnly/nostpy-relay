@@ -50,8 +50,8 @@ services:
       - WOT_ENABLED=${WOT_ENABLED}
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=delta
     ports:
-      - target: ${EVENT_HANDLER_PORT}
-        published: ${EVENT_HANDLER_PORT}
+      - target: 8009
+        published: 8009
         protocol: tcp
         mode: ingress
     deploy:
