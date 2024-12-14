@@ -2,6 +2,8 @@ version: '3.9'
 services:
   websocket-handler:
     image: bhartford419/websocket-handler:latest
+    env_file:
+      - .env
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4317
       - EVENT_HANDLER_SVC=${EVENT_HANDLER_SVC}
@@ -29,6 +31,8 @@ services:
 
   event-handler:
     image: bhartford419/event-handler:latest
+    env_file:
+      - .env
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4317
       - EVENT_HANDLER_PORT=${EVENT_HANDLER_PORT}
@@ -65,6 +69,8 @@ services:
 
   postgres:
     image: postgres:14
+    env_file:
+      - .env
     environment:
       - POSTGRES_DB=${PGDATABASE_WRITE}
       - POSTGRES_USER=${PGUSER_WRITE}
@@ -90,6 +96,8 @@ services:
 
   redis:
     image: redis:latest
+    env_file:
+      - .env
     deploy:
       replicas: 1
     networks:
@@ -102,6 +110,8 @@ services:
 
   nginx-certbot:
     image: bhartford419/nginx-certbot:latest
+    env_file:
+      - .env
     environment:
       - DOMAIN=${DOMAIN}
       - DOCKER_SVC=172.17.0.1
@@ -135,6 +145,8 @@ services:
 
   opentelemetry-collector:
     image: otel/opentelemetry-collector-contrib:0.103.1
+    env_file:
+      - .env
     environment:
       - DD_API_KEY=${DD_API_KEY}
     volumes:
