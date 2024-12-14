@@ -116,7 +116,7 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt
       - /var/lib/letsencrypt:/var/lib/letsencrypt
     depends_on:
-      - websocket_handler
+      - websocket-handler
     logging:
       driver: "json-file"
       options:
@@ -163,7 +163,7 @@ services:
     ports:
       - "9050:9050" # Expose Tor control port if needed
     depends_on:
-      - websocket_handler
+      - websocket-handler
 
 volumes:
   postgres_data:
