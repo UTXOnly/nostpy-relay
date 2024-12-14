@@ -1,6 +1,6 @@
 version: '3'
 services:
-  websocket_handler:
+  websocket-handler:
     build:
       context: .
       dockerfile: Dockerfile.websocket_handler
@@ -24,7 +24,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  event_handler:
+  event-handler:
     build:
       context: .
       dockerfile: Dockerfile.event_handler
