@@ -138,7 +138,7 @@ class ExtractedResponse:
         self.subscription_id = response_data["subscription_id"]
         self.message = response_data.get("message", "")
         try:
-            self.results = json.loads(response_data["results_json"])
+            self.results = orjson.loads(response_data["results_json"])
         except json.JSONDecodeError as json_error:
             logger.error(
                 f"Error decoding JSON message in Extracted Response: {json_error}."
@@ -179,18 +179,50 @@ class ExtractedResponse:
             response_list (List[Dict]): A list of dictionaries representing event items.
             websocket (websockets.WebSocketClientProtocol): The WebSocket connection to send the events to.
         """
-        try:
-            tasks = [
-                asyncio.create_task(
-                    websocket.send(
-                        orjson.dumps([self.event_type, self.subscription_id, event_item]).decode("utf-8")
+
+        if len(response_list) > 10:
+            try:
+                await asyncio.gather(*(send_event_in_thread(event_item) for event_item in response_list))
+            except Exception as e:
+                pass
+        else:
+            try:
+                await send_events()
+            except Exception as e:
+                pass
+
+        
+        async def send_events():
+            try:
+                tasks = [
+                    asyncio.create_task(
+                        websocket.send(
+                            orjson.dumps([self.event_type, self.subscription_id, event_item]).decode("utf-8")
+                        )
                     )
-                )
-                for event_item in response_list
-            ]
-            await asyncio.gather(*tasks)
-        except Exception as e:
-            logger.error(f"Error while sending events: {e}")
+                    for event_item in response_list
+                ]
+                await asyncio.gather(*tasks)
+            except Exception as e:
+                logger.error(f"Error while sending events: {e}")
+
+        def prepare_event(event_item):
+            """
+            Formats the event for sending. Runs in a thread.
+            """
+            return [self.event_type, self.subscription_id, event_item]
+    
+        async def send_event_in_thread(event_item):
+            """
+            Prepares and sends an event asynchronously using threads for offloading preparation.
+            """
+            try:
+                formatted_event = await asyncio.to_thread(prepare_event, event_item)
+                await websocket.send(json.dumps(formatted_event))
+            except Exception as e:
+                pass    
+        # Use asyncio.gather to send all events concurrently
+
 
 
 class WebsocketMessages:
