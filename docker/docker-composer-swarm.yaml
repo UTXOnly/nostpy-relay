@@ -1,9 +1,7 @@
 version: '3.9'
 services:
   websocket-handler:
-    build:
-      context: .
-      dockerfile: Dockerfile.websocket_handler
+    image: bhartford419/websocket-handler:latest
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4317
       - EVENT_HANDLER_SVC=${EVENT_HANDLER_SVC}
@@ -30,9 +28,7 @@ services:
         max-file: "3"
 
   event-handler:
-    build:
-      context: .
-      dockerfile: Dockerfile.event_handler
+    image: bhartford419/event-handler:latest
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4317
       - EVENT_HANDLER_PORT=${EVENT_HANDLER_PORT}
@@ -66,7 +62,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    #depends_on:  # Removed; handled via healthcheck
 
   postgres:
     image: postgres:14
@@ -106,9 +101,7 @@ services:
         max-file: "3"
 
   nginx-certbot:
-    build:
-      context: .
-      dockerfile: Dockerfile.nginx
+    image: bhartford419/nginx-certbot:latest
     environment:
       - DOMAIN=${DOMAIN}
       - DOCKER_SVC=172.17.0.1
@@ -161,9 +154,7 @@ services:
         max-file: "3"
 
   tor:
-    build:
-      context: .
-      dockerfile: Dockerfile.tor
+    image: bhartford419/tor:latest
     ports:
       - target: 9050
         published: 9050
