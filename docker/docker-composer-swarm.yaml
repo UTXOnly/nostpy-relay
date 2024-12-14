@@ -2,15 +2,13 @@ version: '3.9'
 services:
   websocket-handler:
     image: bhartford419/websocket-handler:latest
-    env_file:
-      - .env
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4317
-      - EVENT_HANDLER_SVC=${EVENT_HANDLER_SVC}
-      - EVENT_HANDLER_PORT=${EVENT_HANDLER_PORT}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - WS_PORT=${WS_PORT}
+      - EVENT_HANDLER_SVC=event-handler
+      - EVENT_HANDLER_PORT=8009
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - WS_PORT=8008
     ports:
       - target: 8008
         published: 8008
@@ -31,24 +29,22 @@ services:
 
   event-handler:
     image: bhartford419/event-handler:latest
-    env_file:
-      - .env
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4317
-      - EVENT_HANDLER_PORT=${EVENT_HANDLER_PORT}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - PGDATABASE_WRITE=${PGDATABASE_WRITE}
-      - PGUSER_WRITE=${PGUSER_WRITE}
-      - PGPASSWORD_WRITE=${PGPASSWORD_WRITE}
-      - PGPORT_WRITE=${PGPORT_WRITE}
-      - PGHOST_WRITE=${PGHOST_WRITE}
-      - PGDATABASE_READ=${PGDATABASE_READ}
-      - PGUSER_READ=${PGUSER_READ}
-      - PGPASSWORD_READ=${PGPASSWORD_READ}
-      - PGPORT_READ=${PGPORT_READ}
-      - PGHOST_READ=${PGHOST_READ}
-      - WOT_ENABLED=${WOT_ENABLED}
+      - EVENT_HANDLER_PORT=8009
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PGDATABASE_WRITE=nostr
+      - PGUSER_WRITE=nostr
+      - PGPASSWORD_WRITE=nostr
+      - PGPORT_WRITE=5432
+      - PGHOST_WRITE=postgres
+      - PGDATABASE_READ=nostr
+      - PGUSER_READ=nostr
+      - PGPASSWORD_READ=nostr
+      - PGPORT_READ=5432
+      - PGHOST_READ=postgres
+      - WOT_ENABLED=False
     ports:
       - target: 8009
         published: 8009
@@ -69,12 +65,10 @@ services:
 
   postgres:
     image: postgres:14
-    env_file:
-      - .env
     environment:
-      - POSTGRES_DB=${PGDATABASE_WRITE}
-      - POSTGRES_USER=${PGUSER_WRITE}
-      - POSTGRES_PASSWORD=${PGPASSWORD_WRITE}
+      - POSTGRES_DB=nostr
+      - POSTGRES_USER=nostr
+      - POSTGRES_PASSWORD=nostr
     deploy:
       replicas: 1
     networks:
@@ -83,7 +77,7 @@ services:
       - ./postgresql.conf:/postgresql.conf
       - ./postgresql/data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${PGUSER_WRITE} || exit 1"]
+      test: ["CMD-SHELL", "pg_isready -U nostr || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -96,8 +90,6 @@ services:
 
   redis:
     image: redis:latest
-    env_file:
-      - .env
     deploy:
       replicas: 1
     networks:
@@ -110,17 +102,15 @@ services:
 
   nginx-certbot:
     image: bhartford419/nginx-certbot:latest
-    env_file:
-      - .env
     environment:
-      - DOMAIN=${DOMAIN}
+      - DOMAIN=stg.nostpy.lol
       - DOCKER_SVC=172.17.0.1
-      - WS_HANDLER_SVC=${WS_HANDLER_SVC}
-      - SVC_PORT=${WS_PORT}
-      - VERSION=${VERSION}
-      - CONTACT=${CONTACT}
-      - ADMIN_PUBKEY=${ADMIN_PUBKEY}
-      - ICON=${ICON}
+      - WS_HANDLER_SVC=websocket-handler
+      - SVC_PORT=8008
+      - VERSION=v1.2.0
+      - CONTACT=bh419@protonmail.com
+      - ADMIN_PUBKEY=4503baa127bdfd0b054384dc5ba82cb0e2a8367cbdb0629179f00db1a34caacc
+      - ICON=https://image.nostr.build/ca2fd20bdd90fe91525ffdd752a2773eb85c2d5a144154d4a0e6227835fa4ae1.jpg
     ports:
       - target: 80
         published: 80
@@ -145,10 +135,8 @@ services:
 
   opentelemetry-collector:
     image: otel/opentelemetry-collector-contrib:0.103.1
-    env_file:
-      - .env
     environment:
-      - DD_API_KEY=${DD_API_KEY}
+      - DD_API_KEY=12345
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /proc/:/host/proc/:ro
