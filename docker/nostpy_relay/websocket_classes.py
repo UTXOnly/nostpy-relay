@@ -195,25 +195,28 @@ class ExtractedResponse:
             except Exception as e:
                 logger.error(f"Error while sending events in send_events: {e}")
 
-        def prepare_event(event_item):
+        def prepare_all_events():
             """
-            Formats the event for sending. Runs in a thread.
+            Prepares all events for sending. Runs in a thread.
             """
-            return [self.event_type, self.subscription_id, event_item]
-    
-        async def send_event_in_thread(event_item):
+            return [
+                [self.event_type, self.subscription_id, event_item]
+                for event_item in response_list
+            ]
+
+        async def send_all_events_in_thread():
             """
-            Prepares and sends an event asynchronously using threads for offloading preparation.
+            Prepares and sends all events asynchronously using a thread for offloading preparation.
             """
             try:
-                formatted_event = await asyncio.to_thread(prepare_event, event_item)
-                await websocket.send(json.dumps(formatted_event))
+                formatted_events = await asyncio.to_thread(prepare_all_events)
+                await websocket.send(json.dumps(formatted_events))
             except Exception as e:
-                logger.error(f"Error while sending event in thread: {e}")
+                logger.error(f"Error while sending all events in thread: {e}")
 
         if len(response_list) > 10:
             try:
-                await asyncio.gather(*(send_event_in_thread(event_item) for event_item in response_list))
+                await send_all_events_in_thread()
             except Exception as e:
                 logger.error(f"Error while sending events in thread: {e}")
         else:
@@ -221,6 +224,7 @@ class ExtractedResponse:
                 await send_events()
             except Exception as e:
                 logger.error(f"Error while sending events: {e}")
+
 
 
 
