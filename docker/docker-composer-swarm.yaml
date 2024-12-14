@@ -147,11 +147,24 @@ services:
       replicas: 1
     networks:
       - nostpy_network
+    ports:
+      - target: 55680
+        published: 55680
+        protocol: tcp
+        mode: ingress
+      - target: 4317
+        published: 4317
+        protocol: tcp
+        mode: ingress
+    command: ["--config=/etc/otel/config.yaml"]
+    group_add:
+      - "999"  # Add to docker group to access docker socket
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
+
 
   tor:
     image: bhartford419/tor:latest
