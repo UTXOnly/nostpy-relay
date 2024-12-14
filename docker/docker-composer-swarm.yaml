@@ -136,7 +136,7 @@ services:
   opentelemetry-collector:
     image: otel/opentelemetry-collector-contrib:0.103.1
     environment:
-      - DD_API_KEY=3f1d473e1c95e393410271aa870fa4b5
+      - DD_API_KEY=12312
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /proc/:/host/proc/:ro
