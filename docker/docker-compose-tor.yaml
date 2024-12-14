@@ -103,6 +103,7 @@ services:
     environment:
       - DOMAIN=${DOMAIN}
       - DOCKER_SVC=172.17.0.1
+      - WS_HANDLER_SVC=${WS_HANDLER_SVC}
       - SVC_PORT=${WS_PORT}
       - VERSION=${VERSION}
       - CONTACT=${CONTACT}
