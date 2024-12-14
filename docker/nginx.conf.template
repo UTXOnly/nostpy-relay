@@ -14,7 +14,7 @@ server {
 
     ssl_stapling on;
     ssl_stapling_verify on;
-    resolver 1.1.1.1 1.0.0.1 [2606:4700:4700::1111] [2606:4700:4700::1001];
+    resolver 127.0.0.11;
 
     add_header Strict-Transport-Security 'max-age=31536000; includeSubDomains; preload' always;
     keepalive_timeout 70;
