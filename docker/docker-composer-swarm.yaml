@@ -151,14 +151,12 @@ services:
       - target: 55680
         published: 55680
         protocol: tcp
-        mode: ingress
+        mode: host
       - target: 4317
         published: 4317
         protocol: tcp
-        mode: ingress
+        mode: host
     command: ["--config=/etc/otel/config.yaml"]
-    group_add:
-      - "999"  # Add to docker group to access docker socket
     logging:
       driver: "json-file"
       options:
