@@ -74,8 +74,8 @@ services:
     networks:
       - nostpy_network
     volumes:
-      - ./postgresql.conf:/postgresql.conf
-      - ./postgresql/data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_config:/postgresql.conf
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U nostr || exit 1"]
       interval: 10s
@@ -125,8 +125,8 @@ services:
     networks:
       - nostpy_network
     volumes:
-      - /etc/letsencrypt:/etc/letsencrypt
-      - /var/lib/letsencrypt:/var/lib/letsencrypt
+      - nginx_letsencrypt:/etc/letsencrypt
+      - nginx_letsencrypt_data:/var/lib/letsencrypt
     logging:
       driver: "json-file"
       options:
@@ -151,18 +151,17 @@ services:
       - target: 55680
         published: 55680
         protocol: tcp
-        mode: host
+        mode: ingress
       - target: 4317
         published: 4317
         protocol: tcp
-        mode: host
+        mode: ingress
     command: ["--config=/etc/otel/config.yaml"]
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-
 
   tor:
     image: bhartford419/tor:latest
@@ -184,3 +183,13 @@ services:
 networks:
   nostpy_network:
     driver: overlay
+
+volumes:
+  postgres_data:
+    driver: local
+  postgres_config:
+    driver: local
+  nginx_letsencrypt:
+    driver: local
+  nginx_letsencrypt_data:
+    driver: local
