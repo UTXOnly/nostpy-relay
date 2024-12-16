@@ -71,6 +71,9 @@ services:
       - POSTGRES_PASSWORD=nostr
     deploy:
       replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
     networks:
       - nostpy_network
     volumes:
@@ -122,6 +125,9 @@ services:
         mode: host
     deploy:
       replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
     networks:
       - nostpy_network
     volumes:
