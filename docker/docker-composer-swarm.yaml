@@ -106,7 +106,7 @@ services:
   nginx-certbot:
     image: bhartford419/nginx-certbot:latest
     environment:
-      - DOMAIN=stg.nostpy.lol
+      - DOMAIN=relay.nostpy.lol
       - DOCKER_SVC=172.17.0.1
       - WS_HANDLER_SVC=websocket-handler
       - SVC_PORT=8008
