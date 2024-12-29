@@ -76,9 +76,12 @@ services:
           - node.role == manager
     networks:
       - nostpy_network
+    #volumes:
+    #  - postgres_data:/var/lib/postgresql/data
+    #  - postgres_config:/postgresql.conf
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - postgres_config:/postgresql.conf
+      - ./postgresql.conf:/postgresql.conf
+      - ./postgresql/data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U nostr || exit 1"]
       interval: 10s
