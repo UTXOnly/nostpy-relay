@@ -181,6 +181,9 @@ services:
         mode: host
     deploy:
       replicas: 1
+    volumes:
+      - ./tor/torrc:/etc/tor/torrc
+      - ./tor/data:/var/lib/tor 
     networks:
       - nostpy_network
     logging:
