@@ -1,21 +1,17 @@
 import asyncio
-import copy
 import json
 import logging
 import os
 from contextlib import asynccontextmanager
-from typing import Callable, Dict, List, Any
+from typing import Callable, Dict, Any
 
-#from aioredis import Redis, from_url
 import psycopg
-import redis
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.instrumentation.psycopg import PsycopgInstrumentor
 from opentelemetry.instrumentation.redis import RedisInstrumentor
 from opentelemetry.metrics import Observation
 from opentelemetry.sdk.resources import Resource
@@ -29,6 +25,7 @@ from psycopg_pool import AsyncConnectionPool
 from event_classes import Event, Subscription
 from init_db import initialize_db
 from otel_metric_base.otel_metrics import OtelMetricBase
+from utils import LimitedDict
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -59,17 +56,16 @@ redis_span_processor = BatchSpanProcessor(redis_otlp_exporter)
 redis_tracer_provider.add_span_processor(redis_span_processor)
 RedisInstrumentor().instrument(tracer_provider=redis_tracer_provider)
 
-#redis_client = redis.Redis(host=os.getenv("REDIS_HOST"), port=os.getenv("REDIS_PORT"))
 
 otel_metrics = OtelMetricBase(otlp_endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 metric_counters = {
-    "wot_event_reject": {},
-    "event_added": {},
-    "event_query": {},
+    "wot_event_reject": LimitedDict(max_size=500),
+    "event_added": LimitedDict(max_size=500),
+    "event_query": LimitedDict(max_size=500),
 }
 
 
-def increment_counter(tags: Dict[str, str], counter_dict: Dict[str, Dict[str, Any]]):
+def increment_counter(tags: Dict[str, str], counter_dict: LimitedDict):
     tag_key = str(sorted(tags.items()))
     counter_dict.setdefault(tag_key, {"count": 0, "tags": tags})["count"] += 1
 
@@ -114,13 +110,18 @@ async def lifespan(app: FastAPI):
     logger.info(f"Write conn string is: {conn_str_write}")
     logger.info(f"Read conn string is: {conn_str_read}")
 
-    app.write_pool = AsyncConnectionPool(conninfo=conn_str_write)
-    app.read_pool = AsyncConnectionPool(conninfo=conn_str_read)
+    # Define limits for the connection pools
+    app.write_pool = AsyncConnectionPool(
+        conninfo=conn_str_write,
+        timeout=30,  # Timeout in seconds for acquiring a connection
+    )
+    app.read_pool = AsyncConnectionPool(conninfo=conn_str_read, timeout=30)
 
-    yield
-
-    await app.write_pool.close()
-    await app.read_pool.close()
+    try:
+        yield
+    finally:
+        await app.write_pool.close()
+        await app.read_pool.close()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -147,7 +148,6 @@ async def execute_sql_with_tracing(app, sql_query: str, span_name: str):
             async with conn.cursor() as cur:
                 await cur.execute(query=sql_query)
                 return await cur.fetchall()
-            
 
 
 async def get_redis_client() -> redis.Redis:
@@ -156,7 +156,6 @@ async def get_redis_client() -> redis.Redis:
         f"redis://{os.getenv('REDIS_HOST')}:{os.getenv('REDIS_PORT')}",
         decode_responses=True,
     )
-
 
 
 @app.post("/new_event")
@@ -207,13 +206,15 @@ async def handle_new_event(request: Request) -> JSONResponse:
                                 http_status_code=403,
                                 message="rejected: user is not in relay's web of trust",
                             )
-                        
+
                     redis_client = await get_redis_client()
 
                     if event_obj.kind in [0, 3]:
                         await event_obj.delete_check(conn, cur)
                         await event_obj.add_event(conn, cur)
-                        await redis_client.publish(REDIS_CHANNEL, json.dumps(event_dict))
+                        await redis_client.publish(
+                            REDIS_CHANNEL, json.dumps(event_dict)
+                        )
                         return event_obj.evt_response(
                             results_status="true", http_status_code=200
                         )
@@ -229,9 +230,14 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         try:
                             await event_obj.add_event(conn, cur)
                             increment_counter(otel_tags, metric_counters["event_added"])
-                            await redis_client.publish(REDIS_CHANNEL, json.dumps(event_dict))
+                            await redis_client.publish(
+                                REDIS_CHANNEL, json.dumps(event_dict)
+                            )
                             logger.info(
                                 f"Published event {event_obj.event_id} to Redis"
+                            )
+                            return event_obj.evt_response(
+                                results_status="true", http_status_code=200
                             )
                         except psycopg.IntegrityError:
                             await conn.rollback()
@@ -251,11 +257,8 @@ async def handle_new_event(request: Request) -> JSONResponse:
                                 message="error: failed to add event",
                             )
 
-                    return event_obj.evt_response(
-                        results_status="true", http_status_code=200
-                    )
     except Exception as exc:
-        logger.debug(f"Entering general exception: {exc}")
+        logger.debug(f"Exception while adding event to database: {exc}")
         await conn.rollback()
         return event_obj.evt_response(
             results_status="false",
@@ -277,7 +280,6 @@ async def handle_subscription(request: Request) -> JSONResponse:
             )
 
         # Parse filters into a list of query components
-        raw_filters_copy = copy.deepcopy(subscription_obj.filters)
         multi_filter = []
         for filter in subscription_obj.filters:
             (
@@ -306,7 +308,9 @@ async def handle_subscription(request: Request) -> JSONResponse:
             return cache_key, cached_result
 
         # Check all filters in parallel
-        cache_results = await asyncio.gather(*(check_cache(filter_set) for filter_set in multi_filter))
+        cache_results = await asyncio.gather(
+            *(check_cache(filter_set) for filter_set in multi_filter)
+        )
 
         # Separate cache hits and misses
         cache_hits = []
@@ -327,17 +331,27 @@ async def handle_subscription(request: Request) -> JSONResponse:
                 app, sql_query, "SELECT * FROM EVENTS"
             )
             parsed_results = await subscription_obj.query_result_parser(query_results)
-            await redis_client.setex(cache_key, 240, json.dumps(parsed_results))  # Cache the results
+            await redis_client.setex(
+                cache_key, 240, json.dumps(parsed_results)
+            )  # Cache the results
             return parsed_results
 
-        db_results = []
-        if cache_misses:
-            db_results = await asyncio.gather(
-                *(query_database(cache_key, filter_set) for cache_key, filter_set in cache_misses)
+        # Query cache misses in database concurrently
+        db_results = (
+            await asyncio.gather(
+                *(
+                    query_database(cache_key, filter_set)
+                    for cache_key, filter_set in cache_misses
+                )
             )
+            if cache_misses
+            else []
+        )
 
         # Combine cached and database results
-        combined_results = [result for result_list in cache_hits + db_results for result in result_list]
+        combined_results = [
+            result for result_list in cache_hits + db_results for result in result_list
+        ]
 
         await redis_client.close()  # Ensure Redis client is properly closed
 
@@ -349,7 +363,6 @@ async def handle_subscription(request: Request) -> JSONResponse:
         return subscription_obj.sub_response_builder(
             "EOSE", subscription_obj.subscription_id, "", 500
         )
-
 
 
 if __name__ == "__main__":
