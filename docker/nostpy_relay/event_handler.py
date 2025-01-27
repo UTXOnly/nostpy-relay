@@ -1,11 +1,11 @@
 import asyncio
-import json
 import logging
 import os
 from contextlib import asynccontextmanager
-from typing import Callable, Dict, Any
+from typing import Any, Callable, Dict
 
 import psycopg
+import redis.asyncio as redis
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -18,14 +18,14 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.semconv.trace import SpanAttributes
-import redis.asyncio as redis
-
+import orjson
 from psycopg_pool import AsyncConnectionPool
 
 from event_classes import Event, Subscription
 from init_db import initialize_db
 from otel_metric_base.otel_metrics import OtelMetricBase
 from utils import LimitedDict
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -160,7 +160,7 @@ async def get_redis_client() -> redis.Redis:
 
 @app.post("/new_event")
 async def handle_new_event(request: Request) -> JSONResponse:
-    event_dict = await request.json()
+    event_dict = orjson.loads(await request.body())
     event_obj = Event(
         event_id=event_dict["id"],
         pubkey=event_dict["pubkey"],
@@ -213,7 +213,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                         await event_obj.delete_check(conn, cur)
                         await event_obj.add_event(conn, cur)
                         await redis_client.publish(
-                            REDIS_CHANNEL, json.dumps(event_dict)
+                            REDIS_CHANNEL, orjson.dumps(event_dict)
                         )
                         return event_obj.evt_response(
                             results_status="true", http_status_code=200
@@ -231,7 +231,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
                             await event_obj.add_event(conn, cur)
                             increment_counter(otel_tags, metric_counters["event_added"])
                             await redis_client.publish(
-                                REDIS_CHANNEL, json.dumps(event_dict)
+                                REDIS_CHANNEL, orjson.dumps(event_dict)
                             )
                             logger.info(
                                 f"Published event {event_obj.event_id} to Redis"
@@ -270,7 +270,7 @@ async def handle_new_event(request: Request) -> JSONResponse:
 @app.post("/subscription")
 async def handle_subscription(request: Request) -> JSONResponse:
     try:
-        request_payload = await request.json()
+        request_payload = orjson.loads(await request.body())
         logger.debug(f"Request payload is {request_payload}")
         subscription_obj = Subscription(request_payload)
 
@@ -317,7 +317,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         cache_misses = []
         for idx, (cache_key, cached_result) in enumerate(cache_results):
             if cached_result:
-                cache_hits.append(json.loads(cached_result))
+                cache_hits.append(orjson.loads(cached_result))
             else:
                 cache_misses.append((cache_key, multi_filter[idx]))
 
@@ -332,7 +332,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
             )
             parsed_results = await subscription_obj.query_result_parser(query_results)
             await redis_client.setex(
-                cache_key, 240, json.dumps(parsed_results)
+                cache_key, 240, orjson.dumps(parsed_results)
             )  # Cache the results
             return parsed_results
 
@@ -356,7 +356,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         await redis_client.close()  # Ensure Redis client is properly closed
 
         return subscription_obj.sub_response_builder(
-            "EVENT", subscription_obj.subscription_id, json.dumps(combined_results), 200
+            "EVENT", subscription_obj.subscription_id, combined_results, 200
         )
     except (psycopg.Error, Exception) as exc:
         logger.error(f"An error occurred: {exc}", exc_info=True)

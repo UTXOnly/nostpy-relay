@@ -15,4 +15,4 @@ redis==5.0.0
 secp256k1==0.14.0
 uvicorn==0.23.2
 websockets==11.0.3
-
+orjson

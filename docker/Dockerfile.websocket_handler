@@ -1,14 +1,5 @@
 FROM python:3.11-slim
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        gcc \
-        pkg-config \
-        libc-dev \
-        g++ \
-        make \
-    && rm -rf /var/lib/apt/lists/*
-
 RUN groupadd -g 1001 nostpy_user \
     && useradd -m -u 1001 -g nostpy_user nostpy_user
 

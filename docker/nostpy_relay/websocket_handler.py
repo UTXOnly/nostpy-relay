@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import orjson
 from typing import Any, Dict, Tuple
 
 import aiohttp
@@ -96,11 +97,11 @@ async def handle_websocket_connection(
                     ws_message = message
                     if ws_message:
                         ws_message = WebsocketMessages(
-                            message=json.loads(message),
+                            message=orjson.loads(message),
                             websocket=websocket,
                             logger=logger,
                         )
-                except json.JSONDecodeError as json_error:
+                except orjson.JSONDecodeError as json_error:
                     logger.error(f"Error decoding JSON message: {json_error}")
                     continue
 
@@ -148,15 +149,19 @@ async def handle_websocket_connection(
                         ws_message.subscription_id,
                         "error: shutting down idle subscription",
                     )
-                    await websocket.send(json.dumps(response))
+                    await websocket.send(orjson.dumps(response).decode("utf-8"))
                     del active_subscriptions[ws_message.subscription_id]
 
-        except (websockets.exceptions.ConnectionClosedError, 
-                ClientConnectionError, 
-                aiohttp.ClientError, 
-                Exception) as error:
-            logger.error(f"An error occurred while processing the WebSocket message: {error}", exc_info=True)
-
+        except (
+            websockets.exceptions.ConnectionClosedError,
+            ClientConnectionError,
+            aiohttp.ClientError,
+            Exception,
+        ) as error:
+            logger.error(
+                f"An error occurred while processing the WebSocket message: {error}",
+                exc_info=True,
+            )
 
 
 async def send_event_to_handler(
@@ -169,14 +174,14 @@ async def send_event_to_handler(
         async with session.post(url, data=json.dumps(event_dict)) as response:
             current_span = trace.get_current_span()
             current_span.set_attribute("operation.name", "post.event.handler")
-            response_data: Dict[str, Any] = await response.json()
+            response_data: Dict[str, Any] = await response.json(json=orjson.loads)
             logger.debug(
                 f"Received response from Event Handler {response_data}, data types is {type(response_data)}"
             )
             response_object = ExtractedResponse(response_data, logger)
             if response.status:
                 formatted_response = await response_object.format_response()
-                await websocket.send(json.dumps(formatted_response))
+                await websocket.send(orjson.dumps(formatted_response))
     except Exception as e:
         logger.error(f"An error occurred while sending the event to the handler: {e}")
 
@@ -195,19 +200,19 @@ async def send_subscription_to_handler(
     }
     logger.debug(f"send payload is {payload}")
 
-    async with session.post(url, data=json.dumps(payload)) as response:
+    async with session.post(url, data=orjson.dumps(payload)) as response:
         current_span = trace.get_current_span()
         current_span.set_attribute("operation.name", "post.event.subscription")
-        response_data = await response.json()
+        response_data = await response.json(loads=orjson.loads)
         logger.debug(
             f"Data type of response_data: {type(response_data)}, Response Data: {response_data}"
         )
         if not response_data:
             logger.debug("Response data none, returning")
-            await websocket.send(json.dumps(["EOSE", subscription_id]))
+            await websocket.send(orjson.dumps(("EOSE", subscription_id)).decode("utf-8"))
             return
         response_object = ExtractedResponse(response_data, logger)
-        EOSE = "EOSE", response_object.subscription_id
+        EOSE = ("EOSE", response_object.subscription_id)
 
         if response.status == 200 and response_object.event_type == "EVENT":
             with tracer.start_as_current_span("send event loop") as span:
@@ -217,9 +222,9 @@ async def send_subscription_to_handler(
                 await response_object.send_event_loop(
                     response_object.results, websocket, logger
                 )
-                await websocket.send(json.dumps(EOSE))
+                await websocket.send(orjson.dumps(EOSE).decode("utf-8"))
         else:
-            await websocket.send(json.dumps(EOSE))
+            await websocket.send(orjson.dumps(EOSE).decode("utf-8"))
             logger.debug(f"Response data is {response_data} but it failed")
 
 
@@ -238,10 +243,10 @@ async def redis_listener():
                     logger.debug(f"Received message from Redis: {message}")
                     if message["type"] == "message":
                         try:
-                            event_data = json.loads(message["data"].decode("utf-8"))
+                            event_data = orjson.loads(message["data"])
                             logger.debug(f"Decoded event data: {event_data}")
                             asyncio.create_task(broadcast_event_to_clients(event_data))
-                        except json.JSONDecodeError as e:
+                        except orjson.JSONDecodeError as e:
                             logger.error(f"Invalid JSON in Redis message: {e}")
                 await asyncio.sleep(0.1)
     except Exception as e:
@@ -258,7 +263,7 @@ async def broadcast_event_to_clients(event_data: Dict[str, Any]) -> None:
             matcher = SubscriptionMatcher(subscription_id, data["event"], logger)
             if matcher.match_event(event_data):
                 await websocket.send(
-                    json.dumps((f"EVENT", subscription_id, event_data))
+                    orjson.dumps((f"EVENT", subscription_id, event_data))
                 )
         except Exception as e:
             logger.error(f"Error broadcasting to subscription {subscription_id}: {e}")

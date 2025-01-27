@@ -2,110 +2,8 @@ import asyncio
 import hashlib
 import json
 import orjson
-import time
-from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-
-class TokenBucketRateLimiter:
-    """
-    A class representing a token bucket rate limiter.
-
-    Attributes:
-        tokens_per_second (int): The number of tokens allowed per second.
-        max_tokens (int): The maximum number of tokens in the bucket.
-        tokens (defaultdict): A dictionary storing the current number of tokens for each client.
-        last_request_time (defaultdict): A dictionary storing the timestamp of the last request for each client.
-
-    Methods:
-        _get_tokens(client_id: str) -> None: Updates the number of tokens for a given client based on the time passed since the last request.
-        _parse_token_count(token_count: str) -> dict: Parses a string representation of token count into a dictionary.
-        __str__() -> str: Returns a string representation of the current token counts.
-        check_request(client_id: str) -> bool: Checks if a request from a client is allowed based on the available tokens.
-
-    """
-
-    def __init__(self, tokens_per_second: int, max_tokens: int):
-        """
-        Initializes the TokenBucketRateLimiter object.
-
-        Args:
-            tokens_per_second (int): The number of tokens allowed per second.
-            max_tokens (int): The maximum number of tokens in the bucket.
-
-        """
-        self.tokens_per_second = tokens_per_second
-        self.max_tokens = max_tokens
-        self.tokens = defaultdict(lambda: self.max_tokens)
-        self.last_request_time = defaultdict(lambda: 0)
-
-    async def _get_tokens(self, client_id: str) -> None:
-        """
-        Updates the number of tokens for a given client based on the time passed since the last request.
-
-        Args:
-            client_id (str): The ID of the client.
-
-        Returns:
-            None
-
-        """
-        current_time = time.time()
-        time_passed = current_time - self.last_request_time[client_id]
-        new_tokens = int(time_passed * self.tokens_per_second)
-        self.tokens[client_id] = min(
-            self.tokens[client_id] + new_tokens, self.max_tokens
-        )
-        self.last_request_time[client_id] = current_time
-        return self.tokens
-
-    def _parse_token_count(self, token_count: str) -> dict:
-        """
-        Parses a string representation of token count into a dictionary.
-
-        Args:
-            token_count (str): The string representation of token count.
-
-        Returns:
-            dict: The parsed token count as a dictionary.
-
-        """
-        start_index = token_count.find("{") + 1
-        end_index = token_count.find("}")
-        dictionary_str = token_count[start_index:end_index]
-        dictionary_splitter = dictionary_str.split(",")
-        dictionary = {}
-        for item in dictionary_splitter:
-            key, value = item.split(":")
-            dictionary[key.strip()] = int(value.strip())
-        return dictionary
-
-    def __str__(self):
-        """
-        Returns a string representation of the current token counts.
-
-        Returns:
-            str: The string representation of the current token counts.
-
-        """
-        return str(dict(self.tokens))
-
-    async def check_request(self, client_id: str) -> bool:
-        """
-        Checks if a request from a client is allowed based on the available tokens.
-
-        Args:
-            client_id (str): The ID of the client.
-
-        Returns:
-            bool: True if the request is allowed, False otherwise.
-
-        """
-        await self._get_tokens(client_id)
-        if self.tokens[client_id] >= 1:
-            self.tokens[client_id] -= 1
-            return True
-        return False
 
 
 class ExtractedResponse:
@@ -138,8 +36,8 @@ class ExtractedResponse:
         self.subscription_id = response_data["subscription_id"]
         self.message = response_data.get("message", "")
         try:
-            self.results = json.loads(response_data["results_json"])
-        except json.JSONDecodeError as json_error:
+            self.results = response_data["results_json"]
+        except orjson.JSONDecodeError as json_error:
             logger.error(
                 f"Error decoding JSON message in Extracted Response: {json_error}."
             )
@@ -170,24 +68,25 @@ class ExtractedResponse:
 
         return client_response
 
-
     async def send_event_loop(self, response_list, websocket, logger) -> None:
         """
-        Sends a list of event items to a WebSocket using a faster JSON library (orjson).
-    
+        Sends a tuple of event items to a WebSocket using a faster JSON library (orjson).
+
         Parameters:
             response_list (List[Dict]): A list of dictionaries representing event items.
             websocket (websockets.WebSocketClientProtocol): The WebSocket connection to send the events to.
         """
         try:
-            tasks = [
+            tasks = tuple(
                 asyncio.create_task(
                     websocket.send(
-                        orjson.dumps([self.event_type, self.subscription_id, event_item]).decode("utf-8")
+                        orjson.dumps(
+                            (self.event_type, self.subscription_id, event_item)
+                        ).decode("utf-8")
                     )
                 )
                 for event_item in response_list
-            ]
+            )
             await asyncio.gather(*tasks)
         except Exception as e:
             logger.error(f"Error while sending events: {e}")

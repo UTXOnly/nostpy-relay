@@ -1,7 +1,8 @@
 import asyncio
 import json
+import orjson
 from typing import List, Tuple, Dict
-from fastapi.responses import JSONResponse
+from fastapi.responses import ORJSONResponse
 import secp256k1
 
 
@@ -176,7 +177,7 @@ class Event:
             "results_json": results_status,
             "message": message,
         }
-        return JSONResponse(content=response, status_code=http_status_code)
+        return ORJSONResponse(content=response, status_code=http_status_code)
 
 
 class Subscription:
@@ -412,7 +413,7 @@ class Subscription:
     def sub_response_builder(
         self, event_type, subscription_id, results_json, http_status_code
     ):
-        return JSONResponse(
+        return ORJSONResponse(
             content={
                 "event": event_type,
                 "subscription_id": subscription_id,
