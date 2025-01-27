@@ -1,8 +1,7 @@
 import asyncio
-import json
 import logging
-import os
 import orjson
+import os
 from typing import Any, Dict, Tuple
 
 import aiohttp
@@ -171,7 +170,7 @@ async def send_event_to_handler(
 ) -> None:
     url: str = f"http://{EVENT_HANDLER_SVC}:{EVENT_HANDLER_PORT}/new_event"
     try:
-        async with session.post(url, data=json.dumps(event_dict)) as response:
+        async with session.post(url, data=orjson.dumps(event_dict)) as response:
             current_span = trace.get_current_span()
             current_span.set_attribute("operation.name", "post.event.handler")
             response_data: Dict[str, Any] = await response.json(json=orjson.loads)
