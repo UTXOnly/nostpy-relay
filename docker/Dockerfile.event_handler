@@ -1,7 +1,6 @@
 FROM python:3.11-slim
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc \
         pkg-config \
         libc-dev \
@@ -13,11 +12,12 @@ RUN groupadd -g 1001 nostpy_user \
     && useradd -m -u 1001 -g nostpy_user nostpy_user
 
 WORKDIR /app
+
 COPY eh_requirements.txt .
 RUN chown nostpy_user:nostpy_user /app/eh_requirements.txt
-RUN pip install --no-cache-dir -r eh_requirements.txt
+RUN pip install --no-cache-dir -r eh_requirements.txt && apt-get purge -y gcc g++ make pkg-config libc-dev && apt-get autoremove -y
 
-COPY ./nostpy_relay/init_db.py ./nostpy_relay/event*.py ./
+COPY ./nostpy_relay/init_db.py ./nostpy_relay/event*.py ./nostpy_relay/utils.py ./
 RUN chown -R nostpy_user:nostpy_user /app
 
 USER nostpy_user
