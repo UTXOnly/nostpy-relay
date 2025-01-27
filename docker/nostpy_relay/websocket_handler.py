@@ -208,7 +208,9 @@ async def send_subscription_to_handler(
         )
         if not response_data:
             logger.debug("Response data none, returning")
-            await websocket.send(orjson.dumps(("EOSE", subscription_id)).decode("utf-8"))
+            await websocket.send(
+                orjson.dumps(("EOSE", subscription_id)).decode("utf-8")
+            )
             return
         response_object = ExtractedResponse(response_data, logger)
         EOSE = ("EOSE", response_object.subscription_id)
