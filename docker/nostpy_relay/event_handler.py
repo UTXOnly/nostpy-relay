@@ -273,6 +273,8 @@ async def handle_subscription(request: Request) -> JSONResponse:
         request_payload = orjson.loads(await request.body())
         logger.debug(f"Request payload is {request_payload}")
         subscription_obj = Subscription(request_payload)
+        otel_tags = {"stage": "pre-cache"}
+        increment_counter(otel_tags, metric_counters["event_added"])
 
         if not subscription_obj.filters:
             return subscription_obj.sub_response_builder(
