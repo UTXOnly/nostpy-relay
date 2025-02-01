@@ -1,6 +1,6 @@
 version: '3'
 services:
-  websocket_handler:
+  websocket-handler:
     build:
       context: .
       dockerfile: Dockerfile.websocket_handler
@@ -8,9 +8,13 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4317
       - EVENT_HANDLER_SVC=${EVENT_HANDLER_SVC}
       - EVENT_HANDLER_PORT=${EVENT_HANDLER_PORT}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
       - WS_PORT=${WS_PORT}
     ports:
       - 8008:8008
+    depends_on:
+      - redis
     networks:
       nostpy_network:
         ipv4_address: 172.28.0.2
@@ -20,7 +24,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  event_handler:
+  event-handler:
     build:
       context: .
       dockerfile: Dockerfile.event_handler
@@ -99,6 +103,7 @@ services:
     environment:
       - DOMAIN=${DOMAIN}
       - DOCKER_SVC=172.17.0.1
+      - WS_HANDLER_SVC=${WS_HANDLER_SVC}
       - SVC_PORT=${WS_PORT}
       - VERSION=${VERSION}
       - CONTACT=${CONTACT}

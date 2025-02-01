@@ -10,3 +10,5 @@ grpcio
 opentelemetry-api
 opentelemetry-exporter-otlp-proto-grpc
 opentelemetry-instrumentation-aiohttp-client
+redis==5.0.0
+orjson

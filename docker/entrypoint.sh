@@ -33,7 +33,7 @@ else
 fi
 
 # Replace placeholders in the Nginx configuration template with the actual environment variables
-envsubst '${DOMAIN} ${DOCKER_SVC} ${SVC_PORT} ${ADMIN_PUBKEY} ${CONTACT} ${VERSION} ${ICON}' < /etc/nginx/nginx.conf.template > /etc/nginx/sites-available/$DOMAIN.conf
+envsubst '${DOMAIN} ${DOCKER_SVC} ${SVC_PORT} ${ADMIN_PUBKEY} ${CONTACT} ${VERSION} ${ICON} ${WS_HANDLER_SVC}' < /etc/nginx/nginx.conf.template > /etc/nginx/sites-available/$DOMAIN.conf
 
 # Create a symbolic link to the sites-enabled directory if it doesn't already exist
 if [ ! -f /etc/nginx/sites-enabled/$DOMAIN.conf ]; then
@@ -44,6 +44,8 @@ fi
 if ! grep -q "include /etc/nginx/sites-enabled/*.conf;" /etc/nginx/nginx.conf; then
     sed -i '/http {/a \    include /etc/nginx/sites-enabled/*.conf;' /etc/nginx/nginx.conf
 fi
+
+nslookup websocket-handler
 
 # Test the Nginx configuration
 nginx -t

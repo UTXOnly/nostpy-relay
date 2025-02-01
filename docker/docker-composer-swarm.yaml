@@ -1,0 +1,207 @@
+version: '3.9'
+services:
+  websocket-handler:
+    image: bhartford419/websocket-handler:latest
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4317
+      - EVENT_HANDLER_SVC=event-handler
+      - EVENT_HANDLER_PORT=8009
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - WS_PORT=8008
+    ports:
+      - target: 8008
+        published: 8008
+        protocol: tcp
+        mode: ingress
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+    networks:
+      - nostpy_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  event-handler:
+    image: bhartford419/event-handler:latest
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4317
+      - EVENT_HANDLER_PORT=8009
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PGDATABASE_WRITE=nostr
+      - PGUSER_WRITE=nostr
+      - PGPASSWORD_WRITE=nostr
+      - PGPORT_WRITE=5432
+      - PGHOST_WRITE=postgres
+      - PGDATABASE_READ=nostr
+      - PGUSER_READ=nostr
+      - PGPASSWORD_READ=nostr
+      - PGPORT_READ=5432
+      - PGHOST_READ=postgres
+      - WOT_ENABLED=False
+    ports:
+      - target: 8009
+        published: 8009
+        protocol: tcp
+        mode: ingress
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+    networks:
+      - nostpy_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  postgres:
+    image: postgres:14
+    environment:
+      - POSTGRES_DB=nostr
+      - POSTGRES_USER=nostr
+      - POSTGRES_PASSWORD=nostr
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+    networks:
+      - nostpy_network
+    #volumes:
+    #  - postgres_data:/var/lib/postgresql/data
+    #  - postgres_config:/postgresql.conf
+    volumes:
+      - ./postgresql.conf:/postgresql.conf
+      - ./postgresql/data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nostr || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    image: redis:latest
+    deploy:
+      replicas: 1
+    networks:
+      - nostpy_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  nginx-certbot:
+    image: bhartford419/nginx-certbot:latest
+    environment:
+      - DOMAIN=relay.nostpy.lol
+      - DOCKER_SVC=172.17.0.1
+      - WS_HANDLER_SVC=websocket-handler
+      - SVC_PORT=8008
+      - VERSION=v1.2.0
+      - CONTACT=bh419@protonmail.com
+      - ADMIN_PUBKEY=4503baa127bdfd0b054384dc5ba82cb0e2a8367cbdb0629179f00db1a34caacc
+      - ICON=https://image.nostr.build/ca2fd20bdd90fe91525ffdd752a2773eb85c2d5a144154d4a0e6227835fa4ae1.jpg
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+    networks:
+      - nostpy_network
+    volumes:
+      - nginx_letsencrypt:/etc/letsencrypt
+      - nginx_letsencrypt_data:/var/lib/letsencrypt
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  opentelemetry-collector:
+    image: otel/opentelemetry-collector-contrib:0.103.1
+    environment:
+      - DD_API_KEY=12312
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
+      - /sys/kernel/debug:/sys/kernel/debug
+      - ./config-opentelemetry.yaml:/etc/otel/config.yaml
+    deploy:
+      replicas: 1
+    networks:
+      - nostpy_network
+    ports:
+      - target: 55680
+        published: 55680
+        protocol: tcp
+        mode: ingress
+      - target: 4317
+        published: 4317
+        protocol: tcp
+        mode: ingress
+    command: ["--config=/etc/otel/config.yaml"]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  tor:
+    image: bhartford419/tor:latest
+    ports:
+      - target: 9050
+        published: 9050
+        protocol: tcp
+        mode: host
+    deploy:
+      replicas: 1
+    volumes:
+      - ./tor/torrc:/etc/tor/torrc
+      - ./tor/data:/var/lib/tor 
+    networks:
+      - nostpy_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  nostpy_network:
+    driver: overlay
+
+volumes:
+  postgres_data:
+    driver: local
+  postgres_config:
+    driver: local
+  nginx_letsencrypt:
+    driver: local
+  nginx_letsencrypt_data:
+    driver: local

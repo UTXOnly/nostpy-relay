@@ -1,18 +1,15 @@
 FROM python:3.11-slim
 
-WORKDIR /app
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        gcc \
-        pkg-config \
-        libc-dev \
-        g++ \
-        make \
-    && rm -rf /var/lib/apt/lists/*
+RUN groupadd -g 1001 nostpy_user \
+    && useradd -m -u 1001 -g nostpy_user nostpy_user
 
+WORKDIR /app
 COPY ws_requirements.txt .
+RUN chown nostpy_user:nostpy_user /app/ws_requirements.txt
 RUN pip install --no-cache-dir -r ws_requirements.txt
 
 COPY ./nostpy_relay/websocket*.py ./
+RUN chown -R nostpy_user:nostpy_user /app
 
+USER nostpy_user
 CMD ["python", "websocket_handler.py"]
