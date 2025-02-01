@@ -180,7 +180,7 @@ async def send_event_to_handler(
             response_object = ExtractedResponse(response_data, logger)
             if response.status:
                 formatted_response = await response_object.format_response()
-                await websocket.send(orjson.dumps(formatted_response))
+                await websocket.send(orjson.dumps(formatted_response).decode())
     except Exception as e:
         logger.error(f"An error occurred while sending the event to the handler: {e}")
 
