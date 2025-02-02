@@ -5,7 +5,8 @@
 A containerized, fully Python-based Nostr relay designed for portability and ease of deployment. It leverages asyncio and websockets to efficiently serve Nostr clients, making it simple to deploy and manage across various environments.
 
 
-![Image 2023-09-15 at 9 53 46 AM](https://github.com/UTXOnly/nost-py/assets/49233513/724cfbeb-03a0-4d10-b0d1-6b638ac153c4)
+![retro_8bit_resized_30](https://github.com/user-attachments/assets/833ff793-fde9-4e18-b6a0-8a70249e33d5)
+
 
 
 ### Requirements
