@@ -37,7 +37,7 @@ REDIS_HOST = os.getenv("REDIS_HOST")
 REDIS_CHANNEL = "new_events_channel"
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
