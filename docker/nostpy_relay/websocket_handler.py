@@ -173,7 +173,7 @@ async def send_event_to_handler(
         async with session.post(url, data=orjson.dumps(event_dict)) as response:
             current_span = trace.get_current_span()
             current_span.set_attribute("operation.name", "post.event.handler")
-            response_data: Dict[str, Any] = await response.json(json=orjson.loads)
+            response_data: Dict[str, Any] = await response.json(loads=orjson.loads)
             logger.debug(
                 f"Received response from Event Handler {response_data}, data types is {type(response_data)}"
             )
@@ -264,7 +264,7 @@ async def broadcast_event_to_clients(event_data: Dict[str, Any]) -> None:
             matcher = SubscriptionMatcher(subscription_id, data["event"], logger)
             if matcher.match_event(event_data):
                 await websocket.send(
-                    orjson.dumps((f"EVENT", subscription_id, event_data))
+                    orjson.dumps((f"EVENT", subscription_id, event_data)).decode()
                 )
         except Exception as e:
             logger.error(f"Error broadcasting to subscription {subscription_id}: {e}")
