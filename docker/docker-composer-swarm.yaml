@@ -76,9 +76,6 @@ services:
           - node.role == manager
     networks:
       - nostpy_network
-    #volumes:
-    #  - postgres_data:/var/lib/postgresql/data
-    #  - postgres_config:/postgresql.conf
     volumes:
       - ./postgresql.conf:/postgresql.conf
       - ./postgresql/data:/var/lib/postgresql/data
@@ -88,11 +85,48 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    ports:
+    - target: 5432
+      published: 5432
+      protocol: tcp
+      mode: host
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
+    labels:
+      com.datadoghq.ad.checks: '{
+        "postgres": {
+          "init_config": {},
+          "instances": [
+            {
+              "host": "%%host%%",
+              "port": 5432,
+              "dbm": true,
+              "username": "nostr",
+              "password": "nostr",
+              "dbname": "nostr",
+              "tags": ["service:postgres"]
+            }
+          ]
+        }
+        }'
+
+  datadog-agent:
+    image: datadog/agent:latest
+    environment:
+      - DD_API_KEY=your_api_key_here
+      - DD_SITE=datadoghq.com
+      - DD_PROCESS_CONFIG_PROCESS_COLLECTION_ENABLED=true
+    deploy:
+      mode: global
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc:/host/proc:ro
+      - /sys/fs/cgroup:/host/sys/fs/cgroup:ro
+    networks:
+      - nostpy_network
 
   redis:
     image: redis:latest
