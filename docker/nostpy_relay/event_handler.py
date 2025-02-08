@@ -283,10 +283,12 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
         # Parse filters into query components in parallel
         multi_filter = await asyncio.gather(
-            *(subscription_obj.parse_filters(f, logger) for f in subscription_obj.filters)
+            *(
+                subscription_obj.parse_filters(f, logger)
+                for f in subscription_obj.filters
+            )
         )
 
-        # Initialize Redis client
         redis_client = await get_redis_client()
 
         # Check cache in parallel
@@ -298,25 +300,34 @@ async def handle_subscription(request: Request) -> JSONResponse:
 
         # Separate cache hits and misses
         cache_hits = [orjson.loads(res) for _, res in cache_results if res]
-        cache_misses = [(key, f) for key, res, f in zip(*zip(*cache_results), multi_filter) if not res]
+        cache_misses = [
+            (key, f)
+            for key, res, f in zip(*zip(*cache_results), multi_filter)
+            if not res
+        ]
 
         # Query cache misses in the database
         async def query_database(cache_key, filter_set):
             sql_query = subscription_obj.base_query_builder(*filter_set, logger)
-            query_results = await execute_sql_with_tracing(app, sql_query, "SELECT * FROM EVENTS")
+            query_results = await execute_sql_with_tracing(
+                app, sql_query, "SELECT * FROM EVENTS"
+            )
             parsed_results = await subscription_obj.query_result_parser(query_results)
             await redis_client.setex(cache_key, 240, orjson.dumps(parsed_results))
             return parsed_results
 
-        db_results = await asyncio.gather(
-            *(query_database(key, f) for key, f in cache_misses)
-        ) if cache_misses else []
+        db_results = (
+            await asyncio.gather(*(query_database(key, f) for key, f in cache_misses))
+            if cache_misses
+            else []
+        )
 
         # Combine results
-        combined_results = [result for res_list in cache_hits + db_results for result in res_list]
+        combined_results = [
+            result for res_list in cache_hits + db_results for result in res_list
+        ]
 
-
-        await redis_client.close()  # Ensure Redis client is properly closed
+        await redis_client.close()
 
         return subscription_obj.sub_response_builder(
             "EVENT", subscription_obj.subscription_id, combined_results, 200
