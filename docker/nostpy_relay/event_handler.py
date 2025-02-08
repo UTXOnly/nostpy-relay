@@ -272,90 +272,62 @@ async def handle_subscription(request: Request) -> JSONResponse:
     try:
         request_payload = orjson.loads(await request.body())
         logger.debug(f"Request payload is {request_payload}")
+
         subscription_obj = Subscription(request_payload)
-        otel_tags = {"stage": "pre-cache"}
-        increment_counter(otel_tags, metric_counters["event_added"])
+        increment_counter({"stage": "pre-cache"}, metric_counters["event_added"])
 
         if not subscription_obj.filters:
             return subscription_obj.sub_response_builder(
                 "EOSE", subscription_obj.subscription_id, "", 204
             )
 
-        # Parse filters into a list of query components
-        multi_filter = []
-        for filter in subscription_obj.filters:
-            (
-                tag_values,
-                query_parts,
-                limit,
-                global_search,
-            ) = await subscription_obj.parse_filters(filter, logger)
-            multi_filter.append(
-                (
-                    tag_values,
-                    query_parts,
-                    limit,
-                    global_search,
-                )
+        # Parse filters into query components in parallel
+        multi_filter = await asyncio.gather(
+            *(
+                subscription_obj.parse_filters(f, logger)
+                for f in subscription_obj.filters
             )
-
-        # Initialize Redis client lazily
-        redis_client = await get_redis_client()
-
-        # Define a function to check the cache for a given filter
-        async def check_cache(filter_set):
-            tag_values, query_parts, limit, global_search = filter_set
-            cache_key = f"{str((tag_values, query_parts, limit, global_search))}"
-            cached_result = await redis_client.get(cache_key)
-            return cache_key, cached_result
-
-        # Check all filters in parallel
-        cache_results = await asyncio.gather(
-            *(check_cache(filter_set) for filter_set in multi_filter)
         )
 
-        # Separate cache hits and misses
-        cache_hits = []
-        cache_misses = []
-        for idx, (cache_key, cached_result) in enumerate(cache_results):
-            if cached_result:
-                cache_hits.append(orjson.loads(cached_result))
-            else:
-                cache_misses.append((cache_key, multi_filter[idx]))
+        redis_client = await get_redis_client()
 
-        # Process cache misses by querying the database
+        # Check cache in parallel
+        async def check_cache(filter_set):
+            cache_key = str(filter_set)
+            return cache_key, await redis_client.get(cache_key)
+
+        cache_results = await asyncio.gather(*(check_cache(f) for f in multi_filter))
+
+        # Separate cache hits and misses
+        cache_hits = [orjson.loads(res) for _, res in cache_results if res]
+        cache_misses = [
+            (key, f)
+            for key, res, f in zip(*zip(*cache_results), multi_filter)
+            if not res
+        ]
+
+        # Query cache misses in the database
         async def query_database(cache_key, filter_set):
-            tag_values, query_parts, limit, global_search = filter_set
-            sql_query = subscription_obj.base_query_builder(
-                tag_values, query_parts, limit, global_search, logger
-            )
+            sql_query = subscription_obj.base_query_builder(*filter_set, logger)
             query_results = await execute_sql_with_tracing(
                 app, sql_query, "SELECT * FROM EVENTS"
             )
             parsed_results = await subscription_obj.query_result_parser(query_results)
-            await redis_client.setex(
-                cache_key, 240, orjson.dumps(parsed_results)
-            )  # Cache the results
+            await redis_client.setex(cache_key, 240, orjson.dumps(parsed_results))
             return parsed_results
 
-        # Query cache misses in database concurrently
         db_results = (
-            await asyncio.gather(
-                *(
-                    query_database(cache_key, filter_set)
-                    for cache_key, filter_set in cache_misses
-                )
-            )
+            await asyncio.gather(*(query_database(key, f) for key, f in cache_misses))
             if cache_misses
             else []
         )
 
-        # Combine cached and database results
+        # Combine results
         combined_results = [
-            result for result_list in cache_hits + db_results for result in result_list
+            result for res_list in cache_hits + db_results for result in res_list
         ]
 
-        await redis_client.close()  # Ensure Redis client is properly closed
+        await redis_client.close()
 
         return subscription_obj.sub_response_builder(
             "EVENT", subscription_obj.subscription_id, combined_results, 200
