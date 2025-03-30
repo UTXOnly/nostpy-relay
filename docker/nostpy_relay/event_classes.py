@@ -227,7 +227,7 @@ class Subscription:
         return complete_cluase
 
     def _search_clause(self, search_item):
-        search_clause = f" EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE elem::text LIKE '%{search_item}%' OR content LIKE '%{search_item}%')"
+        search_clause = f" EXISTS ( SELECT 1 FROM jsonb_array_elements(tags) as elem WHERE elem::text ILIKE '%{search_item}%' OR content ILIKE '%{search_item}%')"
         return search_clause
 
     async def _sanitize_event_keys(self, filters, logger) -> Dict:
