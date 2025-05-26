@@ -37,7 +37,7 @@ REDIS_HOST = os.getenv("REDIS_HOST")
 REDIS_CHANNEL = "new_events_channel"
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
@@ -182,7 +182,7 @@ async def send_event_to_handler(
                 formatted_response = await response_object.format_response()
                 await websocket.send(orjson.dumps(formatted_response).decode())
     except Exception as e:
-        logger.error(f"An error occurred while sending the event to the handler: {e}")
+        logger.error(f"An error occurred while sending the event to the handler: {e}", exc_info=True)
 
 
 async def send_subscription_to_handler(
