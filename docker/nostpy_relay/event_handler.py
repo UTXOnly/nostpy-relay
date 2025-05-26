@@ -274,7 +274,7 @@ async def handle_subscription(request: Request) -> JSONResponse:
         logger.debug(f"Request payload is {request_payload}")
 
         subscription_obj = Subscription(request_payload)
-        increment_counter({"stage": "pre-cache"}, metric_counters["event_added"])
+        increment_counter({"stage": "pre-cache"}, metric_counters["event_query"])
 
         if not subscription_obj.filters:
             return subscription_obj.sub_response_builder(
